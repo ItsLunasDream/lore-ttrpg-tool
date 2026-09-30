@@ -124,8 +124,8 @@ Neu am Bogen:
   und SL sind damit **nicht** dasselbe: Wer den Raum technisch hält, muss
   nicht leiten.
 - Die Rollen kennt der Gastgeber und verteilt sie mit der Personenliste.
-- **Rollen überdauern den Raum.** Der Gastgeber merkt sie sich je Raumname
-  und setzt sie beim nächsten Mal wieder, sobald die Person beitritt.
+- **Rollen überdauern den Raum.** Sie stehen im gespeicherten Raum (siehe
+  unten) und gelten wieder, sobald die Person beitritt.
 - Erkannt wird eine Person am **Tischschlüssel**: Jede Installation legt
   einmal ein zufälliges Schlüsselpaar an und beweist beim Beitreten, dass
   sie den geheimen Teil hat. Am Namen allein geht es nicht, sonst bekäme
@@ -137,6 +137,16 @@ Neu am Bogen:
 **Freigabe eines Bogens** für die anderen Spieler:innen, einstellbar je
 Bogen: *nichts*, *Übersicht* (Name, Klasse, Stufe, TP-Stufe, RK, Zustände)
 oder *alles*. Die SL sieht immer alles. Vorgabe: Übersicht.
+
+**Änderungen durch die SL** an einem Spielerbogen sind standardmäßig
+sichtbar: Das geänderte Feld leuchtet kurz auf, trägt danach eine kleine
+Marke „SL“ (beim Darüberfahren: wer, wann, alter Wert), und oben am Bogen
+steht „3 Änderungen durch die SL“ mit Liste; ein Klick bestätigt sie weg.
+Die SL kann das per Klick umgehen: Ein Schalter „Still ändern“ in ihrer
+Leiste gilt, bis sie ihn wieder ausschaltet, und ist sichtbar an, solange er
+an ist. Stille Änderungen stehen nur im Verlauf, den die SL sieht. Das ist
+gewollt (etwa für Flüche, die die Figur nicht bemerkt), heißt aber auch:
+Spieler:innen können sich nicht darauf verlassen, jede Änderung zu sehen.
 
 ## Live im Raum
 
@@ -164,7 +174,7 @@ mittendrin abreißen kann.
   Schritte.
 - **Verlassen**: Jede:r behält den letzten Stand der eigenen Bögen lokal.
   Die SL behält auf Wunsch eine Kopie aller Bögen („Stand der Runde
-  sichern“). Gruppeninventare speichern alle SL und der Gastgeber.
+  sichern“). Gruppeninventare speichert der Gastgeber mit dem Raum.
 - **Gastgeber geht**: Der Raum endet ohnehin (so ist er gebaut). Alle haben
   den letzten verteilten Stand; nichts geht verloren, was schon angekommen
   war.
@@ -196,6 +206,38 @@ Fassung 3.
 **Grenze:** Der Gastgeber prüft die Rechte. Wer den Raum hält, könnte mit
 einer veränderten App alles ändern. Für eine Runde unter Bekannten reicht
 das; es sollte aber in der Oberfläche nicht nach mehr aussehen.
+
+## Gespeicherte Räume
+
+Der Gastgeber speichert den Raum, damit die Runde nächste Woche genau dort
+weitermacht.
+
+**Was drinsteht:**
+
+- Name des Raums, Port und ob übers Internet.
+- **Personen mit Rolle**: Tischschlüssel, zuletzt benutzter Name, Rolle.
+- **Gruppeninventare** samt Geld und Verlauf.
+- **Einstellungen des Raums**: ob Spieler:innen aus dem Gruppeninventar
+  nehmen dürfen, Vorgabe für die Freigabe neuer Bögen, ob SL-Änderungen
+  markiert werden.
+- Wer zuletzt welchen Bogen hineingebracht hat (nur Kennung und Name, nicht
+  der Bogen selbst: der gehört den Spieler:innen).
+
+**Nicht drin: das Passwort.** Es wird beim Wiedereröffnen neu eingegeben.
+Gespeichert, auch verschlüsselt, läge auf der Platte des Gastgebers alles,
+was man zum Mitlesen braucht.
+
+**Bedienung:**
+
+- Gespeichert wird von selbst: beim Schließen des Raums und alle paar
+  Minuten, solange er offen ist. Ein neuer Raum fragt beim Eröffnen:
+  „Neu“ oder „Gespeicherten Raum fortsetzen“.
+- Im Reiter Raum steht eine Liste **„Meine Räume“**: fortsetzen, umbenennen,
+  löschen, als Datei exportieren.
+- **Gastgeber wechseln**: Export als Paketdatei, die neue Person liest sie
+  ein und eröffnet den Raum bei sich. Rollen und Gruppeninventar kommen mit.
+- Ablage: eine Datei je Raum im Datenordner der Hülle
+  (`userData/raeume/<id>.json`), in der Sicherung der Sammlung enthalten.
 
 ## Andere Werkzeuge
 
@@ -264,7 +306,7 @@ interface Bogen {
 2. Zauberliste mit SRD-Zaubern und eigenen.
 3. Inventar nach `docs/inventar.md` (eigene Gegenstände, Summen, Münzen).
 4. Rollen in Hülle und Raumprotokoll (SL, mehrere SL, übertragen,
-   Tischschlüssel, gemerkt je Raum).
+   Tischschlüssel) und gespeicherte Räume.
 5. Bögen im Raum: Gastgeber führt, Schritte, Freigabe, Sichtbarkeit.
 6. Geben zwischen Bögen und Gruppeninventar.
 7. Quellen fürs Inventar (Magic Items, SRD, Loot) und Initiative-Anbindung.
@@ -274,9 +316,8 @@ Schritt 4 lohnt sich auch allein: Würfel und Initiative profitieren sofort.
 ## Zu klären
 
 Entschieden: nur 5.5e (2024); mit Zauberliste; Spieler:innen dürfen aus
-dem Gruppeninventar nehmen; Rollen überdauern den Raum.
+dem Gruppeninventar nehmen; Rollen überdauern den Raum; SL-Änderungen
+standardmäßig sichtbar, per Klick still; der Gastgeber speichert den Raum
+mit Rollen, Gruppeninventar und Einstellungen.
 
-1. Soll die SL Änderungen an Spielerbögen sichtbar markieren („von der SL
-   geändert“), oder still?
-2. Gehört das Gruppeninventar dem Raum (weg, wenn der Raum endet, außer
-   jemand speichert) oder immer einer SL?
+Derzeit keine offenen Fragen.
