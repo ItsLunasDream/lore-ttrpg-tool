@@ -185,8 +185,13 @@ Obsidian.
   den 339 SRD-Zaubern oder eigenen, Wirken verbraucht einen Platz.
 - **Inventar**: Gegenstände mit Gewicht und Wert, Geld in PM/GM/EM/SM/KM,
   Gruppeninventare, Geben und Aufteilen zwischen Bögen; Gewichte in kg und lb.
-- Speichert von selbst als Markdown. Der Raum folgt
-  (`docs/charakterbogen.md`).
+- **Im Raum**: den eigenen Bogen hineinbringen; der Gastgeber führt den
+  gemeinsamen Stand. Je Bogen sehen die anderen nichts, eine Übersicht oder
+  alles. Die SL kann jeden Bogen ändern; das wird bei der Person, der er
+  gehört, markiert, außer die SL schaltet auf „Still ändern“. Es kann
+  mehrere SL geben, die Rolle lässt sich weitergeben (Rechtsklick auf einen
+  Namen unter Teilen → Raum).
+- Speichert von selbst als Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
 
@@ -365,7 +370,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
-| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Schritte 1 bis 3 gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar, Rollen und Bögen live im Raum (Schritte 1 bis 5 gebaut) |
 
 ## Lizenz
 

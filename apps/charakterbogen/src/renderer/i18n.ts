@@ -192,7 +192,66 @@ const TEXTE = {
   'neu.gruppeName': ['Gemeinsame Beute', 'Shared loot'],
   notizen: ['Notizen', 'Notes'],
   'notizen.platzhalter': ['Merkmale, Talente, Sprachen, Werkzeuge …', 'Features, feats, languages, tools …'],
-  gruppe: ['Gruppeninventar', 'Party inventory']
+  gruppe: ['Gruppeninventar', 'Party inventory'],
+  // Boegen im Raum
+  'live.titel': ['Im Raum', 'In the room'],
+  'live.leer': ['Noch hat niemand einen Bogen hereingebracht.', 'Nobody has brought a sheet in yet.'],
+  'live.bringe': ['In den Raum bringen', 'Bring into the room'],
+  'live.bringe.wahl': ['Eigenen Bogen wählen …', 'Choose one of your sheets …'],
+  'live.meiner': ['Deiner', 'Yours'],
+  'live.nurUebersicht': [
+    'Nur die Übersicht ist freigegeben: Name, Klasse, ungefähre TP, RK, Zustände.',
+    'Only the overview is shared: name, class, rough HP, AC, conditions.'
+  ],
+  'live.tp.voll': ['unverletzt', 'unhurt'],
+  'live.tp.leicht': ['leicht verletzt', 'lightly hurt'],
+  'live.tp.schwer': ['schwer verletzt', 'badly hurt'],
+  'live.tp.boden': ['am Boden', 'down'],
+  'live.imRaum.meiner': ['Im Raum: dein Bogen', 'In the room: your sheet'],
+  'live.imRaum.von': ['Im Raum: Bogen von {name}', 'In the room: {name}’s sheet'],
+  'live.nurLesen': ['nur lesen', 'read only'],
+  'live.zuletzt': ['Zuletzt: {name}, {zeit}', 'Last change: {name}, {zeit}'],
+  'live.freigabe': ['Andere sehen', 'Others see'],
+  'live.freigabe.titel': [
+    'Was die anderen Spieler:innen sehen. Die SL sieht immer alles.',
+    'What the other players see. The GM always sees everything.'
+  ],
+  'live.freigabe.nichts': ['nichts', 'nothing'],
+  'live.freigabe.uebersicht': ['Übersicht', 'overview'],
+  'live.freigabe.alles': ['alles', 'everything'],
+  'live.still': ['Still ändern', 'Change quietly'],
+  'live.still.kurz': ['still', 'quiet'],
+  'live.still.titel': [
+    'Solange an: deine Änderungen an fremden Bögen werden nicht markiert. Sie stehen nur im Verlauf der SL.',
+    'While on: your changes to other people’s sheets are not marked. Only the GM history shows them.'
+  ],
+  'live.zurueck': ['Aus dem Raum nehmen', 'Take out of the room'],
+  'live.entfernen': ['Aus dem Raum entfernen', 'Remove from the room'],
+  'live.weg': ['Der Bogen ist nicht mehr im Raum. Der letzte Stand liegt bei der Person, der er gehört.', 'The sheet is no longer in the room. The person it belongs to keeps the last state.'],
+  'live.abgelehnt.recht': ['Das darfst du an diesem Bogen nicht ändern.', 'You may not change this sheet.'],
+  'live.abgelehnt.voll': ['Du hast schon zwölf Bögen im Raum.', 'You already have twelve sheets in the room.'],
+  'live.abgelehnt.unbekannt': ['Diesen Bogen gibt es im Raum nicht mehr.', 'This sheet is no longer in the room.'],
+  'live.abgelehnt.ungueltig': ['Der Gastgeber konnte die Änderung nicht lesen.', 'The host could not read the change.'],
+  'sl.kurz': ['SL', 'GM'],
+  'sl.marke.titel': ['Geändert von {von} um {zeit}. Vorher: {alt}', 'Changed by {von} at {zeit}. Before: {alt}'],
+  'sl.aenderungen': ['{n} Änderungen durch die SL', '{n} changes by the GM'],
+  'sl.gesehen': ['Gesehen', 'Seen'],
+  'sl.verlauf': ['Verlauf der SL ({n})', 'GM history ({n})'],
+  'feld.name': ['Name', 'Name'],
+  'feld.tp': ['TP', 'HP'],
+  'feld.rk': ['RK', 'AC'],
+  'feld.attribute': ['Attribute', 'Abilities'],
+  'feld.fertigkeiten': ['Fertigkeiten', 'Skills'],
+  'feld.zustaende': ['Zustände', 'Conditions'],
+  'feld.erschoepfung': ['Erschöpfung', 'Exhaustion'],
+  'feld.gegenstaende': ['Gegenstände', 'Items'],
+  'feld.muenzen': ['Geld', 'Money'],
+  'feld.notizen': ['Notizen', 'Notes'],
+  'feld.zauber': ['Zauber', 'Spells'],
+  'feld.angriffe': ['Angriffe', 'Attacks'],
+  'feld.klassen': ['Klassen', 'Classes'],
+  'feld.trefferwuerfel': ['Trefferwürfel', 'Hit Dice'],
+  'feld.todesrettung': ['Todesrettungswürfe', 'Death saves']
 } as const;
 
 export type TextKey = keyof typeof TEXTE;
@@ -205,6 +264,11 @@ export function setLanguage(neu: Language): void {
 
 export function getLanguage(): Language {
   return sprache;
+}
+
+/** Ob es einen Text unter diesem Schluessel gibt (fuer zusammengesetzte Schluessel). */
+export function hatText(key: string): key is TextKey {
+  return Object.prototype.hasOwnProperty.call(TEXTE, key);
 }
 
 export function t(key: TextKey, params?: Record<string, string | number>): string {

@@ -1513,6 +1513,12 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     devServerUrl: process.env.CHARAKTERBOGEN_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          sende: (inhalt, an) => haken.raum?.sende('charakterbogen', inhalt, an) ?? false,
+          lage: () => haken.raum?.anfang('charakterbogen').lage ?? { rolle: 'aus', ich: null, personen: [] }
+        }
+      : undefined
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1541,6 +1547,9 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    // Boegen im Raum: Nachrichten und Lage.
+    raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
   };
 }

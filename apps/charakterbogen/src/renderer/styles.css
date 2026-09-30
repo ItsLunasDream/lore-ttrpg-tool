@@ -734,3 +734,98 @@ textarea {
   padding-left: 18px;
   font-size: 13px;
 }
+
+/* --- Boegen im Raum -------------------------------------------------------- */
+
+.bogenfeld {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.bogenfeld:disabled input,
+.bogenfeld:disabled textarea,
+.bogenfeld:disabled select,
+.bogenfeld:disabled button {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.live-liste h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kachel--live {
+  border-color: var(--gut);
+}
+
+.kachel--uebersicht {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.live-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--gut);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--gut) 10%, transparent);
+}
+
+.live-leiste__wer {
+  font-weight: 600;
+}
+
+.live-leiste__freigabe,
+.live-leiste__still {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.live-leiste__still.ist-an {
+  color: var(--warnung);
+  font-weight: 600;
+}
+
+.sl-marke {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--warnung);
+  border-radius: 999px;
+  color: var(--warnung);
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.sl-marke--rolle {
+  cursor: default;
+}
+
+.sl-hinweis {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--warnung);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warnung) 10%, transparent);
+}
+
+.sl-hinweis__liste {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.sl-hinweis--verlauf summary {
+  cursor: pointer;
+}

@@ -6,7 +6,7 @@ live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
-**Stand:** Schritte 1 bis 4 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner; Rollen im Raum, Tischschlüssel, gespeicherte Räume). Ab Schritt 5 (Bögen live im Raum) ist es Konzept. Es nimmt `docs/inventar.md`
+**Stand:** Schritte 1 bis 5 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner; Rollen im Raum, Tischschlüssel, gespeicherte Räume; Bögen live im Raum mit Freigabe und SL-Markierung). Ab Schritt 6 (Geben im Raum) ist es Konzept. Es nimmt `docs/inventar.md`
 auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
 Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 überdauern den Raum. Offene Fragen stehen am Ende.
@@ -211,6 +211,40 @@ mittendrin abreißen kann.
   den letzten verteilten Stand; nichts geht verloren, was schon angekommen
   war.
 
+### Gebaut (Schritt 5)
+
+- **Kern** in `apps/charakterbogen/src/shared/live.ts` (`LiveTisch`, rein
+  und mit Modultests), **Leitung** in `src/main/live.ts`. Der Tisch lebt im
+  Hauptprozess des Gastgebers; Nachrichten an einen noch nicht geöffneten
+  Charakterbogen montiert die Hülle still im Hintergrund.
+- **Anfragen** an den Gastgeber: `hallo`, `bringe`, `schritte`, `zurueck`,
+  `freigabe`, `bestaetige`. **Meldungen** zurück: `stand`, `bogen`, `weg`,
+  `abgelehnt`. Alles als Werkzeugnachricht `charakterbogen`.
+- **Abweichung vom Konzept:** Schritte reisen nur zum Gastgeber. Zurück
+  kommt der ganze Bogen (oder seine Übersicht) mit Fassung und Quittung
+  („deine Schritte bis Nr. n sind drin“). So kann keine Lücke entstehen, und
+  das Nachholen entfällt. Die Oberfläche übernimmt einen neuen Stand erst,
+  wenn alle eigenen Schritte quittiert sind; getippte Zeichen springen so
+  nicht zurück.
+- **Schritte** entstehen aus dem Unterschied zweier Stände (Objekte werden
+  durchlaufen, Listen gehen als Ganzes). Schaden und Heilung reisen als
+  eigener Schritt `betrag`, damit zwei Treffer zugleich beide zählen. Bei
+  Listen (Gegenstände, Angriffe) gewinnt die spätere Änderung.
+- **Freigabe** je Bogen (nichts, Übersicht, alles), Vorgabe Übersicht. Die
+  Übersicht zeigt Name, Klasse, TP-Stufe (unverletzt, leicht, schwer, am
+  Boden), RK und Zustände.
+- **SL-Markierung:** Änderungen einer SL an fremden Bögen stehen oben am
+  Bogen der Person, der er gehört („n Änderungen durch die SL“, Knopf
+  „Gesehen“), und als Marke „SL“ an den Feldern (beim Darüberfahren: wer,
+  wann, alter Wert). „Still ändern“ ist ein Schalter der SL je Bogen; stille
+  Änderungen sieht nur die SL in ihrem Verlauf.
+- **Speichern:** Wer einen eigenen Bogen im Raum hat, bekommt jeden Stand
+  auf die eigene Platte (kurz gesammelt). Fremde Bögen landen nie auf der
+  Platte, auch nicht beim Gastgeber.
+- **Grenzen:** höchstens zwölf Bögen je Person; ein großer Stand wird in
+  einzelne Bögen zerlegt (Raumgrenze 2 MB je Nachricht).
+- Noch nicht: „Stand der Runde sichern“ für die SL, Zuschauer:innen.
+
 ### Sachen teilen
 
 - **Gegenstand geben**: Rechtsklick → „Geben an …“ (Person oder
@@ -230,10 +264,9 @@ mittendrin abreißen kann.
 Über den bestehenden Raum, Nachrichtentyp `werkzeug` mit
 `werkzeug: 'charakterbogen'` (wie die geteilte Initiative). Die Hülle liest
 den Inhalt nicht; das Werkzeug prüft ihn. Die Rollen gehören der Hülle
-(sie gelten für alle Werkzeuge, siehe unten) und brauchen zwei neue
-Nachrichten im Raumprotokoll: `rollen` (Gastgeber an alle) und
-`rolleSetzen` (Anfrage an den Gastgeber). Das Protokoll bekommt dafür
-Fassung 3.
+(sie gelten für alle Werkzeuge): Gebaut ist das als `sl` an der Person in
+der Personenliste und als Anfrage `rolle` an den Gastgeber. Weil alle
+Felder optional sind, bleibt das Protokoll bei Fassung 2.
 
 **Grenze:** Der Gastgeber prüft die Rechte. Wer den Raum hält, könnte mit
 einer veränderten App alles ändern. Für eine Runde unter Bekannten reicht

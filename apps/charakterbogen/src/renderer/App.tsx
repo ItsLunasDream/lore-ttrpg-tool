@@ -15,7 +15,10 @@ import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
 import { ZauberBlock } from './ZauberBlock';
 import { InventarBlock } from './InventarBlock';
+import { LiveLeiste, LiveListe, SlHinweis, SlMarke, SlMarkenKontext, markenAus } from './LiveTeile';
 import { alsKachel, type Kachel } from '../shared/ablage';
+import { schritteAus, type Anfrage, type Schritt } from '../shared/live';
+import type { LiveZustand } from '../main/live';
 import {
   gesamtstufe,
   initiativeBonus,
@@ -42,6 +45,9 @@ import {
 
 /** Wartezeit bis zum Speichern nach der letzten Aenderung. */
 const SPEICHER_PAUSE = 600;
+/** Im Raum: so lange sammeln, bevor Aenderungen zum Gastgeber gehen. */
+const SENDE_PAUSE = 250;
+const OHNE_RAUM: LiveZustand = { rolle: 'aus', ich: null, ichSl: false, eintraege: [], abgelehnt: null };
 
 function zahlAus(text: string, ersatz: number): number {
   const n = Number(text.replace(',', '.'));
@@ -56,6 +62,24 @@ export function App() {
   const [stand, setStand] = useState<'ruht' | 'laeuft' | 'fertig' | 'fehler'>('ruht');
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
+
+  /*
+   * Boegen im Raum. Ist `liveId` gesetzt, zeigt der offene Bogen den Stand
+   * beim Gastgeber: Aenderungen gehen als Schritte hin, gespeichert wird
+   * nicht hier, sondern beim Gastgeber und bei der Person, der er gehoert.
+   */
+  const [live, setLive] = useState<LiveZustand>(OHNE_RAUM);
+  const [liveId, setLiveId] = useState<string | null>(null);
+  const liveIdRef = useRef<string | null>(null);
+  /** Der Stand, zu dem die Schritte schon unterwegs sind. */
+  const gesendetRef = useRef<Bogen | null>(null);
+  const nrRef = useRef(0);
+  const sendeTakt = useRef<number | null>(null);
+  const [still, setStill] = useState(false);
+  const stillRef = useRef(false);
+  stillRef.current = still;
+  /** Nach „In den Raum bringen": diesen Bogen oeffnen, sobald er da ist. */
+  const wartetAuf = useRef<string | null>(null);
 
   // Speichern: immer der neueste Stand, nie zwei Aufrufe gleichzeitig.
   const offenRef = useRef<Bogen | null>(null);
@@ -104,26 +128,120 @@ export function App() {
     }
   }, []);
 
-  /** Jede Aenderung am offenen Bogen geht hier durch. */
+  /** Schickt die gesammelten Schritte (und einen besonderen dazu) zum Gastgeber. */
+  const schicke = useCallback((schritte: Schritt[]) => {
+    const id = liveIdRef.current;
+    if (!id || schritte.length === 0) return;
+    nrRef.current += 1;
+    void api.live.anfrage({ art: 'schritte', id, nr: nrRef.current, schritte, still: stillRef.current });
+  }, []);
+  const sendeGesammelt = useCallback(() => {
+    if (sendeTakt.current !== null) window.clearTimeout(sendeTakt.current);
+    sendeTakt.current = null;
+    const vorher = gesendetRef.current;
+    const jetzt = offenRef.current;
+    if (!vorher || !jetzt) return;
+    schicke(schritteAus(vorher, jetzt));
+    gesendetRef.current = jetzt;
+  }, [schicke]);
+
+  /**
+   * Jede Aenderung am offenen Bogen geht hier durch. `schritt` ist fuer
+   * Aenderungen, die im Raum nicht als neuer Wert reisen duerfen (Schaden:
+   * zwei Treffer zugleich sollen beide zaehlen).
+   */
   const aendere = useCallback(
-    (wie: (b: Bogen) => Bogen) => {
+    (wie: (b: Bogen) => Bogen, schritt?: Schritt) => {
       const alt = offenRef.current;
       if (!alt) return;
       const neu = wie(alt);
       offenRef.current = neu;
       setOffen(neu);
+      if (liveIdRef.current) {
+        if (schritt && gesendetRef.current) {
+          schicke([...schritteAus(gesendetRef.current, alt), schritt]);
+          gesendetRef.current = neu;
+        } else {
+          if (sendeTakt.current !== null) window.clearTimeout(sendeTakt.current);
+          sendeTakt.current = window.setTimeout(sendeGesammelt, SENDE_PAUSE);
+        }
+        return;
+      }
       schmutzig.current = true;
       setStand('ruht');
       if (zeitgeber.current !== null) window.clearTimeout(zeitgeber.current);
       zeitgeber.current = window.setTimeout(() => void speichereJetzt(), SPEICHER_PAUSE);
     },
-    [speichereJetzt]
+    [speichereJetzt, schicke, sendeGesammelt]
   );
 
   const aendereWerte = useCallback(
-    (wie: (w: Werte) => Werte) => aendere((b) => (b.werte ? { ...b, werte: wie(b.werte) } : b)),
+    (wie: (w: Werte) => Werte, schritt?: Schritt) => aendere((b) => (b.werte ? { ...b, werte: wie(b.werte) } : b), schritt),
     [aendere]
   );
+
+  const anfrage = useCallback((a: Anfrage) => void api.live.anfrage(a), []);
+
+  const oeffneLive = useCallback(
+    async (id: string, zustand?: LiveZustand) => {
+      await speichereJetzt();
+      const e = (zustand ?? live).eintraege.find((x) => x.id === id);
+      if (!e?.bogen) return;
+      setMeldung('');
+      setFehler('');
+      liveIdRef.current = id;
+      setLiveId(id);
+      nrRef.current = Math.max(nrRef.current, e.quittung);
+      gesendetRef.current = e.bogen;
+      offenRef.current = e.bogen;
+      schmutzig.current = false;
+      setStill(false);
+      setOffen(e.bogen);
+    },
+    [live, speichereJetzt]
+  );
+
+  /** Den Live-Bogen verlassen; Ausstehendes geht vorher noch hinaus. */
+  const verlasseLive = useCallback(() => {
+    if (!liveIdRef.current) return;
+    sendeGesammelt();
+    liveIdRef.current = null;
+    gesendetRef.current = null;
+    setLiveId(null);
+  }, [sendeGesammelt]);
+
+  useEffect(() => {
+    void api.live.zustand().then(setLive);
+    return api.live.beiStand(setLive);
+  }, []);
+
+  // Ein neuer Stand vom Gastgeber: den offenen Bogen nachziehen, sobald alle
+  // eigenen Schritte drin sind (sonst sprängen getippte Zeichen zurück).
+  useEffect(() => {
+    if (live.abgelehnt) setFehler(t(`live.abgelehnt.${live.abgelehnt}` as Parameters<typeof t>[0]));
+    const warte = wartetAuf.current;
+    if (warte && live.eintraege.some((e) => e.id === warte)) {
+      wartetAuf.current = null;
+      void oeffneLive(warte, live);
+      return;
+    }
+    const id = liveIdRef.current;
+    if (!id) return;
+    const e = live.eintraege.find((x) => x.id === id);
+    if (!e?.bogen) {
+      verlasseLive();
+      offenRef.current = null;
+      setOffen(null);
+      setMeldung(t('live.weg'));
+      void ladeListe();
+      return;
+    }
+    if (sendeTakt.current === null && e.quittung >= nrRef.current) {
+      offenRef.current = e.bogen;
+      gesendetRef.current = e.bogen;
+      setOffen(e.bogen);
+    }
+  }, [live, oeffneLive, verlasseLive, ladeListe]);
 
   useEffect(() => {
     void ladeListe();
@@ -153,6 +271,13 @@ export function App() {
 
   const oeffne = useCallback(
     async (id: string) => {
+      // Ist der eigene Bogen gerade im Raum, gilt der Stand dort.
+      const imRaum = live.eintraege.find((e) => e.besitzer.id === live.ich && e.bogen?.id === id);
+      if (imRaum) {
+        await oeffneLive(imRaum.id);
+        return;
+      }
+      verlasseLive();
       await speichereJetzt();
       const bogen = await api.sammlung.lesen(id);
       setMeldung('');
@@ -165,7 +290,7 @@ export function App() {
       setOffen(bogen);
       setStand('ruht');
     },
-    [speichereJetzt]
+    [speichereJetzt, live, oeffneLive, verlasseLive]
   );
 
   /** Boegen, die der Hauptprozess gerade geschrieben hat (Uebergabe, Aufteilen). */
@@ -181,13 +306,24 @@ export function App() {
   }, []);
 
   const schliesse = useCallback(async () => {
+    verlasseLive();
     await speichereJetzt();
     offenRef.current = null;
     setOffen(null);
     setMeldung('');
     setFehler('');
     void ladeListe();
-  }, [ladeListe, speichereJetzt]);
+  }, [ladeListe, speichereJetzt, verlasseLive]);
+
+  const bringe = useCallback(
+    async (bogenId: string) => {
+      if (!live.ich) return;
+      if (offenRef.current?.id === bogenId && !liveIdRef.current) await speichereJetzt();
+      wartetAuf.current = `${live.ich}/${bogenId}`;
+      await api.live.bringe(bogenId);
+    },
+    [live.ich, speichereJetzt]
+  );
 
   const anlegen = useCallback(async (art: Bogen['art'] = 'figur') => {
     const vorlage = neuerBogen('neu', art === 'gruppe' ? t('neu.gruppeName') : t('neu.name'), art);
@@ -203,15 +339,16 @@ export function App() {
   }, [ladeListe]);
 
   // Verlauf der Huelle: offener Bogen oder Liste.
-  const ort = offen ? offen.id : null;
+  const ort = offen ? (liveId ? `live:${liveId}` : offen.id) : null;
   useEffect(() => api.ort.melde(ort), [ort]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         if (ziel === null) void schliesse();
+        else if (ziel.startsWith('live:')) void oeffneLive(ziel.slice(5));
         else void oeffne(ziel);
       }),
-    [oeffne, schliesse]
+    [oeffne, oeffneLive, schliesse]
   );
   useEffect(() => api.beiSuchtreffer((kennung) => void oeffne(kennung)), [oeffne]);
 
@@ -258,6 +395,9 @@ export function App() {
         </div>
         {meldung ? <p className="meldung">{meldung}</p> : null}
         {fehler ? <p className="stoerung">{fehler}</p> : null}
+        {live.rolle !== 'aus' ? (
+          <LiveListe live={live} eigene={kacheln} oeffne={(id) => void oeffneLive(id)} bringe={(id) => void bringe(id)} />
+        ) : null}
         {kacheln.length === 0 ? (
           <p className="leer">{t('liste.leer')}</p>
         ) : gefunden.length === 0 ? (
@@ -279,6 +419,12 @@ export function App() {
     );
   }
 
+  const liveEintrag = liveId ? live.eintraege.find((e) => e.id === liveId) ?? null : null;
+  const meiner = liveEintrag ? liveEintrag.besitzer.id === live.ich : true;
+  const darf = liveEintrag ? liveEintrag.darfAendern : true;
+  // Marken nur fuer die Person, der der Bogen gehoert; die SL hat ihren Verlauf.
+  const marken = liveEintrag && meiner ? markenAus(liveEintrag.slAenderungen) : new Map();
+
   return (
     <div className="rahmen">
       <div className="leiste leiste--bogen">
@@ -286,74 +432,97 @@ export function App() {
           ← {t('zurueck')}
         </button>
         <span className={`stand stand--${stand}`} data-stand={stand} aria-live="polite">
-          {stand === 'laeuft' ? t('speichern.laeuft') : stand === 'fertig' ? t('speichern.fertig') : ''}
+          {!liveEintrag ? (stand === 'laeuft' ? t('speichern.laeuft') : stand === 'fertig' ? t('speichern.fertig') : '') : ''}
         </span>
         <span className="leiste__rest" />
-        <button
-          type="button"
-          onClick={async () => {
-            await speichereJetzt();
-            const antwort = await api.sammlung.weitergeben(offen.id);
-            if (antwort.ok) setMeldung(t('weitergeben.fertig', { pfad: antwort.text }));
-            else if (antwort.text) setFehler(antwort.text);
-          }}
-        >
-          {t('weitergeben')}
-        </button>
-        <button
-          type="button"
-          className="knopf--gefahr"
-          onClick={async () => {
-            if (!window.confirm(t('loeschen.sicher', { name: offen.name }))) return;
-            if (zeitgeber.current !== null) window.clearTimeout(zeitgeber.current);
-            schmutzig.current = false;
-            await api.sammlung.loeschen(offen.id);
-            offenRef.current = null;
-            setOffen(null);
-            void ladeListe();
-          }}
-        >
-          {t('loeschen')}
-        </button>
+        {!liveEintrag && live.rolle !== 'aus' ? (
+          <button type="button" data-bringe-offen onClick={() => void bringe(offen.id)}>
+            {t('live.bringe')}
+          </button>
+        ) : null}
+        {!liveEintrag ? (
+          <>
+            <button
+              type="button"
+              onClick={async () => {
+                await speichereJetzt();
+                const antwort = await api.sammlung.weitergeben(offen.id);
+                if (antwort.ok) setMeldung(t('weitergeben.fertig', { pfad: antwort.text }));
+                else if (antwort.text) setFehler(antwort.text);
+              }}
+            >
+              {t('weitergeben')}
+            </button>
+            <button
+              type="button"
+              className="knopf--gefahr"
+              onClick={async () => {
+                if (!window.confirm(t('loeschen.sicher', { name: offen.name }))) return;
+                if (zeitgeber.current !== null) window.clearTimeout(zeitgeber.current);
+                schmutzig.current = false;
+                await api.sammlung.loeschen(offen.id);
+                offenRef.current = null;
+                setOffen(null);
+                void ladeListe();
+              }}
+            >
+              {t('loeschen')}
+            </button>
+          </>
+        ) : null}
       </div>
+      {liveEintrag ? <LiveLeiste e={liveEintrag} live={live} still={still} setStill={setStill} anfrage={anfrage} /> : null}
+      {liveEintrag ? <SlHinweis e={liveEintrag} meiner={meiner} bestaetige={() => anfrage({ art: 'bestaetige', id: liveEintrag.id })} /> : null}
       {meldung ? <p className="meldung">{meldung}</p> : null}
       {fehler ? <p className="stoerung">{fehler}</p> : null}
 
-      <label className="feld feld--name">
-        <span className="feld__label">{t('name')}</span>
-        <input
-          data-feld="name"
-          value={offen.name}
-          maxLength={120}
-          onChange={(e) => aendere((b) => ({ ...b, name: e.target.value }))}
-        />
-      </label>
+      <SlMarkenKontext.Provider value={marken}>
+        {/* Ohne Recht zum Aendern: alles sichtbar, nichts bedienbar. */}
+        <fieldset className="bogenfeld" disabled={!darf} data-nurlesen={!darf}>
+          <label className="feld feld--name">
+            <span className="feld__label">
+              {t('name')} <SlMarke feld="name" />
+            </span>
+            <input
+              data-feld="name"
+              value={offen.name}
+              maxLength={120}
+              onChange={(e) => aendere((b) => ({ ...b, name: e.target.value }))}
+            />
+          </label>
 
-      {offen.werte ? <Figurenbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} /> : null}
+          {offen.werte ? <Figurenbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} /> : null}
 
-      <section className="block" data-block="inventar">
-        <h2>{offen.art === 'gruppe' ? t('gruppe') : t('inventar')}</h2>
-        <InventarBlock
-          bogen={offen}
-          andere={kacheln}
-          aendere={aendere}
-          speichereJetzt={speichereJetzt}
-          uebernimm={uebernimm}
-          setMeldung={setMeldung}
-          setFehler={setFehler}
-        />
-      </section>
+          <section className="block" data-block="inventar">
+            <h2>
+              {offen.art === 'gruppe' ? t('gruppe') : t('inventar')} <SlMarke feld="gegenstaende" /> <SlMarke feld="muenzen" />
+            </h2>
+            <InventarBlock
+              bogen={offen}
+              // Geben zwischen Boegen im Raum kommt ueber den Gastgeber (Schritt 6), nicht ueber die Platte.
+              andere={liveEintrag ? [] : kacheln}
+              aendere={aendere}
+              speichereJetzt={speichereJetzt}
+              uebernimm={uebernimm}
+              setMeldung={setMeldung}
+              setFehler={setFehler}
+            />
+          </section>
 
-      <section className="block">
-        <h2>{t('notizen')}</h2>
-        <textarea
-          className="notizen"
-          rows={8}
-          placeholder={t('notizen.platzhalter')}
-          value={offen.notizen}
-          onChange={(e) => aendere((b) => ({ ...b, notizen: e.target.value }))}
-        />
-      </section>
+          <section className="block">
+            <h2>
+              {t('notizen')} <SlMarke feld="notizen" />
+            </h2>
+            <textarea
+              className="notizen"
+              rows={8}
+              placeholder={t('notizen.platzhalter')}
+              value={offen.notizen}
+              onChange={(e) => aendere((b) => ({ ...b, notizen: e.target.value }))}
+            />
+          </section>
+        </fieldset>
+      </SlMarkenKontext.Provider>
     </div>
   );
 }
@@ -362,7 +531,7 @@ export function App() {
 
 interface FigurProps {
   readonly werte: Werte;
-  readonly aendere: (wie: (w: Werte) => Werte) => void;
+  readonly aendere: (wie: (w: Werte) => Werte, schritt?: Schritt) => void;
   readonly setMeldung: (text: string) => void;
 }
 
@@ -433,7 +602,9 @@ function Figurenbogen({ werte: w, aendere, setMeldung }: FigurProps) {
 
       <div className="spalten">
         <section className="block">
-          <h2>{t('attribute')}</h2>
+          <h2>
+          {t('attribute')} <SlMarke feld="attribute" />
+        </h2>
           <div className="attribute">
             {ATTRIBUTE.map((a) => (
               <AttributKarte key={a} a={a} w={w} pb={pb} aendere={aendere} />
@@ -442,7 +613,9 @@ function Figurenbogen({ werte: w, aendere, setMeldung }: FigurProps) {
         </section>
 
         <section className="block">
-          <h2>{t('fertigkeiten')}</h2>
+          <h2>
+          {t('fertigkeiten')} <SlMarke feld="fertigkeiten" />
+        </h2>
           <ul className="fertigkeiten" title={t('fertigkeit.stufe')}>
             {FERTIGKEITEN.map((f) => {
               const u: Uebung = w.fertigkeiten[f.id] ?? 0;
@@ -513,17 +686,23 @@ function Figurenbogen({ werte: w, aendere, setMeldung }: FigurProps) {
       </div>
 
       <section className="block">
-        <h2>{t('zustaende')}</h2>
+        <h2>
+          {t('zustaende')} <SlMarke feld="zustaende" />
+        </h2>
         <Zustaende w={w} aendere={aendere} />
       </section>
 
       <section className="block">
-        <h2>{t('angriffe')}</h2>
+        <h2>
+          {t('angriffe')} <SlMarke feld="angriffe" />
+        </h2>
         <Angriffe w={w} aendere={aendere} />
       </section>
 
       <section className="block" data-block="zauber">
-        <h2>{t('zauber')}</h2>
+        <h2>
+          {t('zauber')} <SlMarke feld="zauber" />
+        </h2>
         <ZauberBlock w={w} pb={pb} aendere={aendere} setMeldung={setMeldung} />
       </section>
     </>
@@ -595,14 +774,17 @@ function Trefferpunkte({ w, aendere, setMeldung }: TeilProps) {
       setHinweis(t('tp.unlesbar'));
       return;
     }
-    aendere((x) => wendeBetragAn(x, betrag));
+    // Im Raum reist der Betrag, nicht der neue Stand: zwei Treffer zugleich zaehlen beide.
+    aendere((x) => wendeBetragAn(x, betrag), { typ: 'betrag', text: betrag > 0 ? `+${betrag}` : String(betrag) });
     setEingabe('');
     setHinweis('');
     setMeldung(betrag < 0 ? t('tp.schaden', { n: -betrag }) : t('tp.heilung', { n: betrag }));
   };
   return (
     <div className="tp">
-      <h3>{t('tp')}</h3>
+      <h3>
+        {t('tp')} <SlMarke feld="tp" />
+      </h3>
       <div className="tp__balken" aria-hidden="true">
         <span style={{ width: `${Math.round(anteil * 100)}%` }} className={anteil <= 0.25 ? 'kritisch' : anteil <= 0.5 ? 'angeschlagen' : ''} />
       </div>
@@ -945,7 +1127,9 @@ function Textfeld({
 }) {
   return (
     <label className="feld">
-      <span className="feld__label">{label}</span>
+      <span className="feld__label">
+        {label} <SlMarke feld={feld} />
+      </span>
       <input data-feld={feld} value={wert} maxLength={80} placeholder={platzhalter} onChange={(e) => aendern(e.target.value)} />
     </label>
   );
@@ -980,7 +1164,9 @@ function Zahl({
   const begrenze = (n: number) => Math.min(max, Math.max(min, n));
   return (
     <label className={versteckt ? 'feld feld--zahl feld--ohneLabel' : 'feld feld--zahl'}>
-      <span className={versteckt ? 'unsichtbar' : 'feld__label'}>{label}</span>
+      <span className={versteckt ? 'unsichtbar' : 'feld__label'}>
+        {label} {versteckt ? null : <SlMarke feld={feld} />}
+      </span>
       <input
         data-feld={feld}
         inputMode="numeric"

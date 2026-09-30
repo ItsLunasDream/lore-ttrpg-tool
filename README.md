@@ -173,8 +173,12 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   from the 339 SRD spells or your own; casting spends a slot.
 - **Inventory**: items with weight and value, money in PP/GP/EP/SP/CP,
   party inventories, give and split between sheets; weights in lb and kg.
-- Saves itself as Markdown. The room comes next
-  (`docs/charakterbogen.md`).
+- **In the room**: bring your sheet in; the host keeps the shared state.
+  Each sheet shows others nothing, an overview or everything. GMs can
+  change any sheet; their changes are marked for the owner unless the GM
+  switches to "change quietly". Several GMs are possible, the role can be
+  handed on (right-click a name under Share → Room).
+- Saves itself as Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
 
@@ -347,7 +351,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory and room roles (steps 1 to 3 built) |
+| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 5 built) |
 
 ## License
 

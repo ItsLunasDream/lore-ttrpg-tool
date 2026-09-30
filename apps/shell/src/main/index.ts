@@ -1009,6 +1009,8 @@ function registriereKanaele(): void {
    * ueber denselben Weg wie eine Paketdatei.
    */
   const raumPakete: { id: number; von: string; titel: string; paket: string; zeit: string }[] = [];
+  // Nachrichten an einen noch nicht montierten Charakterbogen, in Reihe.
+  let bogenImRaum: Promise<unknown> = Promise.resolve();
   let naechstesRaumpaket = 1;
   let raumRolle: Raumzustand['rolle'] = 'aus';
   const meldePakete = () =>
@@ -1051,6 +1053,16 @@ function registriereKanaele(): void {
         }
         if (art === 'stand') geteilteStaende.set(ereignis.von.id, { von: ereignis.von, inhalt: ereignis.inhalt });
         if (art === 'ende') geteilteStaende.delete(ereignis.von.id);
+      }
+      // Boegen im Raum brauchen den Charakterbogen auch, wenn niemand ihn
+      // gerade offen hat: dann wird er still montiert, der Reihe nach.
+      if (ereignis.werkzeug === 'charakterbogen' && !offen.has('charakterbogen')) {
+        const { von, inhalt } = ereignis;
+        bogenImRaum = bogenImRaum
+          .then(() => montiereImHintergrund('charakterbogen'))
+          .then(() => offen.get('charakterbogen')?.raumNachricht?.(von, inhalt))
+          .catch(() => undefined);
+        return;
       }
       offen.get(ereignis.werkzeug)?.raumNachricht?.(ereignis.von, ereignis.inhalt);
       return;

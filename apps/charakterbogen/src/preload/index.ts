@@ -7,6 +7,8 @@ import { kanal } from '../shared/kanaele';
 import type { Kachel } from '../shared/ablage';
 import type { Bogen } from '../shared/bogen';
 import type { Uebergabe } from '../shared/uebergabe';
+import type { Anfrage } from '../shared/live';
+import type { LiveZustand } from '../main/live';
 
 type Antwort = { ok: boolean; text: string };
 
@@ -38,6 +40,19 @@ const api = {
       ipcRenderer.invoke(kanal('uebergib'), vonId, nachId, was) as Promise<Antwort & { boegen: Bogen[] }>,
     aufteilen: (vonId: string, anIds: string[]) =>
       ipcRenderer.invoke(kanal('aufteilen'), vonId, anIds) as Promise<Antwort & { boegen: Bogen[] }>
+  },
+  /** Boegen im Raum (docs/charakterbogen.md, „Live im Raum"). */
+  live: {
+    zustand: () => ipcRenderer.invoke(kanal('live:zustand')) as Promise<LiveZustand>,
+    anfrage: (a: Anfrage) => ipcRenderer.invoke(kanal('live:anfrage'), a) as Promise<boolean>,
+    bringe: (id: string) => ipcRenderer.invoke(kanal('live:bringe'), id) as Promise<boolean>,
+    beiStand: (hoerer: (zustand: LiveZustand) => void) => {
+      const lauscher = (_e: unknown, zustand: LiveZustand) => hoerer(zustand);
+      ipcRenderer.on(kanal('live'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('live'), lauscher);
+      };
+    }
   },
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);

@@ -17,6 +17,8 @@ import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, geldText, type Uebergabe } from '../shared/uebergabe';
 import { legeDazu, teileAuf } from '../shared/inventar';
 import type { Sprache } from '../shared/regeln';
+import type { Anfrage } from '../shared/live';
+import { Liveleitung, type LiveZustand, type RaumLage } from './live';
 
 export const WERKZEUG = 'charakterbogen';
 export const ORDNER_NAME = 'boegen';
@@ -27,6 +29,11 @@ export interface BogenEmbedOptions {
   readonly devServerUrl?: string;
   readonly language?: string;
   readonly onLanguageChange?: (language: string) => void;
+  /** Der Raum der Huelle, wenn es einen gibt: Boegen live teilen. */
+  readonly raum?: {
+    sende(inhalt: string, an: string | null): boolean;
+    lage(): RaumLage;
+  };
 }
 
 export interface BogenEmbed {
@@ -37,6 +44,10 @@ export interface BogenEmbed {
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
   zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
+  /** Eine Werkzeugnachricht aus dem Raum. */
+  raumNachricht(webContents: WebContents, von: { id: string; name: string }, inhalt: string): void;
+  /** Die Lage im Raum hat sich geaendert. */
+  raumZustand(webContents: WebContents, lage: RaumLage): void;
 }
 
 const CSP = [
@@ -125,6 +136,50 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
     reihe = weiter.catch(() => undefined);
     return weiter;
   };
+
+  /*
+   * Boegen im Raum. Die Oberflaeche bekommt jeden neuen Stand geschickt; wohin,
+   * weiss die Leitung erst, wenn die Huelle oder die Oberflaeche sich meldet.
+   */
+  let oberflaeche: WebContents | null = null;
+  const leitung = new Liveleitung({
+    sende: (inhalt, an) => options.raum?.sende(inhalt, an) ?? false,
+    melde: (zustand: LiveZustand) => {
+      if (oberflaeche && !oberflaeche.isDestroyed()) oberflaeche.send(kanal('live'), zustand);
+    },
+    speichereEigenen: (b) =>
+      inReihe(async () => {
+        // Nur, was es hier schon gibt: ein fremder Bogen landet nie still auf der Platte.
+        const datei = path.join(ordner, `${zuId(b.id)}.md`);
+        try {
+          await readFile(datei, 'utf8');
+        } catch {
+          return;
+        }
+        await schreibeSicher(datei, alsMarkdown(bereinige(b, zuId(b.id)), sprache));
+      })
+  });
+  if (options.raum) leitung.setzeLage(options.raum.lage());
+  const merkeOberflaeche = (ereignis: never) => {
+    oberflaeche = (ereignis as { sender: WebContents }).sender;
+  };
+  handle('live:zustand', (ereignis: never) => {
+    merkeOberflaeche(ereignis);
+    return leitung.zustand();
+  });
+  handle('live:anfrage', (ereignis: never, a: Anfrage) => {
+    merkeOberflaeche(ereignis);
+    return leitung.anfrage(a);
+  });
+  /** Einen eigenen Bogen in den Raum bringen: gelesen wird hier, nicht in der Oberflaeche. */
+  handle('live:bringe', async (ereignis: never, id: string) => {
+    merkeOberflaeche(ereignis);
+    try {
+      return leitung.anfrage({ art: 'bringe', bogen: await lies(id) });
+    } catch {
+      return false;
+    }
+  });
 
   handle('liste', async (): Promise<Kachel[]> => (await leseAlle(ordner)).map(alsKachel));
 
@@ -280,7 +335,8 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
     csp: CSP,
     flush: async () => {
       // Die Oberflaeche speichert selbst, kurz nach jeder Aenderung und beim
-      // Verlassen der Seite. Hier liegt nichts.
+      // Verlassen der Seite. Hier liegen nur Boegen aus dem Raum.
+      await leitung.flush();
     },
     setLanguage: async (webContents, language) => {
       sprache = language === 'de' ? 'de' : 'en';
@@ -290,12 +346,20 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
       if (webContents.isDestroyed()) return false;
       webContents.send(kanal('suche:zeigen'), kennung);
       return true;
+    },
+    raumNachricht: (webContents, von, inhalt) => {
+      oberflaeche ??= webContents;
+      leitung.nachricht(von, inhalt);
+    },
+    raumZustand: (webContents, lage) => {
+      oberflaeche ??= webContents;
+      leitung.setzeLage(lage);
     }
   };
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
