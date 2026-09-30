@@ -169,7 +169,9 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - Works out modifiers, proficiency bonus, skills and passive Perception.
 - **Damage / Healing**: `-7` or `7` subtracts, `+5` heals, dice work
   (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
-- Saves itself as Markdown. Inventory, spells and the room come next
+- **Spells**: save DC and attack, slots per level (Pact Magic too), list
+  from the 339 SRD spells or your own; casting spends a slot.
+- Saves itself as Markdown. Inventory and the room come next
   (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -343,7 +345,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory and room roles (step 1 built) |
+| `charakterbogen.md` | Character sheet with inventory and room roles (steps 1 and 2 built) |
 
 ## License
 

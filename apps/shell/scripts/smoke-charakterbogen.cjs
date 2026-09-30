@@ -126,12 +126,44 @@ app.whenReady().then(async () => {
   await warte(300);
   pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '30', 'die lange Rast fuellt die TP');
 
+  // --- Zauber ----------------------------------------------------------------
+  await js(`document.querySelector('[data-zauber-an]').click(); true`);
+  await warte(300);
+  await js(tippe('[data-feld="attribut-int"]', '16'));
+  await js(`(() => { const s = document.querySelector('[data-feld="zauberattribut"]');
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'int');
+    s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await warte(200);
+  pruefe(/14/.test(await js(`document.querySelector('[data-zauber-sg]').textContent`)), 'Zauber-SG 8 + 3 + 3 = 14');
+  await js(tippe('[data-platz-max="1"]', '2'));
+  await js(`document.querySelector('[data-zauber-suchen]').click(); true`);
+  await warte(300);
+  await js(tippe('[data-zauber-anfrage]', 'magic missile'));
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-zauber-dazu="magic-missile"]'))`), 'die Suche findet den Zauber auf Englisch');
+  await js(`document.querySelector('[data-zauber-dazu="magic-missile"]').click(); true`);
+  await warte(300);
+  pruefe(
+    /Magisches Geschoss/.test(await js(`document.querySelector('[data-zauberliste]').innerText`)),
+    'und er steht mit deutschem Namen in der Liste'
+  );
+  await js(`document.querySelector('[data-zauberliste] [data-wirken]').click(); true`);
+  await warte(300);
+  pruefe(
+    (await js(`document.querySelectorAll('.punkt--weg').length`)) === 1,
+    'Wirken verbraucht einen Platz des 1. Grades'
+  );
+  await js(`document.querySelector('[data-rast="lang"]').click(); true`);
+  await warte(300);
+  pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
+
   // --- Auf der Platte, ohne Speichern-Knopf -----------------------------------
   await warte(1500);
   const inhalt = dateien().length ? fs.readFileSync(path.join(ordner, dateien()[0]), 'utf8') : '';
   pruefe(/^name: Mira Sturmhand$/m.test(inhalt), 'der Name steht in der Datei');
   pruefe(/^tp: 30$/m.test(inhalt) && /^tp_max: 30$/m.test(inhalt), 'die TP stehen im Kopf');
   pruefe(/Heimlichkeit \+9/.test(inhalt), 'die Lesefassung zeigt die Fertigkeit');
+  pruefe(/Magisches Geschoss/.test(inhalt) && /"srd": "magic-missile"/.test(inhalt), 'der Zauber steht in der Datei');
   pruefe(dateien().length === 1, 'Umbenennen legt keine zweite Datei an');
 
   // --- Zurueck zur Liste --------------------------------------------------------

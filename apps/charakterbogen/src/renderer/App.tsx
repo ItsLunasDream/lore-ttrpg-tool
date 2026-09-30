@@ -13,6 +13,7 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { ZUSTAENDE } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
+import { ZauberBlock } from './ZauberBlock';
 import { alsKachel, type Kachel } from '../shared/ablage';
 import {
   gesamtstufe,
@@ -490,6 +491,11 @@ function Figurenbogen({ werte: w, aendere, setMeldung }: FigurProps) {
       <section className="block">
         <h2>{t('angriffe')}</h2>
         <Angriffe w={w} aendere={aendere} />
+      </section>
+
+      <section className="block" data-block="zauber">
+        <h2>{t('zauber')}</h2>
+        <ZauberBlock w={w} pb={pb} aendere={aendere} setMeldung={setMeldung} />
       </section>
     </>
   );

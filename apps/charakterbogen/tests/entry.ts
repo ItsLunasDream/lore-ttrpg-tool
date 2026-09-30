@@ -2,3 +2,4 @@
 export * from '../src/shared/regeln';
 export * from '../src/shared/bogen';
 export * from '../src/shared/ablage';
+export * from '../src/shared/zauber';

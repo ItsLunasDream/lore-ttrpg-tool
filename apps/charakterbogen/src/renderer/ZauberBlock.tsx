@@ -1,0 +1,446 @@
+/**
+ * Der Zauberteil eines Bogens: Zauberattribut mit SG und Angriffsbonus,
+ * Plaetze je Grad, die Liste und das Hinzufuegen aus dem SRD.
+ */
+import { useMemo, useState } from 'react';
+import type { Zauberklasse } from '@suite/srd/zauber';
+import { getLanguage, t } from './i18n';
+import type { Werte } from '../shared/bogen';
+import { ATTRIBUTE, ATTRIBUT_NAMEN, mitVorzeichen, zauberAngriff, zauberSg } from '../shared/regeln';
+import {
+  KLASSEN,
+  NACH_ID,
+  freierPlatz,
+  gradVon,
+  klassenAusNamen,
+  leereZauberei,
+  nameVon,
+  sortiert,
+  sucheZauber,
+  verbrauche,
+  vorbereiteteAnzahl,
+  type Zauberei,
+  type ZauberEintrag
+} from '../shared/zauber';
+
+interface Props {
+  readonly w: Werte;
+  readonly pb: number;
+  readonly aendere: (wie: (w: Werte) => Werte) => void;
+  readonly setMeldung: (text: string) => void;
+}
+
+export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
+  const sprache = getLanguage() === 'de' ? 'de' : 'en';
+  const i = sprache === 'de' ? 0 : 1;
+  const z = w.zauber;
+  const [suchen, setSuchen] = useState(false);
+  const [offen, setOffen] = useState<number | null>(null);
+
+  if (!z) {
+    return (
+      <div className="zauber zauber--aus">
+        <p className="leise">{t('zauber.keine')}</p>
+        <button
+          type="button"
+          data-zauber-an
+          onClick={() => {
+            // Vorbelegt mit dem Attribut der ersten passenden Klasse.
+            const klasse = klassenAusNamen(w.klassen.map((k) => k.name))[0];
+            const attribut =
+              klasse === 'magier' ? 'int' : klasse === 'kleriker' || klasse === 'druide' || klasse === 'waldlaeufer' ? 'wei' : klasse ? 'cha' : 'int';
+            aendere((x) => ({ ...x, zauber: leereZauberei(attribut) }));
+          }}
+        >
+          {t('zauber.an')}
+        </button>
+      </div>
+    );
+  }
+
+  const setZ = (wie: (z: Zauberei) => Zauberei) => aendere((x) => (x.zauber ? { ...x, zauber: wie(x.zauber) } : x));
+  const wert = w.attribute[z.attribut];
+  const liste = sortiert(z.liste, sprache);
+  const vorbereitet = vorbereiteteAnzahl(z);
+
+  const wirke = (e: ZauberEintrag) => {
+    const grad = gradVon(e);
+    const name = nameVon(e, sprache);
+    if (grad === 0) {
+      setMeldung(t('zauber.gewirkt0', { name }));
+      return;
+    }
+    const platz = freierPlatz(z, grad);
+    if (platz === null) {
+      setMeldung(t('zauber.keinPlatz', { name, grad }));
+      return;
+    }
+    setZ((x) => verbrauche(x, platz));
+    setMeldung(t('zauber.gewirkt', { name, grad: platz }));
+  };
+
+  return (
+    <div className="zauber">
+      <div className="raster raster--zauberkopf">
+        <label className="feld">
+          <span className="feld__label">{t('zauber.attribut')}</span>
+          <select
+            data-feld="zauberattribut"
+            value={z.attribut}
+            onChange={(e) => setZ((x) => ({ ...x, attribut: e.target.value as Zauberei['attribut'] }))}
+          >
+            {ATTRIBUTE.map((a) => (
+              <option key={a} value={a}>
+                {ATTRIBUT_NAMEN[a].lang[i]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="kennzahl" data-zauber-sg>
+          <span className="feld__label">{t('zauber.sg')}</span>
+          <strong>{zauberSg(wert, pb)}</strong>
+        </div>
+        <div className="kennzahl">
+          <span className="feld__label">{t('zauber.angriff')}</span>
+          <strong>{mitVorzeichen(zauberAngriff(wert, pb))}</strong>
+        </div>
+        <label className="feld feld--zahl" title={t('zauber.vorbereitetHinweis')}>
+          <span className="feld__label">{t('zauber.vorbereitet')}</span>
+          <span className="vorbereitet" data-vorbereitet>
+            {vorbereitet} /{' '}
+            <input
+              aria-label={t('zauber.maxVorbereitet')}
+              inputMode="numeric"
+              value={z.maxVorbereitet ?? ''}
+              placeholder="—"
+              onChange={(e) => {
+                const roh = e.target.value.trim();
+                const n = Number(roh);
+                setZ((x) => ({ ...x, maxVorbereitet: roh === '' || !Number.isFinite(n) ? null : Math.max(0, Math.min(99, Math.round(n))) }));
+              }}
+            />
+          </span>
+        </label>
+      </div>
+
+      <h3>{t('zauber.plaetze')}</h3>
+      <div className="plaetze">
+        {z.plaetze.map((p) => (
+          <div className="platz" key={p.grad}>
+            <span className="leise">{p.grad}</span>
+            <input
+              aria-label={t('zauber.plaetzeGrad', { grad: p.grad })}
+              data-platz-max={p.grad}
+              inputMode="numeric"
+              value={p.max}
+              onChange={(e) => {
+                const n = Math.max(0, Math.min(9, Math.round(Number(e.target.value) || 0)));
+                setZ((x) => ({
+                  ...x,
+                  plaetze: x.plaetze.map((q) => (q.grad === p.grad ? { ...q, max: n, verbraucht: Math.min(q.verbraucht, n) } : q))
+                }));
+              }}
+            />
+            <span className="punkte">
+              {Array.from({ length: p.max }, (_, n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={n < p.verbraucht ? 'punkt punkt--weg' : 'punkt'}
+                  data-platz={`${p.grad}-${n}`}
+                  aria-label={t('zauber.platzUmschalten', { grad: p.grad })}
+                  title={t('zauber.platzUmschalten', { grad: p.grad })}
+                  onClick={() =>
+                    setZ((x) => ({
+                      ...x,
+                      plaetze: x.plaetze.map((q) =>
+                        q.grad === p.grad ? { ...q, verbraucht: n < q.verbraucht ? n : n + 1 } : q
+                      )
+                    }))
+                  }
+                />
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+      <label className="schalter">
+        <input type="checkbox" checked={z.kurzeRast} onChange={(e) => setZ((x) => ({ ...x, kurzeRast: e.target.checked }))} />
+        <span title={t('zauber.paktHinweis')}>{t('zauber.pakt')}</span>
+      </label>
+
+      <h3>{t('zauber.liste')}</h3>
+      {liste.length === 0 ? <p className="leise">{t('zauber.leer')}</p> : null}
+      <ul className="zauberliste" data-zauberliste>
+        {liste.map((e) => {
+          const idx = z.liste.indexOf(e);
+          const srd = e.srd ? NACH_ID.get(e.srd) : undefined;
+          const grad = gradVon(e);
+          const aufgeklappt = offen === idx;
+          return (
+            <li key={`${e.srd ?? e.eigen?.name}-${idx}`} className={aufgeklappt ? 'is-auf' : undefined}>
+              <div className="zauberzeile">
+                <input
+                  type="checkbox"
+                  aria-label={t('zauber.vorbereitet')}
+                  title={grad === 0 ? t('zauber.trick') : t('zauber.vorbereitet')}
+                  disabled={grad === 0 || e.immer}
+                  checked={grad === 0 || e.immer || e.vorbereitet}
+                  onChange={(ev) =>
+                    setZ((x) => ({ ...x, liste: x.liste.map((y, m) => (m === idx ? { ...y, vorbereitet: ev.target.checked } : y)) }))
+                  }
+                />
+                <span className="zauberzeile__grad">{grad === 0 ? t('zauber.trickKurz') : grad}</span>
+                <button type="button" className="zauberzeile__name" onClick={() => setOffen(aufgeklappt ? null : idx)}>
+                  {nameVon(e, sprache)}
+                </button>
+                <span className="marken">
+                  {srd?.konzentration ? <span className="marke" title={t('zauber.konzentration')}>K</span> : null}
+                  {srd?.ritual ? <span className="marke" title={t('zauber.ritual')}>R</span> : null}
+                  {e.immer ? <span className="marke" title={t('zauber.immer')}>★</span> : null}
+                </span>
+                <span className="leise zauberzeile__info">
+                  {srd ? `${srd.eigenschaften[sprache].zeit} · ${srd.eigenschaften[sprache].reichweite}` : e.herkunft}
+                </span>
+                <button type="button" className="knopf--klein" data-wirken onClick={() => wirke(e)}>
+                  {t('zauber.wirken')}
+                </button>
+              </div>
+              {aufgeklappt ? (
+                <div className="zauberdetail">
+                  {srd ? (
+                    <>
+                      <p className="leise">
+                        {srd.gradzeile[sprache]} · {srd.eigenschaften[sprache].komponenten} · {srd.eigenschaften[sprache].dauer}
+                      </p>
+                      {srd.bloecke[sprache].map((b, n) =>
+                        b.typ === 'tabelle' ? (
+                          <table key={n}>
+                            <thead>
+                              <tr>
+                                {b.kopf.map((k, m) => (
+                                  <th key={m}>{k}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {b.reihen.map((r, m) => (
+                                <tr key={m}>
+                                  {r.map((c, o) => (
+                                    <td key={o}>{c}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : b.typ === 'liste' ? (
+                          <ul key={n}>
+                            {b.eintraege.map((x, m) => (
+                              <li key={m}>{x}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p key={n}>{b.text}</p>
+                        )
+                      )}
+                    </>
+                  ) : e.eigen ? (
+                    <>
+                    <div className="leiste">
+                      <input
+                        aria-label={t('zauber.name')}
+                        value={e.eigen.name}
+                        maxLength={80}
+                        onChange={(ev) =>
+                          setZ((x) => ({
+                            ...x,
+                            liste: x.liste.map((y, m) => (m === idx && y.eigen ? { ...y, eigen: { ...y.eigen, name: ev.target.value } } : y))
+                          }))
+                        }
+                      />
+                      <select
+                        aria-label={t('zauber.grad')}
+                        value={e.eigen.grad}
+                        onChange={(ev) =>
+                          setZ((x) => ({
+                            ...x,
+                            liste: x.liste.map((y, m) =>
+                              m === idx && y.eigen ? { ...y, eigen: { ...y.eigen, grad: Number(ev.target.value) } } : y
+                            )
+                          }))
+                        }
+                      >
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => (
+                          <option key={g} value={g}>
+                            {g === 0 ? t('zauber.tricks') : t('zauber.gradN', { grad: g })}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={e.eigen.text}
+                      aria-label={t('zauber.text')}
+                      onChange={(ev) =>
+                        setZ((x) => ({
+                          ...x,
+                          liste: x.liste.map((y, m) => (m === idx && y.eigen ? { ...y, eigen: { ...y.eigen, text: ev.target.value } } : y))
+                        }))
+                      }
+                    />
+                    </>
+                  ) : null}
+                  <div className="leiste">
+                    <label className="schalter">
+                      <input
+                        type="checkbox"
+                        checked={e.immer}
+                        onChange={(ev) =>
+                          setZ((x) => ({ ...x, liste: x.liste.map((y, m) => (m === idx ? { ...y, immer: ev.target.checked } : y)) }))
+                        }
+                      />
+                      <span>{t('zauber.immer')}</span>
+                    </label>
+                    <input
+                      aria-label={t('zauber.herkunft')}
+                      placeholder={t('zauber.herkunft')}
+                      value={e.herkunft}
+                      maxLength={80}
+                      onChange={(ev) =>
+                        setZ((x) => ({ ...x, liste: x.liste.map((y, m) => (m === idx ? { ...y, herkunft: ev.target.value } : y)) }))
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="knopf--klein knopf--gefahr"
+                      onClick={() => {
+                        setZ((x) => ({ ...x, liste: x.liste.filter((_, m) => m !== idx) }));
+                        setOffen(null);
+                      }}
+                    >
+                      {t('zauber.weg')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="leiste">
+        <button type="button" className="knopf--klein" data-zauber-suchen onClick={() => setSuchen((s) => !s)}>
+          {t('zauber.dazu')}
+        </button>
+        <button
+          type="button"
+          className="knopf--klein"
+          onClick={() => {
+            setZ((x) => ({ ...x, liste: [...x.liste, { eigen: { name: t('zauber.eigenName'), grad: 1, text: '' }, vorbereitet: false, immer: false, herkunft: '' }] }));
+            setOffen(z.liste.length);
+          }}
+        >
+          {t('zauber.eigen')}
+        </button>
+        <span className="leiste__rest" />
+        <button
+          type="button"
+          className="knopf--klein knopf--gefahr"
+          onClick={() => {
+            if (z.liste.length && !window.confirm(t('zauber.ausSicher'))) return;
+            aendere((x) => {
+              const { zauber: _weg, ...rest } = x;
+              return rest;
+            });
+          }}
+        >
+          {t('zauber.aus')}
+        </button>
+      </div>
+
+      {suchen ? (
+        <ZauberSuche
+          vorhanden={new Set(z.liste.map((e) => e.srd).filter((x): x is string => Boolean(x)))}
+          klassen={klassenAusNamen(w.klassen.map((k) => k.name))}
+          dazu={(id) => setZ((x) => ({ ...x, liste: [...x.liste, { srd: id, vorbereitet: false, immer: false, herkunft: '' }] }))}
+          schliessen={() => setSuchen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ZauberSuche({
+  vorhanden,
+  klassen,
+  dazu,
+  schliessen
+}: {
+  vorhanden: ReadonlySet<string>;
+  klassen: readonly Zauberklasse[];
+  dazu: (id: string) => void;
+  schliessen: () => void;
+}) {
+  const sprache = getLanguage() === 'de' ? 'de' : 'en';
+  const i = sprache === 'de' ? 0 : 1;
+  const [anfrage, setAnfrage] = useState('');
+  const [grad, setGrad] = useState<number | null>(null);
+  const [klasse, setKlasse] = useState<Zauberklasse | null>(klassen[0] ?? null);
+  const treffer = useMemo(() => sucheZauber(anfrage, { grad, klasse }, sprache).slice(0, 80), [anfrage, grad, klasse, sprache]);
+  return (
+    <div className="zaubersuche" data-zaubersuche>
+      <div className="leiste">
+        <input
+          autoFocus
+          type="search"
+          className="suche"
+          data-zauber-anfrage
+          placeholder={t('zauber.suchen')}
+          value={anfrage}
+          onChange={(e) => setAnfrage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') schliessen();
+          }}
+        />
+        <select aria-label={t('zauber.grad')} value={grad ?? ''} onChange={(e) => setGrad(e.target.value === '' ? null : Number(e.target.value))}>
+          <option value="">{t('zauber.alleGrade')}</option>
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => (
+            <option key={g} value={g}>
+              {g === 0 ? t('zauber.tricks') : t('zauber.gradN', { grad: g })}
+            </option>
+          ))}
+        </select>
+        <select aria-label={t('klasse')} value={klasse ?? ''} onChange={(e) => setKlasse((e.target.value || null) as Zauberklasse | null)}>
+          <option value="">{t('zauber.alleKlassen')}</option>
+          {KLASSEN.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.name[i]}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="knopf--klein" onClick={schliessen}>
+          {t('schliessen')}
+        </button>
+      </div>
+      <ul className="zaubertreffer">
+        {treffer.map((s) => (
+          <li key={s.id}>
+            <span className="zauberzeile__grad">{s.grad === 0 ? t('zauber.trickKurz') : s.grad}</span>
+            <span>{s.name[sprache]}</span>
+            <span className="leise">{s.eigenschaften[sprache].zeit}</span>
+            <button
+              type="button"
+              className="knopf--klein"
+              data-zauber-dazu={s.id}
+              disabled={vorhanden.has(s.id)}
+              onClick={() => dazu(s.id)}
+            >
+              {vorhanden.has(s.id) ? t('zauber.drin') : '+'}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {treffer.length === 0 ? <p className="leise">{t('liste.nichts')}</p> : null}
+    </div>
+  );
+}

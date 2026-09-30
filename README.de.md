@@ -181,7 +181,9 @@ Obsidian.
 - Rechnet Modifikatoren, Übungsbonus, Fertigkeiten und passive Wahrnehmung.
 - **Schaden / Heilung**: `-7` oder `7` zieht ab, `+5` heilt, Würfel gehen
   (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
-- Speichert von selbst als Markdown. Inventar, Zauber und der Raum folgen
+- **Zauber**: SG und Angriff, Plätze je Grad (auch Paktmagie), Liste aus
+  den 339 SRD-Zaubern oder eigenen, Wirken verbraucht einen Platz.
+- Speichert von selbst als Markdown. Inventar und der Raum folgen
   (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -361,7 +363,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
-| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Schritt 1 gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Schritte 1 und 2 gebaut) |
 
 ## Lizenz
 

@@ -14,6 +14,7 @@
  * Plattformfrei: nur Text bauen und lesen.
  */
 import { bereinige, gesamtstufe, initiativeBonus, type Bogen } from './bogen';
+import { gradVon, nameVon, sortiert } from './zauber';
 import {
   ATTRIBUTE,
   ATTRIBUT_NAMEN,
@@ -116,6 +117,15 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
           geuebt.map((f) => `${f.name[i]} ${mitVorzeichen(fertigkeitsBonus(w.attribute[f.attribut], w.fertigkeiten[f.id], pb))}`).join(', '),
         ''
       );
+    }
+    if (w.zauber && w.zauber.liste.length) {
+      teile.push(`## ${L('Zauber', 'Spells')}`, '');
+      for (const e of sortiert(w.zauber.liste, sprache)) {
+        const g = gradVon(e);
+        const marke = g === 0 ? L('Zaubertrick', 'Cantrip') : `${g}.`;
+        teile.push(`- ${marke} ${nameVon(e, sprache)}${e.immer ? ' ★' : e.vorbereitet && g > 0 ? ' ●' : ''}`);
+      }
+      teile.push('');
     }
     if (w.angriffe.length) {
       teile.push(`## ${L('Angriffe', 'Attacks')}`, '');

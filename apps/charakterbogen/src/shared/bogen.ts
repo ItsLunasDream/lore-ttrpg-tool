@@ -8,6 +8,7 @@
  */
 import { rollExpression, type RandomSource } from '@suite/dice';
 import { ATTRIBUTE, FERTIGKEITEN, modifikator, type Attribut, type Uebung } from './regeln';
+import { bereinigeZauberei, fuellePlaetze, type Zauberei } from './zauber';
 
 export const SCHEMA = 1;
 
@@ -54,6 +55,8 @@ export interface Werte {
   todesrettung: { erfolge: number; fehlschlaege: number };
   inspiration: boolean;
   angriffe: Angriff[];
+  /** Nur bei Figuren, die zaubern. */
+  zauber?: Zauberei;
 }
 
 export interface Muenzen {
@@ -201,7 +204,10 @@ export function langeRast(w: Werte): Werte {
     tp: { ...w.tp, aktuell: w.tp.max },
     trefferwuerfel: w.trefferwuerfel.map((t) => ({ ...t, uebrig: t.gesamt })),
     erschoepfung: Math.max(0, w.erschoepfung - 1),
-    todesrettung: { erfolge: 0, fehlschlaege: 0 }
+    todesrettung: { erfolge: 0, fehlschlaege: 0 },
+    // Zauberplaetze kommen nach einer langen Rast zurueck (Klassenmerkmal
+    // aller Zauberklassen im SRD).
+    ...(w.zauber ? { zauber: fuellePlaetze(w.zauber) } : {})
   };
 }
 
@@ -231,7 +237,9 @@ export function kurzeRast(
     return { ...t, uebrig: t.uebrig - n };
   });
   const summe = wuerfe.reduce((s, x) => s + x.geheilt, 0);
-  const geheilt = wendeBetragAn({ ...w, trefferwuerfel }, summe);
+  // Paktmagie: die Plaetze kommen auch nach einer kurzen Rast zurueck.
+  const zauber = w.zauber?.kurzeRast ? fuellePlaetze(w.zauber) : w.zauber;
+  const geheilt = wendeBetragAn({ ...w, trefferwuerfel, ...(zauber ? { zauber } : {}) }, summe);
   return { werte: geheilt, wuerfe };
 }
 
@@ -319,7 +327,8 @@ export function bereinige(roh: unknown, id: string): Bogen {
           const xx = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
           return { name: text(xx.name, 80), bonus: text(xx.bonus, 20), schaden: text(xx.schaden, 60), notiz: text(xx.notiz, 200) };
         })
-      : []
+      : [],
+    ...(bereinigeZauberei(w.zauber) ? { zauber: bereinigeZauberei(w.zauber) } : {})
   };
   if (bogen.werte.klassen.length === 0) bogen.werte.klassen = leer.klassen;
   return bogen;

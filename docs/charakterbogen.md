@@ -6,7 +6,7 @@ live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
-**Stand:** Schritt 1 ist gebaut (siehe „Der Bogen“), der Rest ist Konzept. Es nimmt `docs/inventar.md`
+**Stand:** Schritte 1 und 2 sind gebaut (Bogen und Zauberliste), der Rest ist Konzept. Es nimmt `docs/inventar.md`
 auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
 Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 überdauern den Raum. Offene Fragen stehen am Ende.
@@ -47,9 +47,10 @@ eine Erschöpfungsstufe weniger; mit 0 TP geht keine Rast. Kurze Rast:
 Trefferwürfel ausgeben, je Würfel Wurf + KON-Modifikator, mindestens 1 TP.
 Zauberplätze kommen mit der Zauberliste dazu.
 
-**Stand:** Schritt 1 ist gebaut (`apps/charakterbogen`): Werte, Rechnungen,
+**Stand:** Schritte 1 und 2 sind gebaut (`apps/charakterbogen`): Werte, Rechnungen,
 TP-Feld, Todesrettungswürfe, Trefferwürfel, Rasten, Zustände, Angriffe,
-Notizen, Ablage als Markdown, Suche und Teilen über die Hülle.
+Notizen, Ablage als Markdown, Suche und Teilen über die Hülle; dazu die
+Zauberliste wie unten beschrieben.
 
 ## Zauberliste
 

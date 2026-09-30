@@ -113,3 +113,50 @@ test('Kennungen: frei und ohne Umlaute', () => {
   assert.equal(B.zuId('Ägir der Große'), 'aegir-der-grosse');
   assert.equal(B.freieKennung('mira', ['mira', 'mira-2']), 'mira-3');
 });
+
+test('Zauber: Klassen aus Namen, Suche in beiden Sprachen', () => {
+  assert.deepEqual(B.klassenAusNamen(['Magierin', 'Waldläuferin', 'Kämpfer']).sort(), ['magier', 'waldlaeufer']);
+  assert.deepEqual(B.klassenAusNamen(['Wizard']), ['magier']);
+  const feuer = B.sucheZauber('feuerball', {}, 'de');
+  assert.equal(feuer[0]?.id, 'fireball');
+  assert.equal(B.sucheZauber('fireball', {}, 'en')[0]?.id, 'fireball');
+  assert.ok(B.sucheZauber('', { grad: 0, klasse: 'magier' }, 'de').every((z) => z.grad === 0 && z.klassen.includes('magier')));
+});
+
+test('Zauber: Plaetze verbrauchen, lange Rast fuellt, kurze nur bei Paktmagie', () => {
+  let w = { ...B.leereWerte(), zauber: B.leereZauberei('int') };
+  w.zauber.plaetze[0].max = 2;
+  w.zauber.plaetze[2].max = 1;
+  assert.equal(B.freierPlatz(w.zauber, 1), 1);
+  w = { ...w, zauber: B.verbrauche(B.verbrauche(w.zauber, 1), 1) };
+  assert.equal(B.freierPlatz(w.zauber, 1), 3, 'Grad 1 leer, naechster freier ist 3');
+  assert.equal(B.verbrauche(w.zauber, 1).plaetze[0].verbraucht, 2, 'mehr als max geht nicht');
+  assert.equal(B.kurzeRast(w, {}).werte.zauber.plaetze[0].verbraucht, 2);
+  assert.equal(B.langeRast(w).zauber.plaetze[0].verbraucht, 0);
+  const pakt = { ...w, zauber: { ...w.zauber, kurzeRast: true } };
+  assert.equal(B.kurzeRast(pakt, {}).werte.zauber.plaetze[0].verbraucht, 0);
+});
+
+test('Zauber: vorbereitete zaehlen ohne Zaubertricks und ohne „immer"', () => {
+  const z = B.leereZauberei();
+  z.liste = [
+    { srd: 'fire-bolt', vorbereitet: true, immer: false, herkunft: '' },
+    { srd: 'fireball', vorbereitet: true, immer: false, herkunft: '' },
+    { srd: 'shield', vorbereitet: true, immer: true, herkunft: '' },
+    { eigen: { name: 'Nebelhand', grad: 1, text: '' }, vorbereitet: true, immer: false, herkunft: '' }
+  ];
+  assert.equal(B.vorbereiteteAnzahl(z), 2);
+  assert.deepEqual(B.sortiert(z.liste, 'de').map((e) => B.nameVon(e, 'de')), ['Feuerpfeil', 'Nebelhand', 'Schild', 'Feuerball']);
+});
+
+test('Zauber: ueberstehen Speichern und Einlesen, Unsinn faellt weg', () => {
+  const b = B.neuerBogen('z', 'Zaubernde');
+  b.werte.zauber = B.leereZauberei('cha');
+  b.werte.zauber.plaetze[0] = { grad: 1, max: 4, verbraucht: 1 };
+  b.werte.zauber.liste = [{ srd: 'magic-missile', vorbereitet: true, immer: false, herkunft: 'Buch' }];
+  assert.deepEqual(B.leseBogen(B.alsMarkdown(b, 'en'), 'z'), b);
+  const u = B.bereinige({ werte: { zauber: { attribut: 'xx', plaetze: [{ grad: 1, max: 50, verbraucht: 99 }], liste: [{}, { eigen: { name: '' } }] } } }, 'u');
+  assert.equal(u.werte.zauber.attribut, 'int');
+  assert.deepEqual(u.werte.zauber.plaetze[0], { grad: 1, max: 9, verbraucht: 9 });
+  assert.equal(u.werte.zauber.liste.length, 0);
+});
