@@ -13,14 +13,14 @@
  *
  * Plattformfrei: nur Text bauen und lesen.
  */
-import { bereinige, gesamtstufe, initiativeBonus, type Bogen } from './bogen';
+import { bereinige, gesamtstufe, initiativeBonus, passiverWert, uebungIn, type Bogen } from './bogen';
 import { gradVon, nameVon, sortiert } from './zauber';
 import { MUENZARTEN, MUENZ_NAMEN, gewichtAnzeige, inGold, summen } from './inventar';
 import { angriffswerte } from './waffen';
 import {
   ATTRIBUTE,
   ATTRIBUT_NAMEN,
-  FERTIGKEITEN,
+  fertigkeitenSortiert,
   fertigkeitsBonus,
   modifikator,
   mitVorzeichen,
@@ -104,7 +104,8 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
     );
     const L = (de: string, en: string) => (i === 0 ? de : en);
     teile.push(`# ${b.name}`, '');
-    const zeile = [klassenText(b), w.spezies, w.hintergrund].filter((x) => x.trim()).join(' · ');
+    const unter = w.klassen.filter((k) => k.unterklasse?.trim()).map((k) => k.unterklasse!.trim()).join(' / ');
+    const zeile = [klassenText(b), unter, w.spezies, w.hintergrund, w.gesinnung, w.groesse].filter((x) => x.trim()).join(' · ');
     if (zeile) teile.push(zeile, '');
     teile.push(
       `**${L('RK', 'AC')}** ${w.rk} · **${L('TP', 'HP')}** ${w.tp.aktuell}/${w.tp.max}${w.tp.temp ? ` (+${w.tp.temp})` : ''} · **${L('Initiative', 'Initiative')}** ${mitVorzeichen(initiativeBonus(w))}${w.bewegung.trim() ? ` · **${L('Bewegung', 'Speed')}** ${w.bewegung.trim()}` : ''} · **${L('Übungsbonus', 'Proficiency')}** ${mitVorzeichen(pb)}`,
@@ -112,13 +113,35 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
     );
     teile.push(`| ${ATTRIBUTE.map((a) => ATTRIBUT_NAMEN[a].kurz[i]).join(' | ')} |`, `|${ATTRIBUTE.map(() => '---').join('|')}|`);
     teile.push(`| ${ATTRIBUTE.map((a) => `${w.attribute[a]} (${mitVorzeichen(modifikator(w.attribute[a]))})`).join(' | ')} |`, '');
-    const geuebt = FERTIGKEITEN.filter((f) => w.fertigkeiten[f.id]);
+    const geuebt = fertigkeitenSortiert(sprache).filter((f) => uebungIn(w, f.id));
     if (geuebt.length) {
       teile.push(
         `**${L('Fertigkeiten', 'Skills')}:** ` +
-          geuebt.map((f) => `${f.name[i]} ${mitVorzeichen(fertigkeitsBonus(w.attribute[f.attribut], w.fertigkeiten[f.id], pb))}`).join(', '),
+          geuebt.map((f) => `${f.name[i]} ${mitVorzeichen(fertigkeitsBonus(w.attribute[f.attribut], uebungIn(w, f.id), pb))}`).join(', '),
         ''
       );
+    }
+    teile.push(
+      `**${L('Passiv', 'Passive')}:** ${L('Wahrnehmung', 'Perception')} ${passiverWert(w, 'wahrnehmung')}, ${L('Nachforschungen', 'Investigation')} ${passiverWert(w, 'nachforschungen')}, ${L('Motiv erkennen', 'Insight')} ${passiverWert(w, 'motiv-erkennen')}`,
+      ''
+    );
+    const ru = w.ruestungsuebung;
+    const ruestung = [ru.leicht && L('leicht', 'light'), ru.mittel && L('mittel', 'medium'), ru.schwer && L('schwer', 'heavy'), ru.schilde && L('Schilde', 'shields')].filter(Boolean).join(', ');
+    const felder: [string, string][] = [
+      [L('Sinne', 'Senses'), w.sinne],
+      [L('Resistenzen', 'Resistances'), w.resistenzen],
+      [L('Immunitäten', 'Immunities'), w.immunitaeten],
+      [L('Anfälligkeiten', 'Vulnerabilities'), w.anfaelligkeiten],
+      [L('Rüstung', 'Armor'), ruestung],
+      [L('Waffen', 'Weapons'), w.waffenuebung],
+      [L('Werkzeuge', 'Tools'), w.werkzeuguebung],
+      [L('Sprachen', 'Languages'), w.sprachen],
+      [L('EP', 'XP'), w.ep ? String(w.ep) : '']
+    ];
+    for (const [n, v] of felder) if (v.trim()) teile.push(`**${n}:** ${v.trim()}  `);
+    teile.push('');
+    if (w.ressourcen.length) {
+      teile.push(`**${L('Ressourcen', 'Resources')}:** ` + w.ressourcen.map((r) => `${r.name} ${r.uebrig}/${r.max}`).join(', '), '');
     }
     if (w.zauber && w.zauber.liste.length) {
       teile.push(`## ${L('Zauber', 'Spells')}`, '');
@@ -128,6 +151,15 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
         teile.push(`- ${marke} ${nameVon(e, sprache)}${e.immer ? ' ★' : e.vorbereitet && g > 0 ? ' ●' : ''}`);
       }
       teile.push('');
+    }
+    for (const [n, v] of [
+      [L('Klassenmerkmale', 'Class features'), w.klassenmerkmale],
+      [L('Speziesmerkmale', 'Species traits'), w.speziesmerkmale],
+      [L('Talente', 'Feats'), w.talente],
+      [L('Aussehen', 'Appearance'), w.aussehen],
+      [L('Persönlichkeit und Geschichte', 'Personality and backstory'), w.persoenlichkeit]
+    ] as const) {
+      if (v.trim()) teile.push(`## ${n}`, '', v.trim(), '');
     }
     if (w.angriffe.length) {
       teile.push(`## ${L('Angriffe', 'Attacks')}`, '');

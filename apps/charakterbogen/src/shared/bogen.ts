@@ -7,7 +7,7 @@
  * Live-Stand im Raum, wo Aenderungen als Schritte reisen.
  */
 import { rollExpression, type RandomSource } from '@suite/dice';
-import { ATTRIBUTE, FERTIGKEITEN, modifikator, type Attribut, type Uebung } from './regeln';
+import { ATTRIBUTE, FERTIGKEITEN, fertigkeitsBonus, modifikator, uebungsbonus, type Attribut, type Uebung } from './regeln';
 import { bereinigeZauberei, fuellePlaetze, type Zauberei } from './zauber';
 import { bereinigeGegenstaende, type Gegenstand } from './inventar';
 
@@ -16,6 +16,24 @@ export const SCHEMA = 1;
 export interface Klasse {
   name: string;
   stufe: number;
+  /** Unterklasse („Schule der Hervorrufung"), frei. */
+  unterklasse?: string;
+}
+
+/** Eine begrenzte Faehigkeit mit Nutzungen, etwa „Kampfrausch 3/3". */
+export interface Ressource {
+  name: string;
+  max: number;
+  uebrig: number;
+  /** Wann sie zurueckkommt. */
+  rast: 'kurz' | 'lang';
+}
+
+export interface Ruestungsuebung {
+  leicht: boolean;
+  mittel: boolean;
+  schwer: boolean;
+  schilde: boolean;
 }
 
 export interface Trefferwuerfel {
@@ -71,6 +89,34 @@ export interface Werte {
   angriffe: Angriff[];
   /** Nur bei Figuren, die zaubern. */
   zauber?: Zauberei;
+  // --- Was ein Bogen sonst noch hat (Spielerbogen 2024) ---
+  ep: number;
+  gesinnung: string;
+  groesse: string;
+  /** Alleskönner: halbe Uebung auf alle ungeuebten Fertigkeiten und die Initiative. */
+  alleskoenner: boolean;
+  ruestungsuebung: Ruestungsuebung;
+  waffenuebung: string;
+  werkzeuguebung: string;
+  sprachen: string;
+  klassenmerkmale: string;
+  speziesmerkmale: string;
+  talente: string;
+  aussehen: string;
+  persoenlichkeit: string;
+  ressourcen: Ressource[];
+  /** „Dunkelsicht 18 m" usw. */
+  sinne: string;
+  resistenzen: string;
+  immunitaeten: string;
+  anfaelligkeiten: string;
+}
+
+/** Wie der Bogen aussieht; je Bogen. Kennungen aus `shared/design.ts`. */
+export interface Design {
+  farbe: string;
+  papier: string;
+  schrift: string;
 }
 
 export interface Muenzen {
@@ -95,6 +141,10 @@ export interface Bogen {
   /** Wer was genommen oder gegeben hat; vor allem fuers Gruppeninventar. Neueste zuerst. */
   verlauf: VerlaufEintrag[];
   notizen: string;
+  /** Aussehen dieses Bogens; fehlt es, gilt die Vorgabe. */
+  design?: Design;
+  /** Verknuepfte Notiz im Story Creator (`<Kampagne>/<Notiz>`). */
+  storyNotiz?: { kennung: string; titel: string };
   /** Zaehlt bei jeder gespeicherten Aenderung hoch. */
   fassung: number;
   geaendert: string;
@@ -127,7 +177,25 @@ export function leereWerte(): Werte {
     erschoepfung: 0,
     todesrettung: { erfolge: 0, fehlschlaege: 0 },
     inspiration: false,
-    angriffe: []
+    angriffe: [],
+    ep: 0,
+    gesinnung: '',
+    groesse: '',
+    alleskoenner: false,
+    ruestungsuebung: { leicht: false, mittel: false, schwer: false, schilde: false },
+    waffenuebung: '',
+    werkzeuguebung: '',
+    sprachen: '',
+    klassenmerkmale: '',
+    speziesmerkmale: '',
+    talente: '',
+    aussehen: '',
+    persoenlichkeit: '',
+    ressourcen: [],
+    sinne: '',
+    resistenzen: '',
+    immunitaeten: '',
+    anfaelligkeiten: ''
   };
 }
 
@@ -154,8 +222,28 @@ export function gesamtstufe(w: Werte): number {
   return Math.max(1, w.klassen.reduce((summe, k) => summe + (k.stufe || 0), 0));
 }
 
+/** Die Uebung einer Fertigkeit, mit „Alleskönner" fuer die ungeuebten. */
+export function uebungIn(w: Werte, fertigkeit: string): Uebung {
+  return w.fertigkeiten[fertigkeit] ?? (w.alleskoenner ? 0.5 : 0);
+}
+
+/** Initiative ist ein Geschicklichkeitswurf: „Alleskönner" zaehlt mit (SRD 5.2). */
 export function initiativeBonus(w: Werte): number {
-  return w.initiative ?? modifikator(w.attribute.ges);
+  if (w.initiative !== null) return w.initiative;
+  const halb = w.alleskoenner ? Math.floor(uebungsbonus(gesamtstufe(w)) / 2) : 0;
+  return modifikator(w.attribute.ges) + halb;
+}
+
+/** Passiver Wert einer Fertigkeit: 10 + Bonus (Wahrnehmung, Nachforschung, Motiv erkennen). */
+export function passiverWert(w: Werte, fertigkeit: string): number {
+  const f = FERTIGKEITEN.find((x) => x.id === fertigkeit);
+  if (!f) return 10;
+  return 10 + fertigkeitsBonus(w.attribute[f.attribut], uebungIn(w, fertigkeit), uebungsbonus(gesamtstufe(w)));
+}
+
+/** Ressourcen nach einer Rast: lang fuellt alle, kurz nur die der kurzen Rast. */
+export function fuelleRessourcen(liste: readonly Ressource[], rast: 'kurz' | 'lang'): Ressource[] {
+  return liste.map((r) => (rast === 'lang' || r.rast === 'kurz' ? { ...r, uebrig: r.max } : r));
 }
 
 // --- Schaden und Heilung ---------------------------------------------------
@@ -231,6 +319,7 @@ export function langeRast(w: Werte): Werte {
     trefferwuerfel: w.trefferwuerfel.map((t) => ({ ...t, uebrig: t.gesamt })),
     erschoepfung: Math.max(0, w.erschoepfung - 1),
     todesrettung: { erfolge: 0, fehlschlaege: 0 },
+    ressourcen: fuelleRessourcen(w.ressourcen, 'lang'),
     // Zauberplaetze kommen nach einer langen Rast zurueck (Klassenmerkmal
     // aller Zauberklassen im SRD).
     ...(w.zauber ? { zauber: fuellePlaetze(w.zauber) } : {})
@@ -265,7 +354,10 @@ export function kurzeRast(
   const summe = wuerfe.reduce((s, x) => s + x.geheilt, 0);
   // Paktmagie: die Plaetze kommen auch nach einer kurzen Rast zurueck.
   const zauber = w.zauber?.kurzeRast ? fuellePlaetze(w.zauber) : w.zauber;
-  const geheilt = wendeBetragAn({ ...w, trefferwuerfel, ...(zauber ? { zauber } : {}) }, summe);
+  const geheilt = wendeBetragAn(
+    { ...w, trefferwuerfel, ressourcen: fuelleRessourcen(w.ressourcen, 'kurz'), ...(zauber ? { zauber } : {}) },
+    summe
+  );
   return { werte: geheilt, wuerfe };
 }
 
@@ -290,6 +382,11 @@ export function bereinige(roh: unknown, id: string): Bogen {
   const art = r.art === 'gruppe' ? 'gruppe' : 'figur';
   const basis = neuerBogen(id, text(r.name, 120) || id, art);
   const m = (r.muenzen && typeof r.muenzen === 'object' ? r.muenzen : {}) as Record<string, unknown>;
+  const d = (r.design && typeof r.design === 'object' ? r.design : null) as Record<string, unknown> | null;
+  const kennwort = (x: unknown) => (typeof x === 'string' && /^[a-z0-9-]{1,30}$/.test(x) ? x : '');
+  const design: Design | null = d ? { farbe: kennwort(d.farbe), papier: kennwort(d.papier), schrift: kennwort(d.schrift) } : null;
+  const sn = (r.storyNotiz && typeof r.storyNotiz === 'object' ? r.storyNotiz : null) as Record<string, unknown> | null;
+  const story = sn && typeof sn.kennung === 'string' && sn.kennung ? { kennung: sn.kennung.slice(0, 200), titel: text(sn.titel, 200) } : null;
   const bogen: Bogen = {
     ...basis,
     muenzen: {
@@ -306,6 +403,8 @@ export function bereinige(roh: unknown, id: string): Bogen {
       return typeof x.text === 'string' && x.text ? [{ zeit: text(x.zeit, 40), text: x.text.slice(0, 300) }] : [];
     }),
     notizen: text(r.notizen, 100_000),
+    ...(design ? { design } : {}),
+    ...(story ? { storyNotiz: story } : {}),
     fassung: zahl(r.fassung, 0, 0),
     geaendert: text(r.geaendert, 40)
   };
@@ -318,12 +417,14 @@ export function bereinige(roh: unknown, id: string): Bogen {
   const f = (w.fertigkeiten && typeof w.fertigkeiten === 'object' ? w.fertigkeiten : {}) as Record<string, unknown>;
   const fertigkeiten: Record<string, Uebung> = {};
   for (const fk of FERTIGKEITEN) {
-    const u = zahl(f[fk.id], 0, 0, 2);
+    const roh = Number(f[fk.id]);
+    const u = roh === 0.5 ? 0.5 : zahl(f[fk.id], 0, 0, 2);
     if (u > 0) fertigkeiten[fk.id] = u as Uebung;
   }
   const tp = (w.tp && typeof w.tp === 'object' ? w.tp : {}) as Record<string, unknown>;
   const max = zahl(tp.max, leer.tp.max, 1, 9999);
   const ts = (w.todesrettung && typeof w.todesrettung === 'object' ? w.todesrettung : {}) as Record<string, unknown>;
+  const ru = (w.ruestungsuebung && typeof w.ruestungsuebung === 'object' ? w.ruestungsuebung : {}) as Record<string, unknown>;
   bogen.werte = {
     spieler: text(w.spieler, 80),
     spezies: text(w.spezies, 80),
@@ -331,7 +432,8 @@ export function bereinige(roh: unknown, id: string): Bogen {
     klassen: Array.isArray(w.klassen)
       ? w.klassen.slice(0, 6).map((k) => {
           const kk = (k && typeof k === 'object' ? k : {}) as Record<string, unknown>;
-          return { name: text(kk.name, 60), stufe: zahl(kk.stufe, 1, 1, 20) };
+          const unterklasse = text(kk.unterklasse, 80);
+          return { name: text(kk.name, 60), stufe: zahl(kk.stufe, 1, 1, 20), ...(unterklasse ? { unterklasse } : {}) };
         })
       : leer.klassen,
     attribute,
@@ -367,7 +469,38 @@ export function bereinige(roh: unknown, id: string): Bogen {
           return a;
         })
       : [],
-    ...(bereinigeZauberei(w.zauber) ? { zauber: bereinigeZauberei(w.zauber) } : {})
+    ...(bereinigeZauberei(w.zauber) ? { zauber: bereinigeZauberei(w.zauber) } : {}),
+    ep: zahl(w.ep, 0, 0, 10_000_000),
+    gesinnung: text(w.gesinnung, 60),
+    groesse: text(w.groesse, 40),
+    alleskoenner: w.alleskoenner === true,
+    ruestungsuebung: {
+      leicht: ru.leicht === true,
+      mittel: ru.mittel === true,
+      schwer: ru.schwer === true,
+      schilde: ru.schilde === true
+    },
+    waffenuebung: text(w.waffenuebung, 500),
+    werkzeuguebung: text(w.werkzeuguebung, 500),
+    sprachen: text(w.sprachen, 500),
+    klassenmerkmale: text(w.klassenmerkmale, 20_000),
+    speziesmerkmale: text(w.speziesmerkmale, 20_000),
+    talente: text(w.talente, 20_000),
+    aussehen: text(w.aussehen, 5000),
+    persoenlichkeit: text(w.persoenlichkeit, 20_000),
+    sinne: text(w.sinne, 500),
+    resistenzen: text(w.resistenzen, 500),
+    immunitaeten: text(w.immunitaeten, 500),
+    anfaelligkeiten: text(w.anfaelligkeiten, 500),
+    ressourcen: Array.isArray(w.ressourcen)
+      ? w.ressourcen.slice(0, 30).flatMap((x): Ressource[] => {
+          const rr = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+          const name = text(rr.name, 80);
+          if (!name.trim()) return [];
+          const rmax = zahl(rr.max, 1, 0, 99);
+          return [{ name, max: rmax, uebrig: zahl(rr.uebrig, rmax, 0, rmax), rast: rr.rast === 'kurz' ? 'kurz' : 'lang' }];
+        })
+      : []
   };
   if (bogen.werte.klassen.length === 0) bogen.werte.klassen = leer.klassen;
   return bogen;
