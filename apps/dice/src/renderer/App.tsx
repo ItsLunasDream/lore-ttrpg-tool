@@ -25,6 +25,7 @@ import {
 import { STANDARD, TEILEN, type Einstellungen, type Teilen } from '../shared/einstellungen';
 import { getLanguage, onLanguageChange, t, type Language } from './i18n';
 import { Wuerfel } from './Wuerfel';
+import { Klappe } from './Klappe';
 import { Verlauf } from './Verlauf';
 import { VERLAUF_LAENGE, type Eintrag } from './verlaufTypen';
 import { Aussehen } from './Aussehen';
@@ -58,6 +59,8 @@ export function App() {
   const [rollt, setRollt] = useState(false);
   const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
   const [verlauf, setVerlauf] = useState<Eintrag[]>([]);
+  /** Welcher Verlaufseintrag gerade auf dem Tisch liegt (nach einem Klick darauf). */
+  const [gezeigterEintrag, setGezeigterEintrag] = useState<number | null>(null);
   const [, setSprache] = useState<Language>(getLanguage);
   // Einmal beim Start gemessen und nicht bei jedem Bild: die Antwort aendert
   // sich waehrend einer Sitzung nicht, und die Probe legt jedes Mal eine
@@ -165,6 +168,7 @@ export function App() {
     window.setTimeout(() => {
       wurfNummer.current += 1;
       setWurf(neuerWurf);
+      setGezeigterEintrag(null);
       setRollt(false);
       teileWurf(`🎲 ${ausdruck}: ${neuerWurf.summe}  (${rechenweg(neuerWurf)})`, einstellungen.teilen);
       setVerlauf((vorher) =>
@@ -291,8 +295,7 @@ export function App() {
         </label>
         {tippFehler ? <p className="teilen__hinweis">{t('feld.ausdruckFehler')}</p> : null}
 
-        <section className="wurfart" aria-label={t('wurfart.titel')}>
-          <span className="aussehen__titel">{t('wurfart.titel')}</span>
+        <Klappe name="wurfart" klasse="wurfart" titel={t('wurfart.titel')}>
           <div className="teilen__wahl" role="radiogroup">
             {([undefined, 'vorteil', 'nachteil'] as const).map((wert) => (
               <button
@@ -333,12 +336,11 @@ export function App() {
               }}
             />
           </label>
-        </section>
+                </Klappe>
 
         <Aussehen einstellungen={einstellungen} onAendern={aendereEinstellungen} />
 
-        <section className="teilen">
-          <span className="aussehen__titel">{t('teilen.titel')}</span>
+        <Klappe name="teilen" klasse="teilen" titel={t('teilen.titel')}>
           <div className="teilen__wahl" role="radiogroup" aria-label={t('teilen.titel')}>
             {TEILEN.map((wert) => (
               <button
@@ -364,7 +366,7 @@ export function App() {
               {teilMeldung}
             </p>
           ) : null}
-        </section>
+                </Klappe>
 
         <div className="auswahl__knoepfe">
           <button type="button" className="knopf--haupt" onClick={rolle} disabled={gesamt === 0 || rollt}>
@@ -442,7 +444,13 @@ export function App() {
       <Verlauf
         eintraege={verlauf}
         onLeeren={() => setVerlauf([])}
+        aktiv={gezeigterEintrag}
         onZurueckholen={(eintrag) => {
+          // Auch die Wuerfel dieses Wurfs zeigen (Rueckmeldung), ohne sie neu fallen zu lassen.
+          wurfNummer.current += 1;
+          gezeigt.current = wurfNummer.current;
+          setWurf(eintrag.wurf);
+          setGezeigterEintrag(eintrag.id);
           setAuswahl(eintrag.auswahl);
           setModifikator(eintrag.modifikator);
           // Ueber aendereEinstellungen und nicht ueber setEinstellungen: die

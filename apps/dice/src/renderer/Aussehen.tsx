@@ -6,6 +6,7 @@
  * traegt ihn schon (ein globaler Satz plus spaeter optionale Ausnahmen), die
  * Oberflaeche noch nicht.
  */
+import { Klappe } from './Klappe';
 import { MUSTER, type Einstellungen, type Muster } from '../shared/einstellungen';
 import { t, type TextKey } from './i18n';
 import { Wuerfel } from './Wuerfel';
@@ -17,8 +18,7 @@ interface Props {
 
 export function Aussehen({ einstellungen, onAendern }: Props) {
   return (
-    <section className="aussehen">
-      <span className="aussehen__titel">{t('aussehen.titel')}</span>
+    <Klappe name="aussehen" klasse="aussehen" titel={t('aussehen.titel')}>
 
       <label className="aussehen__farbe">
         <span className="feld__label">{t('aussehen.farbe')}</span>
@@ -79,6 +79,6 @@ export function Aussehen({ einstellungen, onAendern }: Props) {
         />
         <span>{t('effekt.streifen')}</span>
       </label>
-    </section>
+    </Klappe>
   );
 }

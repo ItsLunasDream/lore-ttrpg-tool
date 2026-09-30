@@ -127,8 +127,8 @@ app.whenReady().then(async () => {
     `keine Definition traegt denselben Namen bei anderem Inhalt${doppelte.length ? ` (${doppelte.join(', ')})` : ''}`
   );
   pruefe(
-    (await js("document.querySelectorAll('.musterknopf').length")) === 4,
-    'alle vier Muster stehen zur Wahl'
+    (await js("document.querySelectorAll('.musterknopf').length")) === 8,
+    'alle acht Muster stehen zur Wahl'
   );
 
   // --- Klicken ------------------------------------------------------------
@@ -182,7 +182,7 @@ app.whenReady().then(async () => {
   const zurueck = await js("document.querySelector('.buehne__ausdruck').textContent");
   pruefe(zurueck === '3d20 - 2d4 + 5', `der Ausdruck steht wieder (${zurueck})`);
 
-  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
   await warte(1400);
   pruefe(
     (await js("document.querySelectorAll('.wuerfel--abzug').length")) === 2,
@@ -236,12 +236,12 @@ app.whenReady().then(async () => {
   // noch das Ergebnis des vorigen Wurfs auf dem Tisch, mit anderer Anzahl —
   // die Wuerfel stehen dann woanders, und der Vergleich misst das Layout
   // statt der Drehung. Genau daran ist diese Pruefung zuerst gescheitert.
-  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
   await warte(1000);
   const abzugRuhe = await mitte('.buehne__tisch .wuerfel--abzug .wuerfel__abzug');
   const koerperRuhe = await mitte('.buehne__tisch .wuerfel--abzug svg');
 
-  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
   await warte(200);
   const abzugDreht = await mitte('.buehne__tisch .wuerfel--abzug .wuerfel__abzug');
   const koerperDreht = await mitte('.buehne__tisch .wuerfel--abzug svg');
@@ -266,7 +266,7 @@ app.whenReady().then(async () => {
   let glitzer = 0;
   let streifen = 0;
   for (let versuch = 0; versuch < 20 && (glitzer === 0 || streifen === 0); versuch++) {
-    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
     await warte(1000);
     glitzer = Math.max(glitzer, await js("document.querySelectorAll('.glitzer').length"));
     streifen = Math.max(streifen, await js("document.querySelectorAll('.streifen').length"));
@@ -277,7 +277,7 @@ app.whenReady().then(async () => {
   // Abgeschaltet heisst abgeschaltet.
   await js("[...document.querySelectorAll('.aussehen__schalter input')][0].click(); true");
   await warte(200);
-  await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+  await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
   await warte(1200);
   pruefe(
     (await js("document.querySelectorAll('.glitzer').length")) === 0,
@@ -316,7 +316,7 @@ app.whenReady().then(async () => {
       f.forEach((x) => setz(x, '')); setz(f[5], '3'); setz(f[1], '2'); setz(f[3], '1');
       setz(document.querySelector('.feld input'), ''); return true; })()`);
     await warte(300);
-    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
 
     // Auf das Signal der Buehne warten statt auf eine geratene Zeit: ohne
     // Grafikkarte laeuft die Anzeige mit rund 25 Bildern je Sekunde statt 60,
@@ -390,7 +390,7 @@ app.whenReady().then(async () => {
      * also lief die Szene zweimal — die Wuerfel fielen sichtbar zweimal.
      */
     await js('window.__aufbauten = 0; true');
-    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
     await warte(250);
 
     // Und die Marken des vorigen Wurfs sind sofort weg, nicht erst am Ende:
@@ -447,7 +447,7 @@ app.whenReady().then(async () => {
       f.forEach((x) => setz(x, '')); setz(f[5], '50'); return true; })()`);
     await warte(400);
     await js('window.__wurf3d = null; true');
-    await js("[...document.querySelectorAll('button')].find(b => /Roll|Rollen/.test(b.textContent)).click(); true");
+    await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
     let vieleFertig = null;
     for (let versuch = 0; versuch < 40; versuch++) {
       await warte(500);
@@ -508,7 +508,7 @@ app.whenReady().then(async () => {
     f.forEach((x) => setz(x, '0')); setz(f[5], '100'); return true; })()`);
   await warte(400);
   const gemessen = await js(`(() => new Promise((fertig) => {
-    const knopf = [...document.querySelectorAll('button')].find((b) => /Roll|Rollen/.test(b.textContent));
+    const knopf = document.querySelector('.auswahl__knoepfe .knopf--haupt');
     const bilder = [];
     let letzte = performance.now();
     let laeuft = true;

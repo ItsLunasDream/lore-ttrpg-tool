@@ -930,3 +930,36 @@ input[type='number'] {
 .feld--fehler {
   outline: 1px solid var(--fehler, #d05050);
 }
+
+/* --- Einklappbare Abschnitte (Klappe.tsx) --------------------------------- */
+.klappe__kopf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.klappe__kopf:hover {
+  color: var(--text);
+}
+
+.klappe__pfeil {
+  display: inline-block;
+  transition: transform var(--motion-feedback, 120ms) ease;
+  transform: rotate(90deg);
+}
+
+.klappe--zu .klappe__pfeil {
+  transform: rotate(0deg);
+}
+
+/* Der Verlaufseintrag, dessen Wuerfel gerade auf dem Tisch liegen. */
+.verlauf__liste button.ist-an {
+  outline: 2px solid var(--betont);
+  outline-offset: -2px;
+}

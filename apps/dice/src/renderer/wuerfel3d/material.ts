@@ -7,8 +7,11 @@
  * leiten sich aus der einen gewaehlten Farbe ab. Sonst waere die freie
  * Farbwahl nur beim schlichten Muster wirksam.
  */
-import { CanvasTexture, Color, MeshStandardMaterial, RepeatWrapping } from 'three';
+import { CanvasTexture, Color, MeshPhysicalMaterial, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace } from 'three';
 import type { Muster } from '../../shared/einstellungen';
+
+/** Muster, die eine Umgebung spiegeln (Buehne3d haengt sie nur an diese). */
+export const GLAENZEND: ReadonlySet<Muster> = new Set<Muster>(['metall', 'lack', 'perlmutt', 'kristall']);
 
 /** Kantenlaenge der gemalten Texturen. */
 const BILD = 256;
@@ -49,6 +52,8 @@ function marmorTextur(farbe: string): CanvasTexture {
   const textur = new CanvasTexture(flaeche);
   textur.wrapS = RepeatWrapping;
   textur.wrapT = RepeatWrapping;
+  // Gemalt in sRGB: ohne das wirkten die Farben grau und ausgewaschen.
+  textur.colorSpace = SRGBColorSpace;
   return textur;
 }
 
@@ -105,6 +110,62 @@ function sternenTextur(farbe: string): CanvasTexture {
   const textur = new CanvasTexture(flaeche);
   textur.wrapS = RepeatWrapping;
   textur.wrapT = RepeatWrapping;
+  // Gemalt in sRGB: ohne das wirkten die Farben grau und ausgewaschen.
+  textur.colorSpace = SRGBColorSpace;
+  return textur;
+}
+
+/** Feine Striche fuer gebuerstetes Metall, als Rauheit (hell = rau). */
+function buerstTextur(): CanvasTexture {
+  const { flaeche, stift } = leinwand();
+  stift.fillStyle = '#6e6e6e';
+  stift.fillRect(0, 0, BILD, BILD);
+  let zahl = 11;
+  for (let i = 0; i < 220; i++) {
+    zahl = (zahl * 1103515245 + 12345) % 2147483648;
+    const y = (zahl / 2147483648) * BILD;
+    const hell = 90 + ((zahl >> 8) % 70);
+    stift.strokeStyle = `rgb(${hell},${hell},${hell})`;
+    stift.lineWidth = 0.6;
+    stift.beginPath();
+    stift.moveTo(0, y);
+    stift.lineTo(BILD, y + ((zahl >> 4) % 5) - 2);
+    stift.stroke();
+  }
+  const textur = new CanvasTexture(flaeche);
+  textur.wrapS = RepeatWrapping;
+  textur.wrapT = RepeatWrapping;
+  return textur;
+}
+
+/** Jahresringe in der gewaehlten Farbe, heller und dunkler gemasert. */
+function holzTextur(farbe: string): CanvasTexture {
+  const { flaeche, stift } = leinwand();
+  const grund = new Color(farbe);
+  const dunkel = grund.clone().lerp(new Color('#1a0e05'), 0.45);
+  const hell = grund.clone().lerp(new Color('#f3dcb2'), 0.25);
+  stift.fillStyle = `#${hell.getHexString()}`;
+  stift.fillRect(0, 0, BILD, BILD);
+  stift.strokeStyle = `#${dunkel.getHexString()}`;
+  // Wellige Linien statt Kreisen: ein Wuerfel ist aus einem Brett geschnitten.
+  for (let n = 0; n < 26; n++) {
+    const y0 = (n / 26) * BILD;
+    stift.lineWidth = 1 + (n % 3);
+    stift.globalAlpha = 0.35 + (n % 4) * 0.12;
+    stift.beginPath();
+    for (let x = 0; x <= BILD; x += 8) {
+      const y = y0 + Math.sin(x / 37 + n) * 5 + Math.sin(x / 11 + n * 2) * 1.5;
+      if (x === 0) stift.moveTo(x, y);
+      else stift.lineTo(x, y);
+    }
+    stift.stroke();
+  }
+  stift.globalAlpha = 1;
+  const textur = new CanvasTexture(flaeche);
+  textur.wrapS = RepeatWrapping;
+  textur.wrapT = RepeatWrapping;
+  // Gemalt in sRGB: ohne das wirkten die Farben grau und ausgewaschen.
+  textur.colorSpace = SRGBColorSpace;
   return textur;
 }
 
@@ -118,19 +179,73 @@ export function baueMaterial(muster: Muster, farbe: string): MeshStandardMateria
   const grund = new Color(farbe);
 
   if (muster === 'metall') {
+    /*
+     * Echtes Metall: fast voll metallisch, leicht gebuerstet. Das geht, seit
+     * die Szene eine Umgebung zum Spiegeln hat (Buehne3d); die gewaehlte
+     * Farbe faerbt die Spiegelung, wie bei Messing oder Kupfer.
+     */
     return new MeshStandardMaterial({
       color: grund,
-      /*
-       * Halber Metallanteil, nicht voller.
-       *
-       * Echtes Metall zeigt fast nur, was es spiegelt. Die Szene hat aber
-       * keine Umgebung zum Spiegeln, nur zwei Lichter — mit 0.85 wurde selbst
-       * ein helles Blau zu dunklem Grau, und von der gewaehlten Farbe blieb
-       * nichts uebrig. Bei 0.45 bleibt die Farbe stehen und der Glanz kommt
-       * vom Licht.
-       */
-      metalness: 0.45,
-      roughness: 0.18,
+      metalness: 0.9,
+      roughness: 0.3,
+      roughnessMap: buerstTextur(),
+      envMapIntensity: 1.2,
+      flatShading: true
+    });
+  }
+
+  if (muster === 'lack') {
+    // Glaenzender Lack: eine klare Schicht ueber der Farbe.
+    return new MeshPhysicalMaterial({
+      color: grund,
+      metalness: 0,
+      roughness: 0.45,
+      clearcoat: 1,
+      clearcoatRoughness: 0.04,
+      envMapIntensity: 0.5,
+      flatShading: true
+    });
+  }
+
+  if (muster === 'perlmutt') {
+    // Schillernd: die Farbe wandert mit dem Blickwinkel.
+    return new MeshPhysicalMaterial({
+      color: grund.clone().lerp(new Color('#ffffff'), 0.2),
+      metalness: 0.1,
+      envMapIntensity: 0.7,
+      roughness: 0.25,
+      iridescence: 1,
+      iridescenceIOR: 1.35,
+      iridescenceThicknessRange: [180, 620],
+      clearcoat: 0.6,
+      sheen: 0.6,
+      sheenColor: grund,
+      flatShading: true
+    });
+  }
+
+  if (muster === 'kristall') {
+    // Durchscheinend wie geschliffenes Glas, in der gewaehlten Farbe getoent.
+    return new MeshPhysicalMaterial({
+      color: grund,
+      metalness: 0,
+      roughness: 0.04,
+      envMapIntensity: 0.8,
+      transmission: 0.6,
+      thickness: 0.8,
+      ior: 1.6,
+      attenuationColor: grund,
+      attenuationDistance: 1.5,
+      clearcoat: 1,
+      flatShading: true
+    });
+  }
+
+  if (muster === 'holz') {
+    return new MeshStandardMaterial({
+      map: holzTextur(farbe),
+      metalness: 0,
+      roughness: 0.62,
       flatShading: true
     });
   }

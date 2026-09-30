@@ -5,7 +5,7 @@
  * bleiben. Der Verlauf nicht — er gehoert zur Sitzung und wird bewusst nicht
  * geschrieben.
  */
-export const MUSTER = ['schlicht', 'marmor', 'metall', 'sternenhimmel'] as const;
+export const MUSTER = ['schlicht', 'marmor', 'metall', 'sternenhimmel', 'lack', 'perlmutt', 'kristall', 'holz'] as const;
 export type Muster = (typeof MUSTER)[number];
 
 export interface Einstellungen {

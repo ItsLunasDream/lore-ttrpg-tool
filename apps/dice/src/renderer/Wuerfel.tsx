@@ -224,12 +224,68 @@ function Musterung({ kennung, muster, farbe }: { kennung: string; muster: Muster
     // Harte Kanten zwischen hell und dunkel: das liest sich als Metall,
     // waehrend ein weicher Verlauf nach Plastik aussieht.
     return (
+      // Mehrere Lichtbaender wie bei poliertem Chrom (Rueckmeldung: sah nicht nach Metall aus).
+      <linearGradient id={kennung} x1="0" y1="0" x2="0.35" y2="1">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+        <stop offset="12%" stopColor={farbe} />
+        <stop offset="30%" stopColor="#1a1a1a" stopOpacity="0.85" />
+        <stop offset="44%" stopColor={farbe} />
+        <stop offset="50%" stopColor="#ffffff" stopOpacity="0.9" />
+        <stop offset="56%" stopColor={farbe} />
+        <stop offset="78%" stopColor="#0d0d0d" stopOpacity="0.8" />
+        <stop offset="92%" stopColor={farbe} />
+        <stop offset="100%" stopColor="#ffffff" stopOpacity="0.6" />
+      </linearGradient>
+    );
+  }
+
+  if (muster === 'lack') {
+    // Ein harter Glanzpunkt oben links, sonst satte Farbe.
+    return (
+      <radialGradient id={kennung} cx="30%" cy="22%" r="85%">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+        <stop offset="10%" stopColor="#ffffff" stopOpacity="0.5" />
+        <stop offset="16%" stopColor={farbe} />
+        <stop offset="100%" stopColor={farbe} stopOpacity="0.9" />
+      </radialGradient>
+    );
+  }
+
+  if (muster === 'perlmutt') {
+    return (
       <linearGradient id={kennung} x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor={farbe} stopOpacity="1" />
-        <stop offset="38%" stopColor="#ffffff" stopOpacity="0.55" />
-        <stop offset="40%" stopColor={farbe} />
-        <stop offset="72%" stopColor="#000000" stopOpacity="0.35" />
-        <stop offset="74%" stopColor={farbe} />
+        <stop offset="0%" stopColor="#fdf2ff" />
+        <stop offset="25%" stopColor={farbe} stopOpacity="0.55" />
+        <stop offset="45%" stopColor="#d7f5ff" />
+        <stop offset="65%" stopColor={farbe} stopOpacity="0.7" />
+        <stop offset="85%" stopColor="#fff6dd" />
+        <stop offset="100%" stopColor={farbe} stopOpacity="0.8" />
+      </linearGradient>
+    );
+  }
+
+  if (muster === 'kristall') {
+    // Durchscheinend: die Farbe nur halb deckend, mit hellen Kanten.
+    return (
+      <linearGradient id={kennung} x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
+        <stop offset="22%" stopColor={farbe} stopOpacity="0.45" />
+        <stop offset="50%" stopColor={farbe} stopOpacity="0.3" />
+        <stop offset="52%" stopColor="#ffffff" stopOpacity="0.6" />
+        <stop offset="56%" stopColor={farbe} stopOpacity="0.35" />
+        <stop offset="100%" stopColor={farbe} stopOpacity="0.65" />
+      </linearGradient>
+    );
+  }
+
+  if (muster === 'holz') {
+    // Maserung als dichte Streifen im Verlauf.
+    return (
+      <linearGradient id={kennung} x1="0" y1="0" x2="0.3" y2="1" spreadMethod="repeat">
+        <stop offset="0%" stopColor={farbe} />
+        <stop offset="30%" stopColor={farbe} stopOpacity="0.75" />
+        <stop offset="34%" stopColor="#2a1606" stopOpacity="0.55" />
+        <stop offset="40%" stopColor={farbe} stopOpacity="0.85" />
         <stop offset="100%" stopColor={farbe} />
       </linearGradient>
     );

@@ -56,7 +56,8 @@ test('eine kaputte Farbe wird verworfen', () => {
 });
 
 test('ein unbekanntes Muster wird verworfen', () => {
-  assert.equal(bereinige({ muster: 'holz' }).muster, STANDARD.muster);
+  assert.equal(bereinige({ muster: 'pappe' }).muster, STANDARD.muster);
+  assert.equal(bereinige({ muster: 'holz' }).muster, 'holz');
   assert.equal(bereinige({ muster: 'marmor' }).muster, 'marmor');
 });
 
