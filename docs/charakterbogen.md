@@ -26,13 +26,17 @@ Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 
 | Bereich | Felder | Gerechnet |
 | --- | --- | --- |
-| Kopf | Name, Spieler:in, Spezies, Klasse(n) mit Stufe, Hintergrund, Porträt | Gesamtstufe, Übungsbonus (+2 bis +6) |
+| Kopf | Name, Spieler:in, Spezies, Klasse(n) mit Stufe und Unterklasse, Hintergrund, Gesinnung, Größe, EP | Gesamtstufe, Übungsbonus (+2 bis +6) |
 | Attribute | STÄ, GES, KON, INT, WEI, CHA | Modifikator |
 | Rettungswürfe | Übung je Attribut | Bonus |
-| Fertigkeiten | 18 Fertigkeiten: keine / Übung / Expertise | Bonus, passive Wahrnehmung |
-| Kampf | RK, Initiative (überschreibbar), Bewegung, Trefferwürfel (gesamt/übrig) | Initiative aus GES |
+| Fertigkeiten | 18 Fertigkeiten, alphabetisch in der Sprache der Anzeige: keine / halbe Übung / Übung / Expertise; Schalter „Alleskönner“ | Bonus, passive Wahrnehmung, Nachforschungen, Motiv erkennen |
+| Übung und Training | Rüstung (leicht, mittel, schwer, Schilde), Waffen, Werkzeuge, Sprachen | |
+| Sinne, Verteidigung | Sinne, Resistenzen, Immunitäten, Anfälligkeiten | |
+| Kampf | RK, Initiative (überschreibbar), Bewegung, Trefferwürfel (gesamt/übrig) | Initiative aus GES (+ halber Übungsbonus mit Alleskönner) |
 | Trefferpunkte | Maximum, aktuell, temporär | Anzeige „34 / 41 (+5)“ |
-| Zustand | Zustände aus dem SRD, Erschöpfung 0–6, Todesrettungswürfe, Heldische Inspiration | |
+| Zustand | Zustände aus dem SRD und eigene aus dem Status Effect Creator, Erschöpfung 0–6, Todesrettungswürfe, Heldische Inspiration | Wirkung der Erschöpfungsstufe |
+| Begrenzte Fähigkeiten | Name, Höchstwert, übrig, kurze oder lange Rast | füllen sich bei der passenden Rast |
+| Merkmale, Figur | Klassenmerkmale, Speziesmerkmale, Talente, Aussehen, Persönlichkeit und Geschichte | |
 | Angriffe | freie Zeilen: Name, Angriffsbonus, Schaden, Notiz | |
 | Zauber (optional) | Zauberattribut, Plätze je Grad (max/verbraucht), Zauberliste | Zauber-SG, Angriffsbonus |
 | Inventar | siehe unten | Gewicht, Wert, Traglast |
@@ -382,6 +386,46 @@ Gebaut:
   an den Bogen. Im geteilten Kampf schreibt jede Person nur in Bögen, die
   sie ändern darf.
 
+## Aussehen und Bedienung
+
+Gebaut auf Wunsch nach Schritt 7:
+
+- **Klassischer Aufbau:** Kopf mit Linienfeldern, eine Leiste mit den sechs
+  Attributen (großer Modifikator, Wert im Oval), Übungsbonus, Bewegung und
+  Inspiration, darunter drei Spalten: Rettungswürfe, passive Werte und
+  Übungen; Fertigkeiten und Verteidigung; Initiative (Sechseck), RK
+  (Schild), TP, Todesrettungswürfe, Trefferwürfel, Rasten, Zustände und
+  begrenzte Fähigkeiten. Darunter Angriffe, Zauber, Merkmale, Figur,
+  Inventar, Notizen.
+- **Übungspunkt:** leer, halb, voll, doppelt umrandet; per CSS gezeichnet und
+  deshalb überall gleich groß (vorher Schriftzeichen unterschiedlicher Größe).
+- **Halbe Übung:** Ein Klick schaltet 0 → ½ → 1 → 2 → 0. Der Bonus ist
+  „Modifikator + Übungsbonus × Stufe“, abgerundet. „Alleskönner“ gibt allen
+  ungeübten Fertigkeiten und der Initiative den halben Übungsbonus
+  (SRD 5.2: die Initiative ist ein Geschicklichkeitswurf).
+- **Keine Auswahllisten mehr:** Segmente für wenige Werte (Trefferwürfel,
+  Attribut, Magie, Wurfziel, Freigabe, Zauberattribut, Zaubergrad und
+  -klasse, Loot-Tabelle), Punkte für Stufen (Erschöpfung, Todesrettung,
+  Nutzungen, Trefferwürfel bei der kurzen Rast), eine Suchwahl für lange
+  Listen (Waffen, Zustände, Ziel beim Geben, Bogen in den Raum bringen).
+  Code: `renderer/Bedienung.tsx`.
+- **Aussehen je Bogen** (`Bogen.design`, `shared/design.ts`): zehn
+  Akzentfarben, sechs Papiere (Pergament, Hell, Leinen, Dunkel, Nacht,
+  Schiefer), sieben Schriften (System, Alegreya, Cinzel, IM Fell English,
+  MedievalSharp, Uncial Antiqua, Caveat). Die Schriften stehen unter der OFL
+  und werden mitgeliefert (`@fontsource`, nur Latin); Lizenztexte in
+  `apps/charakterbogen/SCHRIFTEN.md`. Im Raum reist das Aussehen mit dem
+  Bogen.
+- **Story Creator:** „Notiz im Story Creator anlegen“ legt in der zuletzt
+  benutzten Kampagne eine Notiz mit der Lesefassung der Figur an und merkt
+  sich die Verknüpfung (`Bogen.storyNotiz`). Danach öffnet der Knopf „Notiz“
+  den Story Creator an dieser Stelle; gibt es die Notiz nicht mehr, wird die
+  Verknüpfung gelöst. Die Notiz ist ein Schnappschuss und wird nicht
+  nachgeführt.
+- **Eigene Zustände:** Die Zustände aus dem Status Effect Creator stehen in
+  der Suchwahl unter „Eigene“ und tragen ihren Text als Hinweis; im Bogen
+  als `eigen:<Name>`.
+
 ## Waffenangriffe
 
 Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
@@ -423,7 +467,8 @@ Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
 - **Loot Generator**: gebaut andersherum: der Bogen würfelt über „Aus Quelle
   … → Loot-Tabelle“. Ein Knopf „Ins Inventar“ im Loot Generator selbst
   fehlt noch.
-- **Story Creator**: Bogen als Notiz exportieren (Werte als Steckbrief).
+- **Story Creator**: gebaut, siehe „Aussehen und Bedienung“. Die Notiz ist
+  ein Schnappschuss; Nachführen bei Änderungen fehlt.
 
 ## Ablage
 
@@ -438,12 +483,13 @@ interface Bogen {
   name: string;
   freigabe: 'nichts' | 'uebersicht' | 'alles';
   werte?: {
-    klassen: { name: string; stufe: number }[];
+    klassen: { name: string; stufe: number; unterklasse?: string }[];
     spezies: string;
     hintergrund: string;
     attribute: Record<'sta' | 'ges' | 'kon' | 'int' | 'wei' | 'cha', number>;
     rettung: string[];                        // Attribute mit Übung
-    fertigkeiten: Record<string, 1 | 2>;      // 1 = Übung, 2 = Expertise
+    fertigkeiten: Record<string, 0.5 | 1 | 2>; // halb, Übung, Expertise
+    alleskoenner: boolean;                    // halbe Übung auf alles Ungeübte
     rk: number;
     initiative: number | null;                // null = aus GES
     bewegung: number;
@@ -454,6 +500,13 @@ interface Bogen {
     todesrettung: { erfolge: number; fehlschlaege: number };
     inspiration: boolean;
     angriffe: { name: string; bonus: string; schaden: string; notiz: string }[];
+    ep: number; gesinnung: string; groesse: string;
+    ruestungsuebung: { leicht: boolean; mittel: boolean; schwer: boolean; schilde: boolean };
+    waffenuebung: string; werkzeuguebung: string; sprachen: string;
+    sinne: string; resistenzen: string; immunitaeten: string; anfaelligkeiten: string;
+    klassenmerkmale: string; speziesmerkmale: string; talente: string;
+    aussehen: string; persoenlichkeit: string;
+    ressourcen: { name: string; max: number; uebrig: number; rast: 'kurz' | 'lang' }[];
     zauber?: {
       attribut: string;
       plaetze: { grad: number; max: number; verbraucht: number }[];
@@ -470,6 +523,8 @@ interface Bogen {
   muenzen: { km: number; sm: number; em: number; gm: number; pm: number };
   gegenstaende: InventarGegenstand[];         // aus docs/inventar.md
   notizen: string;
+  design?: { farbe: string; papier: string; schrift: string };
+  storyNotiz?: { kennung: string; titel: string }; // `<Kampagne>/<Notiz>`
   fassung: number;
 }
 ```

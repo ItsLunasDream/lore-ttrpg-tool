@@ -5,6 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './api';
+import { Segment } from './Bedienung';
 import { getLanguage, t } from './i18n';
 import type { Bogen } from '../shared/bogen';
 import { gewichtAnzeige } from '../shared/inventar';
@@ -101,13 +102,13 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
           {tabellen && tabellen.length === 0 ? <p className="leise">{t('quelle.loot.leer')}</p> : null}
           {tabellen && tabellen.length ? (
             <div className="leiste">
-              <select data-loot-tabelle value={tabelle} onChange={(e) => setTabelle(e.target.value)} aria-label={t('quelle.loot')}>
-                {tabellen.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
+              <Segment
+                label={t('quelle.loot')}
+                wert={tabelle}
+                daten={{ 'data-loot-tabelle': '' }}
+                optionen={tabellen.map((x) => ({ wert: x.id, text: x.name }))}
+                aendern={setTabelle}
+              />
               <button type="button" data-loot-wuerfeln onClick={wuerfle}>
                 🎲 {t('quelle.loot.wuerfeln')}
               </button>

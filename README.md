@@ -163,10 +163,16 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 
 ## Character Sheet
 
-- A small sheet for D&D 5.5e (2024): abilities, saves, 18 skills with
-  proficiency and expertise, AC, initiative, HP, Hit Point Dice, conditions,
-  exhaustion, Heroic Inspiration, attacks, notes.
-- Works out modifiers, proficiency bonus, skills and passive Perception.
+- A D&D 5.5e (2024) sheet laid out like a classic one: abilities, saves,
+  18 skills (alphabetical) with half proficiency, proficiency and
+  expertise, Jack of All Trades, AC, initiative, HP, Hit Point Dice,
+  conditions (SRD and your own from the Status Effect Creator), exhaustion,
+  Heroic Inspiration, limited-use features, proficiencies and languages,
+  senses, defenses, features, appearance, backstory, attacks, notes.
+- Works out modifiers, proficiency bonus, skills and passive scores.
+- **Look per sheet**: accent colour, paper and font (seven free fonts are
+  bundled). Few drop-downs: segments, dots and searchable pickers instead.
+- **Story Creator**: create a note for the character and open it later.
 - **Damage / Healing**: `-7` or `7` subtracts, `+5` heals, dice work
   (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
 - **Spells**: save DC and attack, slots per level (Pact Magic too), list

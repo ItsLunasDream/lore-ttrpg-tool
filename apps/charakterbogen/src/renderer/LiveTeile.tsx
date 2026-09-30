@@ -4,9 +4,10 @@
  * SL und die kleinen Marken an geaenderten Feldern.
  */
 import { createContext, useContext, useState } from 'react';
+import { Segment, Suchwahl } from './Bedienung';
 import { getLanguage, hatText, t } from './i18n';
 import type { Kachel } from '../shared/ablage';
-import { FREIGABEN, type Freigabe, type LiveEintrag, type SlAenderung } from '../shared/live';
+import { FREIGABEN, type LiveEintrag, type SlAenderung } from '../shared/live';
 import type { LiveZustand } from '../main/live';
 
 // --- Marken an Feldern ------------------------------------------------------
@@ -109,14 +110,14 @@ export function LiveListe({
       </ul>
       {draussen.length > 0 ? (
         <div className="leiste">
-          <select data-bringe-wahl value={wahl} onChange={(ev) => setWahl(ev.target.value)} aria-label={t('live.bringe')}>
-            <option value="">{t('live.bringe.wahl')}</option>
-            {draussen.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name}
-              </option>
-            ))}
-          </select>
+          <Suchwahl
+            daten={{ 'data-bringe-wahl': '' }}
+            punkte={draussen.map((k) => ({ id: k.id, name: k.name, info: k.kurz }))}
+            wert={wahl}
+            suche={t('liste.suche')}
+            knopf={draussen.find((k) => k.id === wahl)?.name ?? t('live.bringe.wahl')}
+            aendern={setWahl}
+          />
           <button
             type="button"
             data-bringe
@@ -186,20 +187,17 @@ export function LiveLeiste({
       ) : null}
       <span className="leiste__rest" />
       {e.darfAendern ? (
-        <label className="live-leiste__freigabe" title={t('live.freigabe.titel')}>
+        <div className="live-leiste__freigabe" title={t('live.freigabe.titel')}>
           {t('live.freigabe')}
-          <select
-            data-freigabe
-            value={e.freigabe}
-            onChange={(ev) => anfrage({ art: 'freigabe', id: e.id, freigabe: ev.target.value as Freigabe })}
-          >
-            {FREIGABEN.map((f) => (
-              <option key={f} value={f}>
-                {t(`live.freigabe.${f}` as Parameters<typeof t>[0])}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Segment
+            klein
+            label={t('live.freigabe')}
+            wert={e.freigabe}
+            daten={{ 'data-freigabe': '' }}
+            optionen={FREIGABEN.map((f) => ({ wert: f, text: t(`live.freigabe.${f}` as Parameters<typeof t>[0]) }))}
+            aendern={(f) => anfrage({ art: 'freigabe', id: e.id, freigabe: f })}
+          />
+        </div>
       ) : null}
       {fremdAlsSl ? (
         <label className={`live-leiste__still${still ? ' ist-an' : ''}`} title={t('live.still.titel')}>

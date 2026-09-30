@@ -4,6 +4,7 @@
  */
 import { useMemo, useState } from 'react';
 import type { Zauberklasse } from '@suite/srd/zauber';
+import { Segment } from './Bedienung';
 import { getLanguage, t } from './i18n';
 import type { Werte } from '../shared/bogen';
 import { ATTRIBUTE, ATTRIBUT_NAMEN, mitVorzeichen, zauberAngriff, zauberSg } from '../shared/regeln';
@@ -82,20 +83,17 @@ export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
   return (
     <div className="zauber">
       <div className="raster raster--zauberkopf">
-        <label className="feld">
+        <div className="feld">
           <span className="feld__label">{t('zauber.attribut')}</span>
-          <select
-            data-feld="zauberattribut"
-            value={z.attribut}
-            onChange={(e) => setZ((x) => ({ ...x, attribut: e.target.value as Zauberei['attribut'] }))}
-          >
-            {ATTRIBUTE.map((a) => (
-              <option key={a} value={a}>
-                {ATTRIBUT_NAMEN[a].lang[i]}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Segment
+            klein
+            label={t('zauber.attribut')}
+            wert={z.attribut}
+            daten={{ 'data-feld': 'zauberattribut' }}
+            optionen={ATTRIBUTE.map((a) => ({ wert: a, text: ATTRIBUT_NAMEN[a].kurz[i], titel: ATTRIBUT_NAMEN[a].lang[i] }))}
+            aendern={(v) => setZ((x) => ({ ...x, attribut: v }))}
+          />
+        </div>
         <div className="kennzahl" data-zauber-sg>
           <span className="feld__label">{t('zauber.sg')}</span>
           <strong>{zauberSg(wert, pb)}</strong>
@@ -258,24 +256,22 @@ export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
                           }))
                         }
                       />
-                      <select
-                        aria-label={t('zauber.grad')}
-                        value={e.eigen.grad}
-                        onChange={(ev) =>
+                      <Segment
+                        klein
+                        label={t('zauber.grad')}
+                        wert={e.eigen.grad}
+                        optionen={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => ({
+                          wert: g,
+                          text: g === 0 ? t('zauber.trickKurz') : String(g),
+                          titel: g === 0 ? t('zauber.tricks') : t('zauber.gradN', { grad: g })
+                        }))}
+                        aendern={(g) =>
                           setZ((x) => ({
                             ...x,
-                            liste: x.liste.map((y, m) =>
-                              m === idx && y.eigen ? { ...y, eigen: { ...y.eigen, grad: Number(ev.target.value) } } : y
-                            )
+                            liste: x.liste.map((y, m) => (m === idx && y.eigen ? { ...y, eigen: { ...y.eigen, grad: g } } : y))
                           }))
                         }
-                      >
-                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => (
-                          <option key={g} value={g}>
-                            {g === 0 ? t('zauber.tricks') : t('zauber.gradN', { grad: g })}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
                     <textarea
                       rows={4}
@@ -402,25 +398,32 @@ function ZauberSuche({
             if (e.key === 'Escape') schliessen();
           }}
         />
-        <select aria-label={t('zauber.grad')} value={grad ?? ''} onChange={(e) => setGrad(e.target.value === '' ? null : Number(e.target.value))}>
-          <option value="">{t('zauber.alleGrade')}</option>
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => (
-            <option key={g} value={g}>
-              {g === 0 ? t('zauber.tricks') : t('zauber.gradN', { grad: g })}
-            </option>
-          ))}
-        </select>
-        <select aria-label={t('klasse')} value={klasse ?? ''} onChange={(e) => setKlasse((e.target.value || null) as Zauberklasse | null)}>
-          <option value="">{t('zauber.alleKlassen')}</option>
-          {KLASSEN.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name[i]}
-            </option>
-          ))}
-        </select>
         <button type="button" className="knopf--klein" onClick={schliessen}>
           {t('schliessen')}
         </button>
+      </div>
+      <div className="zaubersuche__filter">
+        <Segment
+          klein
+          label={t('zauber.grad')}
+          wert={grad === null ? 'alle' : String(grad)}
+          optionen={[
+            { wert: 'alle', text: t('zauber.alleGrade') },
+            ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((g) => ({
+              wert: String(g),
+              text: g === 0 ? t('zauber.trickKurz') : String(g),
+              titel: g === 0 ? t('zauber.tricks') : t('zauber.gradN', { grad: g })
+            }))
+          ]}
+          aendern={(v) => setGrad(v === 'alle' ? null : Number(v))}
+        />
+        <Segment
+          klein
+          label={t('klasse')}
+          wert={klasse ?? 'alle'}
+          optionen={[{ wert: 'alle', text: t('zauber.alleKlassen') }, ...KLASSEN.map((k) => ({ wert: k.id as string, text: k.name[i] }))]}
+          aendern={(v) => setKlasse(v === 'alle' ? null : (v as Zauberklasse))}
+        />
       </div>
       <ul className="zaubertreffer">
         {treffer.map((s) => (

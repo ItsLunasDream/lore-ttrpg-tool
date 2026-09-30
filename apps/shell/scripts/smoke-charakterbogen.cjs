@@ -7,7 +7,7 @@
  *
  * Aufruf: xvfb-run -a electron scripts/smoke-charakterbogen.cjs --no-sandbox
  */
-const { app, BaseWindow } = require('electron');
+const { app, BaseWindow, webContents } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -27,6 +27,11 @@ fs.writeFileSync(
   path.join(mi, 'sturmklinge.md'),
   '---\nname: Sturmklinge\nart: waffe\nseltenheit: rare\neinstimmung: ja\nwert: 4000\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Blitze knistern an der Schneide.\n'
 );
+
+// Ein eigener Zustand aus dem Status Effect Creator (Homebrew-Effekt).
+const ze = path.join(userData, 'zustaende', 'zustaende');
+fs.mkdirSync(ze, { recursive: true });
+fs.writeFileSync(path.join(ze, 'nebelfluch.md'), '---\nname: Nebelfluch\nart: fluch\n---\n# Nebelfluch\n\nDu siehst nur 3 m weit.\n');
 
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -53,7 +58,7 @@ async function bis(bedingung, ms = 4000) {
 }
 
 /** Setzt einen Wert so, dass React ihn mitbekommt. */
-const tippe = (auswahl, wert) => `(() => {
+const tippe = (auswahl, wert) => `(async () => {
   const e = document.querySelector(${JSON.stringify(auswahl)});
   if (!e) return false;
   const setz = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -110,15 +115,107 @@ app.whenReady().then(async () => {
   pruefe((await js(`document.querySelector('[data-mod="ges"]').textContent`)) === '+3', 'GES 16 ergibt +3');
   pruefe((await js(`document.querySelector('[data-pb]').dataset.pb`)) === '3', 'Stufe 5 ergibt Uebungsbonus +3');
 
-  // Heimlichkeit zweimal: Uebung, dann Expertise.
-  await js(`document.querySelector('[data-fertigkeit="heimlichkeit"]').click(); true`);
+  // Heimlichkeit dreimal: halbe Uebung, Uebung, dann Expertise.
+  const klickeHeimlichkeit = () => js(`document.querySelector('[data-fertigkeit="heimlichkeit"]').click(); true`);
+  await klickeHeimlichkeit();
+  await warte(150);
+  pruefe((await js(`document.querySelector('[data-bonus="heimlichkeit"]').textContent`)) === '+4', 'halbe Uebung: 3 + 1 (3/2 abgerundet) = +4');
+  await klickeHeimlichkeit();
   await warte(100);
-  await js(`document.querySelector('[data-fertigkeit="heimlichkeit"]').click(); true`);
+  await klickeHeimlichkeit();
   await warte(200);
   pruefe(
     (await js(`document.querySelector('[data-bonus="heimlichkeit"]').textContent`)) === '+9',
     'Heimlichkeit mit Expertise: 3 + 2 × 3 = +9'
   );
+  // Symbole der Uebung: alle gleich gross (war ein Glyph-Problem).
+  pruefe(
+    await js(`(() => { const g = [...document.querySelectorAll('.fertigkeiten .upunkt')].map((e) => e.getBoundingClientRect().width); return g.length === 18 && g.every((x) => Math.abs(x - g[0]) < 0.5); })()`),
+    'alle Uebungspunkte sind gleich gross'
+  );
+  pruefe(
+    await js(`(() => { const n = [...document.querySelectorAll('.fertigkeiten li')].map((li) => li.children[2].textContent); return n.join('|') === [...n].sort((a, b) => a.localeCompare(b, 'de')).join('|'); })()`),
+    'Fertigkeiten stehen alphabetisch'
+  );
+  // Alleskoenner: ungeuebte Fertigkeiten bekommen den halben Bonus.
+  const akro = () => js(`document.querySelector('[data-bonus="akrobatik"]').textContent`);
+  pruefe((await akro()) === '+3', 'Akrobatik ohne Uebung: +3');
+  await js(`document.querySelector('[data-feld="alleskoenner"]').click(); true`);
+  await warte(150);
+  pruefe((await akro()) === '+4', 'mit Alleskoenner: +4');
+  pruefe((await js(`document.querySelector('[data-feld="initiative"]').placeholder`)) === '+4', 'und die Initiative auch');
+  await js(`document.querySelector('[data-feld="alleskoenner"]').click(); true`);
+  // Erschoepfung als Punkte, Inspiration als Knopf.
+  await js(`document.querySelector('[data-feld="erschoepfung"] [data-wert="2"]').click(); true`);
+  await warte(100);
+  pruefe((await js(`document.querySelector('[data-feld="erschoepfung"]').dataset.stufe`)) === '2', 'Erschoepfung 2 per Klick auf den zweiten Punkt');
+  await js(`document.querySelector('[data-feld="erschoepfung"] [data-wert="2"]').click(); true`);
+  await warte(100);
+  pruefe((await js(`document.querySelector('[data-feld="erschoepfung"]').dataset.stufe`)) === '1', 'nochmal Klick nimmt eine Stufe zurueck');
+  await js(`document.querySelector('[data-feld="erschoepfung"] [data-wert="1"]').click(); true`);
+  await js(`document.querySelector('[data-feld="inspiration"]').click(); true`);
+  await warte(100);
+  pruefe((await js(`document.querySelector('[data-feld="inspiration"]').getAttribute('aria-pressed')`)) === 'true', 'Inspiration an');
+  // Aussehen: Farbe, Papier und Schrift je Bogen.
+  await js(`document.querySelector('[data-design-knopf]').click(); true`);
+  await warte(100);
+  await js(`document.querySelector('[data-design-papier="nacht"]').click(); document.querySelector('[data-design-schrift="alt"]').click(); document.querySelector('[data-design-farbe="gruen"]').click(); true`);
+  await warte(150);
+  pruefe((await js(`document.querySelector('.blatt').dataset.papier`)) === 'nacht', 'Papier Nacht gewaehlt');
+  pruefe(
+    /IM Fell English/.test(await js(`getComputedStyle(document.querySelector('.blatt__name input')).fontFamily`)),
+    'die Schrift gilt im Bogen'
+  );
+  pruefe(
+    await js(`document.fonts.ready.then(() => document.fonts.check('16px "IM Fell English"'))`),
+    'die mitgelieferte Schrift ist geladen'
+  );
+  await js(`document.querySelector('[data-design-knopf]').click(); true`);
+
+  // Eigene Zustaende aus dem Status Effect Creator stehen zur Wahl.
+  await js(`document.querySelector('[data-zustand-dazu] button').click(); true`);
+  pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-zustand-dazu] [data-wert="eigen:Nebelfluch"]'))`)), 'der eigene Zustand Nebelfluch steht zur Wahl');
+  await js(`document.querySelector('[data-zustand-dazu] [data-wert="eigen:Nebelfluch"]').click(); true`);
+  await warte(100);
+  pruefe(/3 m weit/.test(await js(`document.querySelector('[data-zustand="eigen:Nebelfluch"]')?.title ?? ''`)), 'und traegt seinen Text als Hinweis');
+
+  // Notiz im Story Creator: ohne Kampagne eine Meldung, mit Kampagne die Notiz.
+  await js(`document.querySelector('[data-story-anlegen]').click(); true`);
+  pruefe(await bis(async () => js(`Boolean(document.querySelector('.stoerung')?.textContent)`), 8000), 'ohne Kampagne: eine verstaendliche Meldung');
+  // Kampagne anlegen: den Story Creator einmal nach vorn holen, dann zurueck.
+  const wechsle = (muster) =>
+    hjs(`(() => { const k = [...document.querySelectorAll('.schiene__eintrag:not(:disabled)')].find((e) => ${muster}.test(e.title)); if (!k) return false; k.click(); return true; })()`);
+  await wechsle('/Story/');
+  await warte(3000);
+  const story = fenster.contentView.children.map((v) => v.webContents).find((w) => w.getURL().includes('/apps/backstory/'));
+  pruefe(Boolean(story), 'der Story Creator kommt hoch');
+  if (story) {
+    pruefe(await bis(async () => story.executeJavaScript(`typeof window.api?.campaigns?.create === 'function'`), 15000), 'und ist geladen');
+    await story.executeJavaScript(`(async () => {
+      const auspacken = (antwort) => (antwort && 'value' in antwort ? antwort.value : antwort);
+      return auspacken(await window.api.campaigns.create('Testrunde')).name;
+    })()`);
+    await wechsle('/Charakter/');
+    await warte(1500);
+    await js(`document.querySelector('[data-story-anlegen]').click(); true`);
+    pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-story-oeffnen]'))`), 6000), 'die Notiz ist angelegt und verknuepft');
+    const wurzel = await story.executeJavaScript(`(async () => { const a = await window.api.settings.get(); return (a && 'value' in a ? a.value : a).vaultRoot; })()`);
+    const notizen = [];
+    const kampagnen = path.join(wurzel, 'campaigns');
+    for (const k of fs.readdirSync(kampagnen)) {
+      const o = path.join(kampagnen, k, 'notes');
+      if (fs.existsSync(o)) notizen.push(...fs.readdirSync(o).map((d) => fs.readFileSync(path.join(o, d), 'utf8')));
+    }
+    pruefe(notizen.some((n) => /Heimlichkeit \+9/.test(n)), 'die Notiz traegt die Lesefassung der Figur');
+    await js(`document.querySelector('[data-story-oeffnen]').click(); true`);
+    pruefe(
+      await bis(async () => /Story/.test(await hjs(`document.querySelector('.schiene__eintrag--an')?.title ?? ''`)), 8000),
+      'Notiz oeffnen holt den Story Creator nach vorn'
+    );
+    // Zurueck zum Bogen fuer den Rest.
+    await wechsle('/Charakter/');
+    await warte(1500);
+  }
 
   // --- Trefferpunkte -------------------------------------------------------
   await js(tippe('[data-feld="tp-max"]', '30'));
@@ -147,9 +244,7 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-zauber-an]').click(); true`);
   await warte(300);
   await js(tippe('[data-feld="attribut-int"]', '16'));
-  await js(`(() => { const s = document.querySelector('[data-feld="zauberattribut"]');
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'int');
-    s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await js(`document.querySelector('[data-feld="zauberattribut"] [data-wert="int"]').click(); true`);
   await warte(200);
   pruefe(/14/.test(await js(`document.querySelector('[data-zauber-sg]').textContent`)), 'Zauber-SG 8 + 3 + 3 = 14');
   await js(tippe('[data-platz-max="1"]', '2'));
@@ -176,9 +271,27 @@ app.whenReady().then(async () => {
 
   // --- Waffenangriffe ----------------------------------------------------------
   const waehle = (auswahl, wert) =>
-    js(`(() => { const s = document.querySelector(${JSON.stringify(auswahl)}); if (!s) return false;
-      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(wert)});
-      s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    js(`(async () => {
+  const e = document.querySelector(${JSON.stringify(auswahl)});
+  if (!e) return false;
+  if (e.tagName === 'SELECT') {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, ${JSON.stringify(wert)});
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+  // Segment oder Suchwahl: der Knopf mit dem Wert; eine Suchwahl erst aufklappen.
+  const suche = () => e.querySelector('[data-wert="' + CSS.escape(${JSON.stringify(wert)}) + '"]');
+  // React zeichnet nach einem Klick erst in einer Microtask neu.
+  if (!suche()) {
+    e.querySelector('button')?.click();
+    await new Promise((r) => setTimeout(r, 30));
+  }
+  const k = suche();
+  if (!k) return false;
+  k.click();
+  await new Promise((r) => setTimeout(r, 30));
+  return true;
+})()`);
   await js(`document.querySelector('[data-angriff-dazu]').click(); true`);
   await warte(200);
   await waehle('[data-angriff="a-0"] [data-angriff-waffe]', 'rapier');
@@ -264,9 +377,27 @@ app.whenReady().then(async () => {
 
   // --- Quellen fuers Inventar (Schritt 7) ---------------------------------------
   const waehleQ = (auswahl, wert) =>
-    js(`(() => { const s = document.querySelector(${JSON.stringify(auswahl)}); if (!s) return false;
-      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(wert)});
-      s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    js(`(async () => {
+  const e = document.querySelector(${JSON.stringify(auswahl)});
+  if (!e) return false;
+  if (e.tagName === 'SELECT') {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, ${JSON.stringify(wert)});
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+  // Segment oder Suchwahl: der Knopf mit dem Wert; eine Suchwahl erst aufklappen.
+  const suche = () => e.querySelector('[data-wert="' + CSS.escape(${JSON.stringify(wert)}) + '"]');
+  // React zeichnet nach einem Klick erst in einer Microtask neu.
+  if (!suche()) {
+    e.querySelector('button')?.click();
+    await new Promise((r) => setTimeout(r, 30));
+  }
+  const k = suche();
+  if (!k) return false;
+  k.click();
+  await new Promise((r) => setTimeout(r, 30));
+  return true;
+})()`);
   const namen = () => js(`[...document.querySelectorAll('[data-gegenstand-name]')].map((e) => e.value).join('|')`);
   await js(`document.querySelector('[data-aus-quelle]').click(); true`);
   await warte(200);
@@ -290,7 +421,7 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe(/Sturmklinge/.test(await namen()), 'und kommt ins Inventar');
   await js(`document.querySelector('[data-quelle-reiter="loot"]').click(); true`);
-  pruefe(await bis(async () => js(`document.querySelectorAll('[data-loot-tabelle] option').length > 0`)), 'Loot: die Tabellen des Loot Generators stehen zur Wahl');
+  pruefe(await bis(async () => js(`document.querySelectorAll('[data-loot-tabelle] [data-wert]').length > 0`)), 'Loot: die Tabellen des Loot Generators stehen zur Wahl');
   await js(`document.querySelector('[data-loot-wuerfeln]').click(); true`);
   pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-loot-dazu]'))`)), 'ein Wurf auf die Tabelle ergibt etwas');
   const vorher = (await namen()).split('|').length;

@@ -4,6 +4,8 @@
  */
 import { useState } from 'react';
 import { api } from './api';
+import { Segment, Suchwahl } from './Bedienung';
+import { waffenpunkte } from './AngriffeBlock';
 import { getLanguage, t } from './i18n';
 import type { Kachel } from '../shared/ablage';
 import type { Bogen, Muenzen } from '../shared/bogen';
@@ -282,46 +284,32 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                 />
                 {figur ? (
                   <div className="leiste gegenstand__waffe">
-                    <label>
-                      {t('angriff.waffe')}
-                      <select
-                        data-gegenstand-waffe={g.id}
-                        value={g.waffe?.id ?? ''}
-                        onChange={(e) =>
-                          setG(g.id, (x) => {
-                            if (!e.target.value) {
-                              const { waffe: _w, ...rest } = x;
-                              return rest;
-                            }
-                            return { ...x, waffe: { id: e.target.value, magie: x.waffe?.magie ?? 0, geuebt: x.waffe?.geuebt ?? true } };
-                          })
-                        }
-                      >
-                        <option value="">{t('gegenstand.keineWaffe')}</option>
-                        {WAFFEN.slice()
-                          .sort((x, y) => x.name[i].localeCompare(y.name[i]))
-                          .map((x) => (
-                            <option key={x.id} value={x.id}>
-                              {x.name[i]}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
+                    <Suchwahl
+                      daten={{ 'data-gegenstand-waffe': g.id }}
+                      punkte={waffenpunkte(i)}
+                      wert={g.waffe?.id ?? ''}
+                      leer={t('gegenstand.keineWaffe')}
+                      suche={t('waffe.suche')}
+                      knopf={g.waffe ? WAFFEN.find((x) => x.id === g.waffe?.id)?.name[i] ?? g.waffe.id : t('gegenstand.keineWaffe')}
+                      aendern={(id) =>
+                        setG(g.id, (x) => {
+                          if (!id) {
+                            const { waffe: _w, ...rest } = x;
+                            return rest;
+                          }
+                          return { ...x, waffe: { id, magie: x.waffe?.magie ?? 0, geuebt: x.waffe?.geuebt ?? true } };
+                        })
+                      }
+                    />
                     {g.waffe ? (
                       <>
-                        <label>
-                          {t('angriff.magie')}
-                          <select
-                            value={g.waffe.magie}
-                            onChange={(e) => setG(g.id, (x) => (x.waffe ? { ...x, waffe: { ...x.waffe, magie: Number(e.target.value) } } : x))}
-                          >
-                            {[0, 1, 2, 3].map((m) => (
-                              <option key={m} value={m}>
-                                {m === 0 ? '—' : `+${m}`}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        <Segment
+                          klein
+                          label={t('angriff.magie')}
+                          wert={g.waffe.magie}
+                          optionen={[0, 1, 2, 3].map((m) => ({ wert: m, text: m === 0 ? `${t('angriff.magie')} —` : `+${m}` }))}
+                          aendern={(v) => setG(g.id, (x) => (x.waffe ? { ...x, waffe: { ...x.waffe, magie: v } } : x))}
+                        />
                         <label className="schalter">
                           <input
                             type="checkbox"
@@ -437,14 +425,27 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
 }
 
 function ZielWahl({ ziele, wert, aendern }: { ziele: readonly Kachel[]; wert: string; aendern: (id: string) => void }) {
+  // Wenige Ziele als Knoepfe, viele als Suchwahl.
+  if (ziele.length <= 6) {
+    return (
+      <Segment
+        label={t('geben.an')}
+        wert={wert}
+        daten={{ 'data-ziel': '' }}
+        optionen={ziele.map((k) => ({ wert: k.id, text: k.art === 'gruppe' ? `▣ ${k.name}` : k.name }))}
+        aendern={aendern}
+      />
+    );
+  }
   return (
-    <select aria-label={t('geben.an')} data-ziel value={wert} onChange={(e) => aendern(e.target.value)}>
-      {ziele.map((k) => (
-        <option key={k.id} value={k.id}>
-          {k.art === 'gruppe' ? `▣ ${k.name}` : k.name}
-        </option>
-      ))}
-    </select>
+    <Suchwahl
+      daten={{ 'data-ziel': '' }}
+      punkte={ziele.map((k) => ({ id: k.id, name: k.art === 'gruppe' ? `▣ ${k.name}` : k.name, info: k.kurz }))}
+      wert={wert}
+      suche={t('liste.suche')}
+      knopf={ziele.find((k) => k.id === wert)?.name ?? t('geben.an')}
+      aendern={(id) => id && aendern(id)}
+    />
   );
 }
 
