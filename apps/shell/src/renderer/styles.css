@@ -1479,7 +1479,10 @@ body {
 
 /* Doppelt so breit wie die uebrigen Dialoge: Auswahl und Chat brauchen Platz. */
 .dialog--teilen {
-  width: min(920px, calc(100vw - 48px));
+  /* Etwa drei Viertel des Fensters, fast so gross wie ein Werkzeug (Rueckmeldung). */
+  width: max(min(920px, calc(100vw - 48px)), 75vw);
+  height: 78vh;
+  max-height: calc(100vh - 64px);
 }
 
 .austausch {
@@ -2213,4 +2216,8 @@ body {
 .raum__letzter {
   margin-top: 16px;
   opacity: 0.85;
+}
+
+.dialog--teilen .dialog__inhalt {
+  flex: 1;
 }

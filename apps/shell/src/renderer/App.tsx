@@ -1041,7 +1041,8 @@ function Startmenue({
       ) : (
         <h1 className="menue__titel">{t('menu.title')}</h1>
       )}
-      <p className="menue__untertitel">{t('menu.subtitle')}</p>
+      {/* Das Banner traegt den Untertitel schon selbst (Rueckmeldung). */}
+      {symbole.banner ? null : <p className="menue__untertitel">{t('menu.subtitle')}</p>}
 
       {/*
         Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
