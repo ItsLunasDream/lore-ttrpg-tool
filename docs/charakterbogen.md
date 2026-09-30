@@ -1,19 +1,22 @@
 # Konzept: Charakterbogen mit Inventar
 
-Ein kleiner Charakterbogen für D&D 5e (SRD 5.2) mit Inventar, der im Raum
+Ein kleiner Charakterbogen für D&D 5.5e (Regeln von 2024, SRD 5.2) mit
+Inventar, der im Raum
 live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
 **Stand:** Konzept, nichts davon ist gebaut. Es nimmt `docs/inventar.md`
-auf und ersetzt dessen Teil „Im Raum“. Offene Fragen stehen am Ende.
+auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
+Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
+überdauern den Raum. Offene Fragen stehen am Ende.
 
 ## Abgrenzung
 
 - **Klein** heißt: Werte eintragen und rechnen, was sich sicher rechnen
   lässt (Modifikatoren, Übungsbonus, Summen). Keine Regel-Engine: keine
-  Klassenmerkmale, keine automatische Zauberliste, kein Stufenaufstieg mit
-  Assistent. Das kann D&D Beyond besser, und es wäre ein eigenes Projekt.
+  Klassenmerkmale, keine Prüfung, ob ein Zauber zur Klasse passt, kein
+  Stufenaufstieg mit Assistent. Das kann D&D Beyond besser, und es wäre ein eigenes Projekt.
 - Ein eigenes Werkzeug mit Kachel („Charakterbogen“), nicht im
   Teilen-Dialog. Beantwortet Frage 1 aus `docs/inventar.md`: Bogen und
   Inventar sind zu groß für einen Dialog.
@@ -31,7 +34,7 @@ auf und ersetzt dessen Teil „Im Raum“. Offene Fragen stehen am Ende.
 | Trefferpunkte | Maximum, aktuell, temporär | Anzeige „34 / 41 (+5)“ |
 | Zustand | Zustände aus dem SRD, Erschöpfung 0–6, Todesrettungswürfe, Heldische Inspiration | |
 | Angriffe | freie Zeilen: Name, Angriffsbonus, Schaden, Notiz | |
-| Zauber (optional) | Zauberattribut, Plätze je Grad (max/verbraucht) | Zauber-SG, Angriffsbonus |
+| Zauber (optional) | Zauberattribut, Plätze je Grad (max/verbraucht), Zauberliste | Zauber-SG, Angriffsbonus |
 | Inventar | siehe unten | Gewicht, Wert, Traglast |
 | Notizen | Markdown | |
 
@@ -41,6 +44,25 @@ zieht ab, `+5` heilt; Schaden frisst zuerst die temporären TP.
 Kurze Rast und lange Rast als Knöpfe: lange Rast füllt TP und Zauberplätze
 und gibt die Hälfte der Trefferwürfel zurück (Regel des SRD, beim Bauen gegen
 den Text prüfen). Was genau zurückkommt, zeigt der Knopf vorher an.
+
+## Zauberliste
+
+- **Hinzufügen** aus den 339 SRD-Zaubern (`packages/srd`, zweisprachig) mit
+  Suche und Filtern nach Grad und Klasse; die Klasse des Bogens ist
+  vorgewählt, ein Zauber anderer Klassen geht trotzdem (Subklassen, Talente,
+  Gegenstände). Dazu **eigene Zauber** als freie Zeile mit Name, Grad und Text.
+- Je Zauber: **vorbereitet** (Haken), **immer vorbereitet** (etwa durch die
+  Subklasse), Herkunft als freier Text („Magic Initiate“).
+- Die Liste gruppiert nach Grad, Zaubertricks oben. Konzentration und
+  Ritual stehen als Marke dran, dazu Zeitaufwand und Reichweite.
+- **Zaubern** verbraucht auf Knopfdruck einen Platz; bei Zaubern höheren
+  Grades fragt der Knopf nach dem Platz. Ein Klick auf den Namen öffnet den
+  Text wie im Nachschlagewerk.
+- Wie viele Zauber vorbereitet sein dürfen, zählt die App mit, prüft es aber
+  nicht gegen die Klassentabelle: die Zahl trägt man selbst ein.
+- Gespeichert wird die SRD-Kennung, nicht der Text. Aus dem Nachschlagewerk
+  kommt er in der Sprache der Oberfläche. Eigene Zauber tragen ihren Text
+  selbst.
 
 ## Inventar
 
@@ -71,10 +93,16 @@ Neu am Bogen:
 - Beim Eröffnen fragt der Raum „Ich leite (SL)“, vorbelegt mit ja. Gastgeber
   und SL sind damit **nicht** dasselbe: Wer den Raum technisch hält, muss
   nicht leiten.
-- Die Rollen kennt der Gastgeber und verteilt sie mit der Personenliste. Sie
-  gelten für die Dauer des Raums. Beim nächsten Raum mit demselben Namen
-  schlägt die App die letzten Rollen nach Namen vor, setzt sie aber nicht
-  von selbst.
+- Die Rollen kennt der Gastgeber und verteilt sie mit der Personenliste.
+- **Rollen überdauern den Raum.** Der Gastgeber merkt sie sich je Raumname
+  und setzt sie beim nächsten Mal wieder, sobald die Person beitritt.
+- Erkannt wird eine Person am **Tischschlüssel**: Jede Installation legt
+  einmal ein zufälliges Schlüsselpaar an und beweist beim Beitreten, dass
+  sie den geheimen Teil hat. Am Namen allein geht es nicht, sonst bekäme
+  jede:r SL-Rechte, der sich so nennt wie die SL. Wer die App neu
+  installiert oder den Rechner wechselt, bekommt die Rolle einmal von Hand
+  neu. Das braucht eine Erweiterung des Raumprotokolls (Nachweis im
+  `hallo`).
 
 **Freigabe eines Bogens** für die anderen Spieler:innen, einstellbar je
 Bogen: *nichts*, *Übersicht* (Name, Klasse, Stufe, TP-Stufe, RK, Zustände)
@@ -118,8 +146,10 @@ mittendrin abreißen kann.
   Inventar heraus, ins andere hinein, in einem Zug. Mit Anzahl („3 von 10
   Pfeilen“). Die SL kann auch zwischen zwei fremden Bögen verschieben.
 - **Münzen geben** genauso, als Betrag.
-- **Aus dem Gruppeninventar nehmen**: je Gruppeninventar einstellbar, ob
-  Spieler:innen selbst nehmen dürfen oder nur die SL verteilt.
+- **Aus dem Gruppeninventar nehmen**: Spieler:innen dürfen selbst nehmen
+  und hineinlegen. Die SL kann das je Gruppeninventar abschalten; dann
+  verteilt nur sie. Jede Entnahme steht mit Name und Zeit im Verlauf des
+  Gruppeninventars.
 - **Einen Bogen oder Gegenstand als Kopie teilen**: wie heute über
   Teilen → Paket; landet beim Empfänger als eigener, nicht verknüpfter Bogen.
 
@@ -178,7 +208,18 @@ interface Bogen {
     todesrettung: { erfolge: number; fehlschlaege: number };
     inspiration: boolean;
     angriffe: { name: string; bonus: string; schaden: string; notiz: string }[];
-    zauber?: { attribut: string; plaetze: { grad: number; max: number; verbraucht: number }[] };
+    zauber?: {
+      attribut: string;
+      plaetze: { grad: number; max: number; verbraucht: number }[];
+      maxVorbereitet: number | null;          // von Hand, nicht gerechnet
+      liste: {
+        srd?: string;                         // Kennung in packages/srd
+        eigen?: { name: string; grad: number; text: string };
+        vorbereitet: boolean;
+        immer: boolean;                       // immer vorbereitet
+        herkunft: string;
+      }[];
+    };
   };
   muenzen: { km: number; sm: number; em: number; gm: number; pm: number };
   gegenstaende: InventarGegenstand[];         // aus docs/inventar.md
@@ -190,24 +231,22 @@ interface Bogen {
 ## Reihenfolge
 
 1. Werkzeug, Ablage, Bogen ohne Raum (Werte, Rechnungen, TP-Eingabe).
-2. Inventar nach `docs/inventar.md` (eigene Gegenstände, Summen, Münzen).
-3. Rollen in Hülle und Raumprotokoll (SL, mehrere SL, übertragen).
-4. Bögen im Raum: Gastgeber führt, Schritte, Freigabe, Sichtbarkeit.
-5. Geben zwischen Bögen und Gruppeninventar.
-6. Quellen fürs Inventar (Magic Items, SRD, Loot) und Initiative-Anbindung.
+2. Zauberliste mit SRD-Zaubern und eigenen.
+3. Inventar nach `docs/inventar.md` (eigene Gegenstände, Summen, Münzen).
+4. Rollen in Hülle und Raumprotokoll (SL, mehrere SL, übertragen,
+   Tischschlüssel, gemerkt je Raum).
+5. Bögen im Raum: Gastgeber führt, Schritte, Freigabe, Sichtbarkeit.
+6. Geben zwischen Bögen und Gruppeninventar.
+7. Quellen fürs Inventar (Magic Items, SRD, Loot) und Initiative-Anbindung.
 
-Schritt 3 lohnt sich auch allein: Würfel und Initiative profitieren sofort.
+Schritt 4 lohnt sich auch allein: Würfel und Initiative profitieren sofort.
 
 ## Zu klären
 
-1. Nur D&D 5e (2024), oder soll der Bogen später andere Systeme tragen? Das
-   Datenmodell oben ist bewusst 5e-spezifisch.
-2. Zauber: reichen Plätze und SG, oder braucht es eine Zauberliste (dann
-   mit Verweis ins Nachschlagewerk)?
-3. Dürfen Spieler:innen standardmäßig aus dem Gruppeninventar nehmen?
-4. Sollen die Rollen den Raum überdauern (gemerkt nach Name), oder jedes Mal
-   neu vergeben werden? Vorschlag oben: vorschlagen, nicht setzen.
-5. Soll die SL Änderungen an Spielerbögen sichtbar markieren („von der SL
+Entschieden: nur 5.5e (2024); mit Zauberliste; Spieler:innen dürfen aus
+dem Gruppeninventar nehmen; Rollen überdauern den Raum.
+
+1. Soll die SL Änderungen an Spielerbögen sichtbar markieren („von der SL
    geändert“), oder still?
-6. Gehört das Gruppeninventar dem Raum (weg, wenn der Raum endet, außer
+2. Gehört das Gruppeninventar dem Raum (weg, wenn der Raum endet, außer
    jemand speichert) oder immer einer SL?
