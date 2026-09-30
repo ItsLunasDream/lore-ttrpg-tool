@@ -215,14 +215,22 @@ export function GeneratorDialog({
         const p = params.town;
         return (
           <>
-            <Slider label={t('gen.buildingCount')} min={3} max={300} value={p.buildingCount}
-              onChange={(v) => patch('town', { buildingCount: v })} />
-            <Slider label={t('gen.buildingMin')} min={2} max={10} value={p.buildingMin}
-              onChange={(v) => patch('town', { buildingMin: Math.min(v, p.buildingMax) })} />
-            <Slider label={t('gen.buildingMax')} min={2} max={16} value={p.buildingMax}
-              onChange={(v) => patch('town', { buildingMax: Math.max(v, p.buildingMin) })} />
-            <Slider label={t('gen.streetWidth')} min={2} max={6} value={p.streetWidth}
-              onChange={(v) => patch('town', { streetWidth: v })} />
+            <Toggle label={t('gen.overview')} checked={!!p.uebersicht}
+              onChange={(v) => patch('town', { uebersicht: v })} />
+            {p.uebersicht ? (
+              <p className="hint">{t('gen.overviewHint')}</p>
+            ) : (
+              <>
+                <Slider label={t('gen.buildingCount')} min={3} max={300} value={p.buildingCount}
+                  onChange={(v) => patch('town', { buildingCount: v })} />
+                <Slider label={t('gen.buildingMin')} min={2} max={10} value={p.buildingMin}
+                  onChange={(v) => patch('town', { buildingMin: Math.min(v, p.buildingMax) })} />
+                <Slider label={t('gen.buildingMax')} min={2} max={16} value={p.buildingMax}
+                  onChange={(v) => patch('town', { buildingMax: Math.max(v, p.buildingMin) })} />
+                <Slider label={t('gen.streetWidth')} min={2} max={6} value={p.streetWidth}
+                  onChange={(v) => patch('town', { streetWidth: v })} />
+              </>
+            )}
             <Toggle label={t('gen.market')} checked={p.market}
               onChange={(v) => patch('town', { market: v })} />
             <Toggle label={t('gen.cityWall')} checked={p.cityWall}

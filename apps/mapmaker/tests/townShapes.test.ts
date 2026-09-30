@@ -114,7 +114,9 @@ describe('Größe und Zahl', () => {
       ] as const) {
         for (const seed of [3, 17]) {
           const r = generateTown({ ...basis, cols, rows, shape, buildingCount: anzahl, seed });
-          expect(r.walls.length, `${shape}/${anzahl}/${seed}`).toBe(anzahl);
+          // Die Bergstadt hat oben eine Burg; ihre Mauer ist kein Haus.
+          const burg = shape === 'hill' ? 1 : 0;
+          expect(r.walls.length - burg, `${shape}/${anzahl}/${seed}`).toBe(anzahl);
         }
       }
     }
@@ -150,5 +152,32 @@ describe('Größe und Zahl', () => {
         JSON.stringify(r.floors.filter((f) => f.color === 0x8b8175).map((f) => f.points));
       expect(pflaster(a), shape).not.toBe(pflaster(b));
     }
+  });
+});
+
+describe('Hafenstadt, Bergstadt und Übersicht', () => {
+  it('die Hafenstadt liegt am Wasser, mit Anlegern und Booten', () => {
+    for (const seed of [1, 2, 3]) {
+      const r = generateTown({ ...basis, shape: 'harbor', seed });
+      expect(r.floors.some((f) => f.color === 0x3d6b7d), `${seed}`).toBe(true);
+      expect(r.floors.some((f) => f.color === 0x7a5c3a), `${seed}`).toBe(true);
+      expect(r.props.some((p) => p.propId === 'rowboat'), `${seed}`).toBe(true);
+    }
+  });
+
+  it('die Bergstadt hat oben eine Burg mit Tor', () => {
+    const r = generateTown({ ...basis, shape: 'hill', seed: 5 });
+    // Jedes Haus eine Wand und eine Tür, dazu Burgmauer und Burgtor.
+    expect(r.walls.length).toBe(basis.buildingCount + 1);
+    expect(r.doors.length).toBe(basis.buildingCount + 1);
+  });
+
+  it('die Übersicht füllt die Karte ohne Wände und Türen', () => {
+    const r = generateTown({ ...basis, cols: 100, rows: 75, uebersicht: true, seed: 4 });
+    expect(r.walls.length).toBe(0);
+    expect(r.doors.length).toBe(0);
+    // Viel mehr Häuser als die Vorgabe: die Zahl folgt aus der Fläche.
+    const daecher = r.floors.filter((f) => [0x8c4a3a, 0x7a4636, 0x94583f, 0x6b5a4a].includes(f.color));
+    expect(daecher.length).toBeGreaterThan(basis.buildingCount * 5);
   });
 });

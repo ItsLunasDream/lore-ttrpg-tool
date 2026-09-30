@@ -154,13 +154,17 @@ des Projekts, nicht bloß Ordnung:
   `beginTransaction()` / `endTransaction()` geklammert und über `mergeKey` verschmolzen.
 - **Prozedurale Props werden je Variante einmal in eine Textur gebacken**
   (`engine/propTextures.ts`), danach sind es nur noch Sprites in einem Batch.
-- **Grundrisse entstehen durch Teilen, nicht durch Streuen.** Der Stadt-Generator
-  (`model/generators/cityPlan.ts`) schneidet die Ortsfläche mit Geraden in
-  konvexe Blöcke und stellt die Häuser an deren Kanten. Zurückweisungsverfahren
-  — würfeln und wegwerfen — sahen bei jedem Startwert gleich aus und fanden bei
-  dreihundert Häusern keinen Platz mehr. Wie viele Häuser hineinpassen, wird
-  über den *Maßstab* getroffen und gesucht, nicht ausgerechnet: eine Formel
-  dafür stimmte immer nur für einen Fall.
+- **Städte wachsen an Straßen, nicht durch Streuen.** Der Stadt-Generator
+  (`model/generators/stadtNetz.ts`) legt zuerst ein Netz an: Markt,
+  geschwungene Hauptstraßen zu den Ausfällen, Ringgassen, Speichen und
+  Quergassen. Die Häuser stehen Wand an Wand an beiden Straßenseiten, die
+  großen zuerst am Markt. Zurückweisungsverfahren — würfeln und wegwerfen —
+  sahen bei jedem Startwert gleich aus; die frühere Blockteilung
+  (`cityPlan.ts`, nur noch für Hilfsfunktionen) gab gerade Schnitte und
+  verstreute Häuser. Wie viele Häuser hineinpassen, wird über den *Maßstab*
+  gesucht, nicht ausgerechnet; überzählige fallen von außen nach innen weg.
+  Haus gegen Haus wird exakt geprüft (Trennachsensatz), das Raster gilt nur
+  für Straßen — ein grobes Raster wies Nachbarn Wand an Wand ab.
 - **Einstellungen wirken auf die Auswahl, nicht nur auf das Nächste.** Ein
   Panel, das nur die Werkzeugvorgabe schreibt, sieht aus wie ein kaputter
   Regler: man verstellt etwas und nichts passiert. Jedes Panel, das
