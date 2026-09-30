@@ -452,6 +452,7 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
     sitzung: () => (webContents && !webContents.isDestroyed() ? webContents.session : null),
     schreibe: async (teil) => {
       const vorherigeSprache = kontext.settings.language;
+      const vorherigePruefung = kontext.settings.spellcheck;
       // Der Speicherort wird hier bewusst nicht mitgeschrieben: er haengt am
       // Vault und geht ueber `waehleSpeicherort`.
       kontext.settings = await writeSettings(settingsFile, {
@@ -459,6 +460,9 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
         ...teil,
         vaultRoot: kontext.settings.vaultRoot
       });
+      if (kontext.settings.spellcheck !== vorherigePruefung && webContents && !webContents.isDestroyed()) {
+        setzePruefsprache(webContents.session, kontext.settings.language, kontext.settings.spellcheck);
+      }
       vault.setHistoryOptions({
         enabled: kontext.settings.historyEnabled,
         maxVersions: kontext.settings.historyMaxVersions
@@ -466,7 +470,7 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
       if (kontext.settings.language !== vorherigeSprache) {
         if (webContents && !webContents.isDestroyed()) {
           // Die Pruefung muss mitwandern, sonst streicht sie den halben Text an.
-          setzePruefsprache(webContents.session, kontext.settings.language);
+          setzePruefsprache(webContents.session, kontext.settings.language, kontext.settings.spellcheck);
           webContents.send(channel('app:sprache'), kontext.settings.language);
         }
         /*
@@ -548,7 +552,7 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
       if (!webContents.isDestroyed()) webContents.send(channel('app:ki-gewechselt'));
     },
     richteRechtschreibungEin: (webContents) => {
-      richteRechtschreibungEin(webContents, kontext.settings.language);
+      richteRechtschreibungEin(webContents, kontext.settings.language, kontext.settings.spellcheck);
     },
     beobachteVerlauf: (webContents, beiOrt) => {
       const hoerer = (ereignis: IpcMainEvent, ort: string | null) => {
@@ -572,7 +576,7 @@ export async function mountBackstory(options: BackstoryEmbedOptions): Promise<Ba
       kontext.settings = await writeSettings(settingsFile, { ...kontext.settings, language });
       if (!webContents.isDestroyed()) {
         // Die Pruefung muss mitwandern, sonst streicht sie den halben Text an.
-        setzePruefsprache(webContents.session, language);
+        setzePruefsprache(webContents.session, language, kontext.settings.spellcheck);
         webContents.send(channel('app:sprache'), language);
       }
     }

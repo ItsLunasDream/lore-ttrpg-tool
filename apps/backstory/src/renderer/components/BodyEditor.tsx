@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { meldeEinfuegeziel } from '../editor/einfuegen';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -486,6 +487,34 @@ export function BodyEditor({
     return api.onRechtschreibung((treffer) => setSchreibmenue(treffer));
   }, []);
 
+  // Die Schreibhilfe fuegt an der Schreibmarke ein, als eigener Absatz. Die
+  // Auswahl bleibt im Zustand erhalten, auch waehrend der Dialog offen ist.
+  // Stand die Marke in dieser Notiz noch nie, laege sie ganz vorn; dann
+  // lieber wie frueher hinten anhaengen (der Aufrufer macht das bei false).
+  const hatteFokus = useRef(false);
+  useEffect(() => {
+    hatteFokus.current = false;
+  }, [noteId]);
+  useEffect(() => {
+    if (!editor) return;
+    const merke = () => {
+      hatteFokus.current = true;
+    };
+    editor.on('focus', merke);
+    const abmelden = meldeEinfuegeziel((text) => {
+      if (editor.isDestroyed || !hatteFokus.current) return false;
+      return editor
+        .chain()
+        .focus()
+        .insertContent({ type: 'paragraph', content: [{ type: 'text', text }] })
+        .run();
+    });
+    return () => {
+      editor.off('focus', merke);
+      abmelden();
+    };
+  }, [editor]);
+
   /**
    * Ersetzt das angestrichene Wort an der Stelle, an der geklickt wurde.
    *
@@ -706,6 +735,12 @@ export function BodyEditor({
           if (event.defaultPrevented) return;
           if (importFromDataTransfer(event.clipboardData)) event.preventDefault();
         }}
+        onContextMenu={(event) => {
+          // Kein preventDefault: sonst kaeme das Ereignis im Hauptprozess
+          // nicht an, und mit ihm fehlten die Rechtschreibvorschlaege. Die
+          // kommen danach und ergaenzen dieses Menue.
+          setSchreibmenue({ x: event.clientX, y: event.clientY, wort: '', vorschlaege: [] });
+        }}
       >
         <EditorContent editor={editor} />
       </div>
@@ -720,15 +755,27 @@ export function BodyEditor({
               label: vorschlag,
               onSelect: () => ersetzeWort(schreibmenue, vorschlag)
             })),
-            {
-              label: t('spell.add', { word: schreibmenue.wort }),
+            ...(schreibmenue.wort
+              ? [
+                  {
+                    label: t('spell.add', { word: schreibmenue.wort }),
+                    onSelect: () => {
+                      void call(api.woerterbuch.hinzufuegen(schreibmenue.wort)).then(
+                        () => onReport(t('spell.added', { word: schreibmenue.wort })),
+                        () => undefined
+                      );
+                    }
+                  }
+                ]
+              : []),
+            ...(['cut', 'copy', 'paste'] as const).map((art) => ({
+              label: t(`edit.${art}`),
               onSelect: () => {
-                void call(api.woerterbuch.hinzufuegen(schreibmenue.wort)).then(
-                  () => onReport(t('spell.added', { word: schreibmenue.wort })),
-                  () => undefined
-                );
+                // Erst zurueck in den Editor, sonst traefe es den Menueknopf.
+                editor?.commands.focus();
+                void call(api.zwischenablage(art)).catch(() => undefined);
               }
-            }
+            }))
           ]}
         />
       ) : null}

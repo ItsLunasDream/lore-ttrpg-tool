@@ -1168,3 +1168,28 @@ test('Ein weggefallener oder ersetzter Alias zieht seine Links mit', async () =>
     assert.equal(text, 'Er traf [[die Weisse]] und [[Mira]].');
   });
 });
+
+test('Geloeschte Notiz laesst sich samt Beziehung und Graphstelle wiederherstellen', async () => {
+  await withVault(async (vault) => {
+    const campaign = await vault.createCampaign('Sturmkueste');
+    const mira = await vault.createNote(campaign.id, 'character', 'Mira');
+    await vault.saveNote(campaign.id, { ...mira, body: 'Hafenkind.' });
+    const toran = await vault.createNote(campaign.id, 'character', 'Toran');
+    await vault.saveNote(campaign.id, {
+      ...toran,
+      relations: [{ id: 'r1', targetId: mira.id, type: 'Mentorin', note: '' }]
+    });
+    await vault.saveGraphPositions(campaign.id, { [mira.id]: { x: 1, y: 2 } });
+
+    await vault.deleteNote(campaign.id, mira.id);
+    assert.equal((await vault.listNotes(campaign.id)).length, 1);
+
+    const zurueck = await vault.restoreNote(campaign.id, mira.id);
+    assert.equal(zurueck.body.trim(), 'Hafenkind.');
+    assert.equal((await vault.getNote(campaign.id, toran.id)).relations.length, 1);
+    assert.deepEqual((await vault.getCampaign(campaign.id)).graphPositions[mira.id], { x: 1, y: 2 });
+
+    // Ein zweites Mal geht nicht: der Papierkorb ist leer.
+    await assert.rejects(() => vault.restoreNote(campaign.id, mira.id));
+  });
+});

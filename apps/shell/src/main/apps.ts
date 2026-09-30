@@ -510,16 +510,28 @@ export async function leseEigeneZustaende(): Promise<{ name: string; text: strin
   return heraus.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Gibt es in der Kampagne schon eine Notiz mit diesem Titel (oder Alias)? */
-async function titelVergeben(kampagneId: string, titel: string): Promise<boolean> {
-  if (!backstoryEmbed) return false;
+/** Die Notiz mit diesem Titel oder Alias, oder null. */
+async function findeNotiz(kampagneId: string, titel: string) {
+  if (!backstoryEmbed) return null;
   const gesucht = titel.trim().toLowerCase();
   const notizen = await backstoryEmbed.vault.listNotes(kampagneId);
-  return notizen.some(
-    (notiz) =>
-      notiz.title.trim().toLowerCase() === gesucht ||
-      notiz.aliases.some((alias) => alias.trim().toLowerCase() === gesucht)
+  return (
+    notizen.find(
+      (notiz) =>
+        notiz.title.trim().toLowerCase() === gesucht ||
+        notiz.aliases.some((alias) => alias.trim().toLowerCase() === gesucht)
+    ) ?? null
   );
+}
+
+/** Nur Werte fuer Felder, die der Notiztyp wirklich hat, und nur Textfelder. */
+function nurBekannteFelder(
+  def: { fields: readonly { key: string; type: string }[] } | undefined,
+  felder: Readonly<Record<string, string>> | undefined
+): Record<string, string> {
+  if (!def || !felder) return {};
+  const erlaubt = new Set(def.fields.filter((f) => f.type === 'text' || f.type === 'textarea').map((f) => f.key));
+  return Object.fromEntries(Object.entries(felder).filter(([key, wert]) => erlaubt.has(key) && wert.trim()));
 }
 
 const OHNE_KAMPAGNE = () =>
@@ -700,7 +712,12 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     // und soll auch keine eigene Einstellung bekommen.
     kiQuelle: haken.kiQuelle,
     kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
-    anlegen: async (titel: string, markdown: string, kampagneId?: string | null) => {
+    anlegen: async (
+      titel: string,
+      markdown: string,
+      kampagneId?: string | null,
+      optionen?: { ersetzen?: boolean; felder?: Readonly<Record<string, string>> }
+    ) => {
       if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
@@ -728,20 +745,37 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       const kampagne = waehleKampagne(kampagnen, kampagneId);
 
       // Zweimal „Senden" legte zwei Notizen gleichen Namens an (Testbericht).
-      // Eine vorhandene Figur wird nicht ueberschrieben und nicht verdoppelt.
-      if (await titelVergeben(kampagne.id, titel)) {
+      // Eine vorhandene Figur wird nicht verdoppelt; auf ausdruecklichen
+      // Wunsch wird sie aktualisiert. Die alte Fassung bleibt im Verlauf.
+      const vorhandene = await findeNotiz(kampagne.id, titel);
+      if (vorhandene && !optionen?.ersetzen) {
         return {
           ok: false,
+          vorhanden: true,
           text: zweisprachig(
             `„${titel}" gibt es in ${kampagne.name} schon.`,
             `"${titel}" already exists in ${kampagne.name}.`
           )
         };
       }
-      const typ = passenderNotiztyp(kampagne, ['character', 'note']);
       try {
-        const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-        await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+        if (vorhandene) {
+          const def = kampagne.noteTypes.find((d) => d.id === vorhandene.type);
+          await backstoryEmbed.vault.saveNote(kampagne.id, {
+            ...vorhandene,
+            body: markdown,
+            fields: { ...vorhandene.fields, ...nurBekannteFelder(def, optionen?.felder) }
+          });
+        } else {
+          const typ = passenderNotiztyp(kampagne, ['character', 'note']);
+          const def = kampagne.noteTypes.find((d) => d.id === typ);
+          const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+          await backstoryEmbed.vault.saveNote(kampagne.id, {
+            ...notiz,
+            body: markdown,
+            fields: { ...notiz.fields, ...nurBekannteFelder(def, optionen?.felder) }
+          });
+        }
       } catch (fehler) {
         return { ok: false, text: fehlerText(fehler) };
       }
@@ -840,7 +874,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
             ?.slice(0, 90) ?? ''
         }));
     },
-    anlegen: async (notizen, kampagneId?: string | null) => {
+    anlegen: async (notizen, kampagneId?: string | null, optionen?: { ersetzen?: boolean }) => {
       if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
@@ -879,10 +913,19 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
        */
       let angelegt = 0;
       let uebersprungen = 0;
+      let aktualisiert = 0;
       try {
         for (const notiz of notizen) {
-          if (await titelVergeben(kampagne.id, notiz.titel)) {
-            uebersprungen += 1;
+          const vorhandene = await findeNotiz(kampagne.id, notiz.titel);
+          if (vorhandene) {
+            // Auf ausdruecklichen Wunsch den Text ersetzen; Steckbrief,
+            // Aliasse und Beziehungen bleiben, die alte Fassung im Verlauf.
+            if (optionen?.ersetzen) {
+              await backstoryEmbed.vault.saveNote(kampagne.id, { ...vorhandene, body: notiz.markdown });
+              aktualisiert += 1;
+            } else {
+              uebersprungen += 1;
+            }
             continue;
           }
           const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
@@ -898,14 +941,15 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
           angelegt
         };
       }
-      if (angelegt === 0 && uebersprungen > 0) {
+      if (angelegt === 0 && aktualisiert === 0 && uebersprungen > 0) {
         return {
           ok: false,
           text: zweisprachig(
             `Alles davon steht schon in ${kampagne.name}; nichts doppelt angelegt.`,
             `All of it is already in ${kampagne.name}; nothing was duplicated.`
           ),
-          angelegt: 0
+          angelegt: 0,
+          vorhanden: uebersprungen
         };
       }
 
@@ -924,8 +968,14 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
                 `${kampagne.name} (${uebersprungen} schon vorhanden, übersprungen)`,
                 `${kampagne.name} (${uebersprungen} already there, skipped)`
               )
-            : kampagne.name,
-        angelegt
+            : aktualisiert > 0
+              ? zweisprachig(
+                  `${kampagne.name} (${aktualisiert} aktualisiert)`,
+                  `${kampagne.name} (${aktualisiert} updated)`
+                )
+              : kampagne.name,
+        angelegt,
+        vorhanden: uebersprungen
       };
     }
   });

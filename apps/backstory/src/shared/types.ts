@@ -122,6 +122,13 @@ export interface AiMessage {
   content: string;
 }
 
+/** Rechtschreibpruefung: wie die Oberflaeche, fest eine Sprache oder aus. */
+export type Rechtschreibwahl = 'auto' | 'de' | 'en' | 'off';
+
+export function istRechtschreibwahl(wert: unknown): wert is Rechtschreibwahl {
+  return wert === 'auto' || wert === 'de' || wert === 'en' || wert === 'off';
+}
+
 export interface AppSettings {
   schemaVersion: number;
   vaultRoot: string;
@@ -150,6 +157,11 @@ export interface AppSettings {
    * nur fuer das Editorfeld.
    */
   editorZoom: number;
+  /**
+   * Sprache der Rechtschreibpruefung. 'auto' folgt der Oberflaeche; eigene
+   * Wahl, weil man oft in der einen Sprache bedient und in der anderen schreibt.
+   */
+  spellcheck: Rechtschreibwahl;
   lastCampaignId: string | null;
 }
 

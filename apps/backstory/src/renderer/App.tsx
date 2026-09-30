@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, call } from './api';
 import { buildIndex, filterNotes, searchNotes, type SearchFilters } from './noteIndex';
-import { hasLinkReservedChars, normalizeName, rewriteWikiLinks } from '../shared/wikilinks';
+import { findWikiLinks, hasLinkReservedChars, normalizeName, rewriteWikiLinks } from '../shared/wikilinks';
 import { verlinkteNotizen } from '../shared/kiKontext';
 import { effektiverStand, zieheUmbenennungNach, type Entwurf } from './entwuerfe';
 import { vorlageNotiztypen } from '../shared/noteTypes';
+import { fuegeEin } from './editor/einfuegen';
 import type {
   AppSettings,
   Campaign,
@@ -101,7 +102,12 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [filters, setFilters] = useState<SearchFilters>(EMPTY_FILTERS);
   const [hover, setHover] = useState<{ note: Note; rect: DOMRect } | null>(null);
   const [dialog, setDialog] = useState<Dialog>({ kind: 'none' });
-  const [message, setMessage] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
+  const [message, setMessage] = useState<{
+    text: string;
+    tone: 'info' | 'error';
+    /** Ein Knopf im Hinweis, etwa „Rückgängig“ nach dem Löschen. */
+    aktion?: { label: string; run: () => void };
+  } | null>(null);
   const [versions, setVersions] = useState<NoteVersion[] | null>(null);
   // Wird hochgezaehlt, wenn der Text einer offenen Notiz von aussen ersetzt
   // wurde. Ohne dieses Signal zeigte der Editor weiter den alten Stand.
@@ -161,6 +167,26 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     [effektiveNotizen, noteTypes, compare]
   );
   const visibleNotes = useMemo(() => filterNotes(index, filters), [index, filters]);
+
+  /** Warnt, wenn Titel oder Alias schon einer anderen Notiz gehoeren. */
+  const titelVergeben = (titel: string, eigeneId: string | null): string | null => {
+    const key = normalizeName(titel);
+    const treffer = effektiveNotizen.find(
+      (note) => note.id !== eigeneId && [note.title, ...note.aliases].some((name) => normalizeName(name) === key)
+    );
+    return treffer ? t('dialog.titleTaken', { title: treffer.title }) : null;
+  };
+
+  /** Wie viele andere Notizen auf diese verweisen, per [[Link]] oder Beziehung. Fuer den Loeschdialog. */
+  const verweiseAuf = (note: Note): number => {
+    const namen = new Set([note.title, ...note.aliases].map(normalizeName));
+    return effektiveNotizen.filter(
+      (andere) =>
+        andere.id !== note.id &&
+        (andere.relations.some((relation) => relation.targetId === note.id) ||
+          findWikiLinks(andere.body).some((link) => namen.has(normalizeName(link.target))))
+    ).length;
+  };
 
   // Treffer der Volltextsuche, damit die Liste Ausschnitt und Fundstelle
   // zeigen kann. Ohne Suchbegriff bleibt die Zuordnung leer.
@@ -623,7 +649,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
   useEffect(() => {
     if (!message) return;
-    const timer = window.setTimeout(() => setMessage(null), 5000);
+    // Mit Knopf etwas laenger, damit man ihn noch erwischt.
+    const timer = window.setTimeout(() => setMessage(null), message.aktion ? 10000 : 5000);
     return () => window.clearTimeout(timer);
   }, [message]);
 
@@ -1110,7 +1137,25 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
         />
       ) : null}
 
-      {message ? <div className={`toast toast--${message.tone}`}>{message.text}</div> : null}
+      {message ? (
+        <div className={`toast toast--${message.tone}`} role="status">
+          {message.text}
+          {message.aktion ? (
+            <button
+              type="button"
+              className="toast__aktion"
+              data-toast-aktion
+              onClick={() => {
+                const aktion = message.aktion;
+                setMessage(null);
+                aktion?.run();
+              }}
+            >
+              {message.aktion.label}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {dialog.kind === 'noteTypes' && activeCampaign ? (
         <NoteTypesDialog
@@ -1160,6 +1205,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       {dialog.kind === 'prompts' ? (
         <PromptsDialog
           categories={prompts}
+          noteType={draft?.type}
           aiStatus={aiStatus}
           aiSendLinked={settings.aiSendLinkedNotes}
           onToggleAiSendLinked={(value) => updateSettings({ aiSendLinkedNotes: value })}
@@ -1167,12 +1213,13 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           onClose={() => setDialog({ kind: 'none' })}
           onEditFile={() => void guard(() => call(api.prompts.reveal()))}
           onInsert={(text) => {
-            // An den Text anhaengen statt einzufuegen: der Vorschlag ist ein
-            // Startpunkt, kein Baustein mitten im Satz.
+            // An der Schreibmarke einfuegen, als eigener Absatz (Wunsch aus
+            // dem Testbericht). Ist kein Editor offen, hinten anhaengen.
             if (!draft) return;
+            setDialog({ kind: 'none' });
+            if (fuegeEin(text)) return;
             patchDraft({ body: draft.body.trimEnd() ? `${draft.body.trimEnd()}\n\n${text}` : text });
             setReloadKey((previous) => previous + 1);
-            setDialog({ kind: 'none' });
           }}
         />
       ) : null}
@@ -1299,6 +1346,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           types={noteTypes}
           initialType={dialog.type}
           initialTitle={pendingLinkTitle ?? ''}
+          warnung={(titel) => titelVergeben(titel, null)}
           onClose={() => {
             setDialog({ kind: 'none' });
             setPendingLinkTitle(null);
@@ -1333,6 +1381,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
           label={t('dialog.newName')}
           confirmLabel={t('dialog.rename')}
           initialValue={dialog.note.title}
+          warnung={(titel) => titelVergeben(titel, dialog.note.id)}
           onClose={() => setDialog({ kind: 'none' })}
           onConfirm={(title) =>
             void guard(async () => {
@@ -1384,7 +1433,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       {dialog.kind === 'deleteNote' ? (
         <ConfirmDialog
           title={t('dialog.deleteNote')}
-          message={t('dialog.deleteNoteText', { title: dialog.note.title })}
+          message={
+            t('dialog.deleteNoteText', { title: dialog.note.title }) +
+            (verweiseAuf(dialog.note) ? ` ${t('dialog.deleteNoteLinked', { count: verweiseAuf(dialog.note) })}` : '')
+          }
           onClose={() => setDialog({ kind: 'none' })}
           onConfirm={() =>
             void guard(async () => {
@@ -1394,7 +1446,24 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
               // Auch der beiseitegelegte Entwurf muss weg, sonst schrieb ihn
               // „Speichern" spaeter wieder auf die Platte (Testbericht).
               loescheEntwurf(dialog.note.id);
+              const geloescht = dialog.note;
               const list = await reloadNotes(campaignId);
+              setMessage({
+                text: t('msg.noteDeleted', { title: geloescht.title || t('list.untitled') }),
+                tone: 'info',
+                aktion: {
+                  label: t('msg.undo'),
+                  run: () =>
+                    void guard(async () => {
+                      const zurueck = await call(api.notes.restore(campaignId, geloescht.id));
+                      await reloadNotes(campaignId);
+                      if (activeCampaignIdRef.current === campaignId) {
+                        setDraft(zurueck);
+                        setDirty(false);
+                      }
+                    })
+                }
+              });
               // Die offene Notiz bleibt, wenn eine andere geloescht wurde.
               const offen = draftRef.current;
               if (!offen || offen.id === dialog.note.id) {
@@ -1413,6 +1482,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
 
 interface NewNoteDialogProps {
   types: NoteTypeDef[];
+  warnung?: (value: string) => string | null;
   initialType: NoteType;
   initialTitle: string;
   onConfirm: (type: NoteType, title: string) => void;
@@ -1420,7 +1490,7 @@ interface NewNoteDialogProps {
 }
 
 /** Titel und Typ in einem Schritt, damit ein offener [[Link]] direkt zur Notiz wird. */
-function NewNoteDialog({ types, initialType, initialTitle, onConfirm, onClose }: NewNoteDialogProps) {
+function NewNoteDialog({ types, initialType, initialTitle, warnung, onConfirm, onClose }: NewNoteDialogProps) {
   const t = useT();
   const [type, setType] = useState<NoteType>(initialType);
 
@@ -1430,6 +1500,7 @@ function NewNoteDialog({ types, initialType, initialTitle, onConfirm, onClose }:
       label={t('editor.title')}
       confirmLabel={t('dialog.create')}
       initialValue={initialTitle}
+      warnung={warnung}
       onClose={onClose}
       onConfirm={(value) => onConfirm(type, value)}
     >

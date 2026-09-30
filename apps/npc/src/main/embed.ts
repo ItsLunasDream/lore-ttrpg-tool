@@ -27,6 +27,16 @@ import type { Sprache } from '../shared/tabellen';
 export interface ExportErgebnis {
   readonly ok: boolean;
   readonly text: string;
+  /** Die Figur steht schon in der Kampagne; die Oberflaeche bietet Aktualisieren an. */
+  readonly vorhanden?: boolean;
+}
+
+/** Wie angelegt wird. */
+export interface ExportOptionen {
+  /** Eine vorhandene gleichnamige Notiz aktualisieren statt abzulehnen. */
+  readonly ersetzen?: boolean;
+  /** Werte fuer die Steckbrieffelder, nach Feldschluessel (z. B. species). */
+  readonly felder?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -36,7 +46,12 @@ export interface ExportErgebnis {
  * ueberhaupt montiert ist und welche Kampagne offen steht. Der NPC Creator
  * kennt den Vault nicht und soll ihn auch nicht kennen.
  */
-export type Anleger = (titel: string, markdown: string, kampagneId?: string | null) => Promise<ExportErgebnis>;
+export type Anleger = (
+  titel: string,
+  markdown: string,
+  kampagneId?: string | null,
+  optionen?: ExportOptionen
+) => Promise<ExportErgebnis>;
 
 /**
  * Woher die KI-Anbindung kommt.
@@ -114,16 +129,22 @@ export async function mountNpc(options: NpcEmbedOptions): Promise<NpcEmbed> {
   // Erst abmelden: nach einem Fehlschlag kann dieselbe Anwendung ein zweites
   // Mal montiert werden, und `handle` weist einen zweiten Handler ab.
   ipcMain.removeHandler(kanal('export'));
-  ipcMain.handle(kanal('export'), async (_e, titel: string, markdown: string, kampagneId?: string | null) => {
+  ipcMain.handle(
+    kanal('export'),
+    async (_e, titel: string, markdown: string, kampagneId?: string | null, optionen?: ExportOptionen) => {
     if (!options.anlegen) {
       return { ok: false, text: 'Der Story Creator ist nicht verfügbar.' };
     }
     try {
-      return await options.anlegen(titel, markdown, kampagneId ?? null);
+      return await options.anlegen(titel, markdown, kampagneId ?? null, {
+        ersetzen: optionen?.ersetzen === true,
+        felder: optionen?.felder ?? {}
+      });
     } catch (fehler) {
       return { ok: false, text: String(fehler instanceof Error ? fehler.message : fehler) };
     }
-  });
+  }
+  );
 
   ipcMain.removeHandler(kanal('kampagnen'));
   ipcMain.handle(kanal('kampagnen'), async () =>

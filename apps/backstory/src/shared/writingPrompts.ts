@@ -4,6 +4,11 @@ export interface PromptCategory {
   id: string;
   label: string;
   options: string[];
+  /**
+   * Fuer welche Notiztypen die Kategorie gedacht ist. Fehlt es, passt sie
+   * ueberall. Die Schreibhilfe zeigt passende zuerst und waehlt die erste vor.
+   */
+  types?: string[];
 }
 
 /**
@@ -19,6 +24,7 @@ const de: PromptCategory[] = [
   {
     id: 'origin',
     label: 'Herkunftsort',
+    types: ['character'],
     options: [
       'Eine Hafenstadt, in der jeder jeden beim Vornamen kennt',
       'Ein Bergdorf, das im Winter vier Monate abgeschnitten ist',
@@ -49,6 +55,7 @@ const de: PromptCategory[] = [
   {
     id: 'calling',
     label: 'Früheres Leben',
+    types: ['character'],
     options: [
       'Botengänger, kannte jede Abkürzung der Stadt',
       'Gehilfin einer Kräuterkundigen',
@@ -79,6 +86,7 @@ const de: PromptCategory[] = [
   {
     id: 'turning',
     label: 'Wendepunkt',
+    types: ['character'],
     options: [
       'Ein Brief kam an, der für jemand anderen bestimmt war',
       'Sie sagte einmal die Wahrheit, als eine Lüge einfacher gewesen wäre',
@@ -109,6 +117,7 @@ const de: PromptCategory[] = [
   {
     id: 'secret',
     label: 'Geheimnis',
+    types: ['character'],
     options: [
       'Sie kann nicht lesen und hat es nie zugegeben',
       'Der Name, unter dem sie bekannt ist, gehört jemand anderem',
@@ -139,6 +148,7 @@ const de: PromptCategory[] = [
   {
     id: 'bond',
     label: 'Bindung',
+    types: ['character'],
     options: [
       'Die Wirtin, die ihr Essen gab, als sie nichts hatte',
       'Ein Geschwister, mit dem sie seit Jahren im Streit liegt',
@@ -169,6 +179,7 @@ const de: PromptCategory[] = [
   {
     id: 'goal',
     label: 'Ziel',
+    types: ['character'],
     options: [
       'Eine Schuld zurückzahlen, die nicht ihre eigene ist',
       'Herausfinden, wer den Befehl gegeben hat',
@@ -195,6 +206,87 @@ const de: PromptCategory[] = [
       'Jemanden dazu bringen, ihr zu glauben',
       'Sterben, wo sie geboren wurde'
     ]
+  },
+  {
+    id: 'place',
+    label: 'Ort: Eindruck',
+    types: ['location'],
+    options: [
+      'Was riecht man hier zuerst, bevor man etwas sieht?',
+      'Welches Geräusch hört hier nie auf?',
+      'Wer hat hier das Sagen, und wer glaubt es nur?',
+      'Was verkaufen die Leute hier, das es anderswo nicht gibt?',
+      'Welche Straße meiden die Einheimischen, und warum?',
+      'Was ist hier vor hundert Jahren passiert, woran sich alle erinnern?',
+      'Welcher Brauch wirkt auf Fremde seltsam?',
+      'Wo treffen sich die Leute abends?',
+      'Was fehlt hier, das jede andere Stadt hat?',
+      'Welches Gebäude ist älter als alles andere, und wem gehörte es?',
+      'Wie verändert sich der Ort nachts?',
+      'Wer kommt hier nie freiwillig her?',
+      'Welches Tier ist hier überall?',
+      'Welcher Name steht auf keiner Karte, und doch kennt ihn jeder?',
+      'Was passiert hier bei schlechtem Wetter?',
+      'Was essen die Leute hier an einem Festtag?',
+      'Wer war zuerst hier, und wo sind sie jetzt?',
+      'Welcher Ort in der Nähe wird nie erwähnt?',
+      'Was würde ein Kind einem Fremden hier als Erstes zeigen?',
+      'Welches Verbot gilt nur hier?'
+    ]
+  },
+  {
+    id: 'faction',
+    label: 'Fraktion: Antrieb',
+    types: ['faction'],
+    options: [
+      'Was will die Fraktion in einem Jahr erreicht haben?',
+      'Wen hält sie für ihren größten Feind, und liegt sie richtig?',
+      'Woher kommt das Geld?',
+      'Welche Regel bricht jedes Mitglied, und alle wissen es?',
+      'Wie wird man aufgenommen, und wie kommt man wieder raus?',
+      'Wer führt sie wirklich, unabhängig vom Titel?',
+      'Welchen Fehler aus der Vergangenheit verschweigt sie?',
+      'Woran erkennt man ein Mitglied auf der Straße?',
+      'Mit wem hat sie ein Abkommen, das niemand kennen darf?',
+      'Was würde sie zerbrechen lassen?',
+      'Welches Symbol benutzt sie, und was bedeutete es ursprünglich?',
+      'Wo treffen sich die Mitglieder, ohne aufzufallen?',
+      'Wen hat sie verraten, um groß zu werden?',
+      'Welches Versprechen hat sie ihren Leuten gegeben und nie gehalten?',
+      'Wer steigt gerade auf, gegen den Willen der Führung?',
+      'Was tut sie für die Leute, die nicht dazugehören?',
+      'Welches Wissen hütet sie?',
+      'Wie bestraft sie Verrat?',
+      'Wer finanziert sie, ohne es zu wissen?',
+      'Welche Tradition hält sie aus reiner Gewohnheit?'
+    ]
+  },
+  {
+    id: 'event',
+    label: 'Ereignis: Folgen',
+    types: ['event'],
+    options: [
+      'Wer hat es als Erster bemerkt?',
+      'Wer hat davon profitiert?',
+      'Was ist danach verboten worden?',
+      'Welches Gerücht darüber stimmt nicht, und wer hat es gestreut?',
+      'Wer war dabei und erzählt es heute ganz anders?',
+      'Was hat sich für die einfachen Leute verändert?',
+      'Welche Spur ist bis heute zu sehen?',
+      'Was wäre passiert, wenn es einen Tag später geschehen wäre?',
+      'Wer trägt die Schuld, und wer bekam sie zugeschoben?',
+      'Wie feiert oder betrauert man es heute?',
+      'Welches Datum ist seitdem ein anderer Tag als vorher?',
+      'Wer hat es vorhergesagt, und niemand hörte zu?',
+      'Welcher Gegenstand ist davon übrig geblieben?',
+      'Wer hat an diesem Tag etwas verloren, das niemand bemerkt hat?',
+      'Welches Lied oder Sprichwort erinnert daran?',
+      'Was wurde danach wieder aufgebaut, und was nicht?',
+      'Wer hat es absichtlich herbeigeführt?',
+      'Welche Frage dazu ist bis heute offen?',
+      'Wer hat davon erst Jahre später erfahren?',
+      'Was hätte es verhindern können?'
+    ]
   }
 ];
 
@@ -202,6 +294,7 @@ const en: PromptCategory[] = [
   {
     id: 'origin',
     label: 'Place of origin',
+    types: ['character'],
     options: [
       'A harbour town where everyone knows everyone by first name',
       'A mountain village cut off for four months every winter',
@@ -232,6 +325,7 @@ const en: PromptCategory[] = [
   {
     id: 'calling',
     label: 'Earlier life',
+    types: ['character'],
     options: [
       'Errand runner who knew every shortcut in the city',
       'Assistant to a herbalist',
@@ -262,6 +356,7 @@ const en: PromptCategory[] = [
   {
     id: 'turning',
     label: 'Turning point',
+    types: ['character'],
     options: [
       'A letter arrived that was meant for someone else',
       'She told the truth once, when a lie would have been easier',
@@ -292,6 +387,7 @@ const en: PromptCategory[] = [
   {
     id: 'secret',
     label: 'Secret',
+    types: ['character'],
     options: [
       'She cannot read and has never admitted it',
       'The name she is known by belongs to someone else',
@@ -322,6 +418,7 @@ const en: PromptCategory[] = [
   {
     id: 'bond',
     label: 'Bond',
+    types: ['character'],
     options: [
       'The innkeeper who fed her when she had nothing',
       'A sibling she has been at odds with for years',
@@ -352,6 +449,7 @@ const en: PromptCategory[] = [
   {
     id: 'goal',
     label: 'Goal',
+    types: ['character'],
     options: [
       'Repay a debt that is not her own',
       'Find out who gave the order',
@@ -377,6 +475,87 @@ const en: PromptCategory[] = [
       'Be right for once',
       'Make someone believe her',
       'Die where she was born'
+    ]
+  },
+  {
+    id: 'place',
+    label: 'Place: first impression',
+    types: ['location'],
+    options: [
+      'What do you smell here before you see anything?',
+      'Which sound never stops here?',
+      'Who is in charge here, and who only thinks so?',
+      'What do people sell here that you cannot get anywhere else?',
+      'Which street do the locals avoid, and why?',
+      'What happened here a hundred years ago that everyone still remembers?',
+      'Which custom seems strange to outsiders?',
+      'Where do people meet in the evening?',
+      'What is missing here that every other town has?',
+      'Which building is older than everything else, and who owned it?',
+      'How does the place change at night?',
+      'Who never comes here willingly?',
+      'Which animal is everywhere here?',
+      'Which name is on no map, yet everyone knows it?',
+      'What happens here in bad weather?',
+      'What do people eat here on a feast day?',
+      'Who was here first, and where are they now?',
+      'Which nearby place is never mentioned?',
+      'What would a child show a stranger here first?',
+      'Which rule only applies here?'
+    ]
+  },
+  {
+    id: 'faction',
+    label: 'Faction: drive',
+    types: ['faction'],
+    options: [
+      'What does the faction want to have achieved a year from now?',
+      'Whom does it consider its greatest enemy, and is it right?',
+      'Where does the money come from?',
+      'Which rule does every member break, and everyone knows it?',
+      'How do you get in, and how do you get out again?',
+      'Who really leads it, regardless of title?',
+      'Which past mistake does it keep quiet about?',
+      'How do you recognise a member on the street?',
+      'Who does it have a deal with that nobody may know about?',
+      'What would break it apart?',
+      'Which symbol does it use, and what did it originally mean?',
+      'Where do members meet without drawing attention?',
+      'Whom did it betray to grow this big?',
+      'Which promise did it make to its people and never keep?',
+      'Who is rising right now, against the will of the leadership?',
+      'What does it do for people who do not belong?',
+      'Which knowledge does it guard?',
+      'How does it punish betrayal?',
+      'Who funds it without knowing?',
+      'Which tradition does it keep out of sheer habit?'
+    ]
+  },
+  {
+    id: 'event',
+    label: 'Event: aftermath',
+    types: ['event'],
+    options: [
+      'Who noticed it first?',
+      'Who profited from it?',
+      'What was forbidden afterwards?',
+      'Which rumour about it is false, and who spread it?',
+      'Who was there and tells it very differently today?',
+      'What changed for ordinary people?',
+      'Which trace can still be seen today?',
+      'What would have happened if it had come one day later?',
+      'Who is to blame, and who got blamed instead?',
+      'How is it celebrated or mourned today?',
+      'Which date has been a different day ever since?',
+      'Who predicted it, and nobody listened?',
+      'Which object is left over from it?',
+      'Who lost something that day that nobody noticed?',
+      'Which song or saying remembers it?',
+      'What was rebuilt afterwards, and what was not?',
+      'Who brought it about on purpose?',
+      'Which question about it is still open today?',
+      'Who only learned of it years later?',
+      'What could have prevented it?'
     ]
   }
 ];

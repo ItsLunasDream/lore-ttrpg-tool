@@ -19,6 +19,8 @@ export interface ExportErgebnis {
   readonly text: string;
   /** Wie viele Notizen angelegt wurden. */
   readonly angelegt: number;
+  /** Wie viele schon da waren und uebersprungen wurden. */
+  readonly vorhanden?: number;
 }
 
 const api = {
@@ -28,8 +30,8 @@ const api = {
    * Auf Knopfdruck und nicht von selbst: „Entwurf hier, Wahrheit dort" —
    * was nicht uebernommen wurde, hat im Archiv nichts verloren.
    */
-  export: (notizen: readonly Notiz[], kampagneId?: string | null) =>
-    ipcRenderer.invoke(kanal('export'), notizen, kampagneId ?? null) as Promise<ExportErgebnis>,
+  export: (notizen: readonly Notiz[], kampagneId?: string | null, ersetzen = false) =>
+    ipcRenderer.invoke(kanal('export'), notizen, kampagneId ?? null, ersetzen) as Promise<ExportErgebnis>,
 
   /** Die Kampagnen des Story Creators und die, an der zuletzt gearbeitet wurde. */
   kampagnen: () =>

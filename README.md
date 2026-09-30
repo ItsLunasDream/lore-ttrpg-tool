@@ -133,7 +133,8 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 | Link, create from a link, link selected text | type `[[` |
 | Open a link | Ctrl+click |
 | Find and replace | Ctrl+F, F3 / Shift+F3 |
-| Rename, delete | right-click in the note list |
+| Rename, delete (with undo) | right-click in the note list |
+| Cut, copy, paste, spelling suggestions | right-click in the text |
 | Zoom (20–500 %) | Ctrl+wheel, Ctrl+Plus/Minus/0 |
 | Backup, restore, note types | "Campaign" menu |
 | Image | ▣ button or drag in |
@@ -146,6 +147,13 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - **Relationships** are directed and stored per note pair.
 - **Images** are copied into `assets/`.
 - **History** saves at most every two minutes; restoring can be undone.
+- **Deleted notes** go to a trash folder (`trash/` in the storage folder, the
+  last 20 per campaign); "Undo" in the notice brings them back with their
+  relationships.
+- **Spelling** checks like the interface, fixed German or English, or not at
+  all (settings).
+- **Writing prompts** insert at the cursor; prompts for the note type
+  (character, place, faction, event) come first.
 - **The assistant** never writes into your text.
 - **The Markdown survives**: comments, link titles, `<angle>` links and tight
   lists come out as they went in.
@@ -173,7 +181,9 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   rerolled, locked or edited.
 - Sound of the name: feminine, masculine, neutral.
 - With AI the model suggests freely; without, the tables apply.
-- **Export** creates a note in the open Story Creator campaign; no duplicates.
+- **Export** creates a note in the chosen campaign, species filled into the
+  profile. If it already exists, the button offers "Update it there".
+- The **shortlist** survives a restart.
 
 ## Inspiration
 
@@ -184,7 +194,8 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - The web of characters as a picture, full screen on click.
 - "Start a map" opens the Map Editor with the place's notes as pins.
 - "All from AI" drafts all six blocks in one consistent answer.
-- **Taking it over** creates notes plus an overview in the open campaign.
+- **Taking it over** creates notes plus an overview in the chosen campaign.
+  Existing ones are skipped or, on request, updated.
 
 Concept: `docs/inspirationshilfe.md` (German).
 

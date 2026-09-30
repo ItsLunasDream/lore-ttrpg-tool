@@ -122,6 +122,7 @@ export const texte = {
     'Creates a note per character, place and faction, plus a linked overview. Nothing is overwritten.'
   ],
   'export.fertig': ['{anzahl} Notizen angelegt: {ziel}', '{anzahl} notes created: {ziel}'],
+  'export.aktualisieren': ['Vorhandene aktualisieren ({anzahl})', 'Update existing ({anzahl})'],
   'export.leer': ['Erst würfeln, dann übernehmen.', 'Roll something first, then send it over.'],
   'export.fehler': ['Das hat nicht geklappt: {grund}', 'That did not work: {grund}'],
 

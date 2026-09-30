@@ -6,7 +6,7 @@ import { hasLinkReservedChars, rewriteWikiLinks } from '../shared/wikilinks';
 import { DEFAULT_NOTE_TYPES, isKnownNoteType, toKey, vorlageNotiztypen } from '../shared/noteTypes';
 import { defaultPrompts } from '../shared/writingPrompts';
 import type { PromptCategory } from '../shared/writingPrompts';
-import { SCHEMA_VERSION } from '../shared/types';
+import { SCHEMA_VERSION, istRechtschreibwahl } from '../shared/types';
 import type {
   AppSettings,
   Campaign,
@@ -31,6 +31,10 @@ const NOTES_DIR = 'notes';
 const ASSETS_DIR = 'assets';
 const CAMPAIGN_FILE = 'campaign.json';
 const HISTORY_DIR = 'history';
+/** Geloeschte Notizen, damit sich das Loeschen rueckgaengig machen laesst. Liegt neben campaigns/. */
+const TRASH_DIR = 'trash';
+/** So viele geloeschte Notizen je Kampagne bleiben liegen; die aeltesten gehen zuerst. */
+const TRASH_KEEP = 20;
 /**
  * Die Vorschlagsdatei — eine je Sprache.
  *
@@ -57,8 +61,32 @@ function promptsDatei(language: Language): string {
  * ueberein, steckt keine Arbeit darin, die es zu retten gaebe.
  */
 function istBearbeitet(liste: PromptCategory[]): boolean {
-  const wie = (andere: PromptCategory[]) => JSON.stringify(andere) === JSON.stringify(liste);
-  return !wie(defaultPrompts('de')) && !wie(defaultPrompts('en'));
+  // Die alte Datei kannte weder `types` noch die Kategorien fuer Orte,
+  // Fraktionen und Ereignisse. Verglichen wird daher mit der Vorlage von damals.
+  const kern = (k: PromptCategory) => ({ id: k.id, label: k.label, options: k.options });
+  const damals = (sprache: Language) =>
+    defaultPrompts(sprache)
+      .filter((k) => !k.types || k.types.includes('character'))
+      .map(kern);
+  const heute = (sprache: Language) => defaultPrompts(sprache).map(kern);
+  const ohneTypen = JSON.stringify(liste.map(kern));
+  const vorlagen = [damals('de'), damals('en'), heute('de'), heute('en')];
+  return !vorlagen.some((vorlage) => JSON.stringify(vorlage) === ohneTypen);
+}
+
+/**
+ * Ergaenzt eine Liste von vor der Typ-Zuordnung um die Kategorien fuer andere
+ * Notiztypen. Nur einmal: danach traegt die Datei `types`, und was man dort
+ * loescht, bleibt geloescht.
+ */
+function ergaenzeTypKategorien(liste: PromptCategory[], sprache: Language): PromptCategory[] | null {
+  if (liste.some((k) => k.types)) return null;
+  const vorhanden = new Set(liste.map((k) => k.id));
+  const vorlage = defaultPrompts(sprache);
+  const typen = new Map(vorlage.map((k) => [k.id, k.types]));
+  const neu = vorlage.filter((k) => k.types && !k.types.includes('character') && !vorhanden.has(k.id));
+  // Die mitgelieferten Figuren-Kategorien bekommen ihren Typ nachgetragen.
+  return [...liste.map((k) => (typen.get(k.id) ? { ...k, types: typen.get(k.id) } : k)), ...neu];
 }
 
 /**
@@ -191,6 +219,19 @@ export class Vault {
       for (const reference of collectAssetReferences(note.fields, note.body)) used.add(reference);
     }
     for (const reference of await this.assetsUsedInHistory(campaignId)) used.add(reference);
+    // Bilder geloeschter Notizen im Papierkorb behalten, sonst fehlen sie nach dem Wiederherstellen.
+    try {
+      for (const eintrag of await fs.readdir(this.trashDir(campaignId))) {
+        try {
+          const { data, body } = parseFrontmatter(await fs.readFile(path.join(this.trashDir(campaignId), eintrag, 'note.md'), 'utf8'));
+          for (const reference of collectAssetReferences(asStringRecord(data.fields), body)) used.add(reference);
+        } catch {
+          // Unvollstaendiger Eintrag, uebergehen.
+        }
+      }
+    } catch {
+      // Kein Papierkorb.
+    }
 
     const orphans: OrphanedAsset[] = [];
     for (const name of files) {
@@ -266,7 +307,14 @@ export class Vault {
     try {
       const parsed = JSON.parse(await fs.readFile(file, 'utf8')) as unknown;
       const normalized = normalizePrompts(parsed);
-      if (normalized.length) return normalized;
+      if (normalized.length) {
+        const ergaenzt = ergaenzeTypKategorien(normalized, language);
+        if (ergaenzt) {
+          await writeJson(file, ergaenzt);
+          return ergaenzt;
+        }
+        return normalized;
+      }
     } catch {
       // Datei fehlt oder ist unlesbar, unten wird weitergesucht.
     }
@@ -502,6 +550,7 @@ export class Vault {
 
   async deleteCampaign(campaignId: string): Promise<void> {
     await fs.rm(this.campaignDir(campaignId), { recursive: true, force: true });
+    await fs.rm(this.trashDir(campaignId), { recursive: true, force: true });
   }
 
   // --- Notizen -------------------------------------------------------------
@@ -802,18 +851,56 @@ export class Vault {
     return { note: updated, rewritten };
   }
 
-  async deleteNote(campaignId: string, noteId: string): Promise<void> {
-    await fs.rm(this.noteFile(campaignId, noteId), { force: true });
+  private trashDir(campaignId: string, noteId?: string): string {
+    assertSafeId(campaignId);
+    if (noteId !== undefined) assertSafeId(noteId);
+    const dir = path.join(this.root, TRASH_DIR, campaignId);
+    return noteId === undefined ? dir : path.join(dir, noteId);
+  }
 
-    // Auch die frueheren Staende. Sonst bliebe der Text der geloeschten Notiz
-    // auf der Platte liegen, und der Ordner wuechse mit jedem Loeschen weiter.
+  async deleteNote(campaignId: string, noteId: string): Promise<void> {
+    // Nicht gleich weg, sondern in den Papierkorb: Text, Verlauf, die
+    // Beziehungen anderer Notizen auf diese und die Stelle im Graphen.
+    // Damit laesst sich das Loeschen vollstaendig rueckgaengig machen.
+    const ablage = this.trashDir(campaignId, noteId);
+    await fs.rm(ablage, { recursive: true, force: true });
+    await fs.mkdir(ablage, { recursive: true });
+    let hatteDatei = true;
+    try {
+      await fs.copyFile(this.noteFile(campaignId, noteId), path.join(ablage, 'note.md'));
+    } catch {
+      hatteDatei = false;
+    }
+    try {
+      await fs.cp(this.historyDir(campaignId, noteId), path.join(ablage, HISTORY_DIR), { recursive: true });
+    } catch {
+      // Kein Verlauf, nichts mitzunehmen.
+    }
+
+    await fs.rm(this.noteFile(campaignId, noteId), { force: true });
     await fs.rm(this.historyDir(campaignId, noteId), { recursive: true, force: true });
 
     // Beziehungen auf die geloeschte Notiz wuerden sonst ins Leere zeigen.
+    const entfernt: { noteId: string; relation: Relation }[] = [];
     for (const other of await this.listNotes(campaignId)) {
       const relations = other.relations.filter((relation) => relation.targetId !== noteId);
       if (relations.length === other.relations.length) continue;
+      for (const relation of other.relations) {
+        if (relation.targetId === noteId) entfernt.push({ noteId: other.id, relation });
+      }
       await this.writeNote(campaignId, { ...other, relations, updatedAt: new Date().toISOString() });
+    }
+    let position: GraphPosition | undefined;
+    try {
+      position = (await this.readCampaign(campaignId)).graphPositions[noteId];
+    } catch {
+      position = undefined;
+    }
+    if (hatteDatei) {
+      await writeJson(path.join(ablage, 'meta.json'), { deletedAt: new Date().toISOString(), relations: entfernt, position });
+      await this.raeumePapierkorb(campaignId);
+    } else {
+      await fs.rm(ablage, { recursive: true, force: true });
     }
 
     // Auch die gemerkte Stelle im Graphen raeumen, sonst waechst die Liste
@@ -828,6 +915,76 @@ export class Vault {
       const updated: Campaign = { ...campaign, graphPositions: rest };
       await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
     });
+  }
+
+  /** Holt eine geloeschte Notiz aus dem Papierkorb zurueck, samt Beziehungen und Verlauf. */
+  async restoreNote(campaignId: string, noteId: string): Promise<Note> {
+    const ablage = this.trashDir(campaignId, noteId);
+    let raw: string;
+    try {
+      raw = await fs.readFile(path.join(ablage, 'note.md'), 'utf8');
+    } catch {
+      throw new VaultError('error.restoreGone');
+    }
+    const ziel = this.noteFile(campaignId, noteId);
+    try {
+      await fs.access(ziel);
+      throw new VaultError('error.restoreGone');
+    } catch (error) {
+      if (error instanceof VaultError) throw error;
+    }
+    await fs.mkdir(path.dirname(ziel), { recursive: true });
+    await writeAtomic(ziel, raw);
+    try {
+      await fs.cp(path.join(ablage, HISTORY_DIR), this.historyDir(campaignId, noteId), { recursive: true });
+    } catch {
+      // Es gab keinen Verlauf.
+    }
+
+    let meta: { relations?: { noteId: string; relation: Relation }[]; position?: GraphPosition } = {};
+    try {
+      meta = JSON.parse(await fs.readFile(path.join(ablage, 'meta.json'), 'utf8'));
+    } catch {
+      meta = {};
+    }
+    const jeNotiz = new Map<string, Relation[]>();
+    for (const eintrag of meta.relations ?? []) {
+      jeNotiz.set(eintrag.noteId, [...(jeNotiz.get(eintrag.noteId) ?? []), eintrag.relation]);
+    }
+    for (const other of await this.listNotes(campaignId)) {
+      const zurueck = jeNotiz.get(other.id);
+      if (!zurueck) continue;
+      const neu = zurueck.filter((relation) => !other.relations.some((r) => r.id === relation.id));
+      if (!neu.length) continue;
+      await this.writeNote(campaignId, { ...other, relations: [...other.relations, ...neu], updatedAt: new Date().toISOString() });
+    }
+    if (meta.position) {
+      const position = meta.position;
+      await this.inOrder(campaignId, async () => {
+        const campaign = await this.readCampaign(campaignId);
+        const updated: Campaign = { ...campaign, graphPositions: { ...campaign.graphPositions, [noteId]: position } };
+        await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      });
+    }
+    await fs.rm(ablage, { recursive: true, force: true });
+    return this.getNote(campaignId, noteId);
+  }
+
+  /** Behaelt nur die letzten TRASH_KEEP geloeschten Notizen einer Kampagne. */
+  private async raeumePapierkorb(campaignId: string): Promise<void> {
+    const dir = this.trashDir(campaignId);
+    let namen: string[];
+    try {
+      namen = (await fs.readdir(dir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch {
+      return;
+    }
+    if (namen.length <= TRASH_KEEP) return;
+    const mitZeit = await Promise.all(
+      namen.map(async (name) => ({ name, zeit: (await fs.stat(path.join(dir, name)).catch(() => null))?.mtimeMs ?? 0 }))
+    );
+    mitZeit.sort((a, b) => b.zeit - a.zeit);
+    for (const alt of mitZeit.slice(TRASH_KEEP)) await fs.rm(path.join(dir, alt.name), { recursive: true, force: true });
   }
 
   private async writeNote(campaignId: string, note: Note): Promise<void> {
@@ -1269,7 +1426,10 @@ function normalizePrompts(value: unknown): PromptCategory[] {
     if (!label || options.length === 0) return [];
 
     const id = typeof record.id === 'string' && record.id.trim() ? record.id.trim() : toKey(label);
-    return [{ id, label, options: options.map((option) => option.trim()) }];
+    const types = Array.isArray(record.types)
+      ? record.types.filter((typ): typ is string => typeof typ === 'string' && typ.trim().length > 0)
+      : [];
+    return [{ id, label, options: options.map((option) => option.trim()), ...(types.length ? { types } : {}) }];
   });
 }
 
@@ -1291,6 +1451,7 @@ export function defaultSettings(vaultRoot: string): AppSettings {
     claudeApiKeyEncrypted: '',
     aiSendLinkedNotes: true,
     editorZoom: ZOOM_NORMAL,
+    spellcheck: 'auto',
     lastCampaignId: null
   };
 }
@@ -1307,7 +1468,8 @@ export async function readSettings(file: string, fallbackRoot: string): Promise<
       autosaveDelayMs: clampDelay(parsed.autosaveDelayMs ?? defaults.autosaveDelayMs),
       historyMaxVersions: clampVersions(parsed.historyMaxVersions ?? defaults.historyMaxVersions),
       language: isLanguage(parsed.language) ? parsed.language : defaults.language,
-      editorZoom: begrenzeZoom(parsed.editorZoom ?? defaults.editorZoom)
+      editorZoom: begrenzeZoom(parsed.editorZoom ?? defaults.editorZoom),
+      spellcheck: istRechtschreibwahl(parsed.spellcheck) ? parsed.spellcheck : defaults.spellcheck
     };
   } catch {
     return defaults;

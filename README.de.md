@@ -143,7 +143,8 @@ Obsidian.
 | Verlinken, neu aus Link, Markiertes verlinken | `[[` tippen |
 | Link öffnen | Strg+Klick |
 | Suchen und ersetzen | Strg+F, F3 / Umschalt+F3 |
-| Umbenennen, löschen | Rechtsklick in der Notizliste |
+| Umbenennen, löschen (mit Rückgängig) | Rechtsklick in der Notizliste |
+| Ausschneiden, Kopieren, Einfügen, Rechtschreibvorschläge | Rechtsklick im Text |
 | Zoom (20–500 %) | Strg+Mausrad, Strg+Plus/Minus/0 |
 | Sichern, einlesen, Notiztypen | Menü „Kampagne" |
 | Bild | Knopf ▣ oder hineinziehen |
@@ -158,6 +159,13 @@ Obsidian.
 - **Bilder** werden nach `assets/` kopiert.
 - **Verlauf** sichert höchstens alle zwei Minuten; Wiederherstellen ist
   umkehrbar.
+- **Gelöschte Notizen** liegen im Papierkorb (`trash/` im Speicherort, die
+  letzten 20 je Kampagne); „Rückgängig“ im Hinweis holt sie samt
+  Beziehungen zurück.
+- **Rechtschreibung** prüft wahlweise wie die Oberfläche, fest Deutsch oder
+  Englisch, oder gar nicht (Einstellungen).
+- **Schreibhilfe** fügt an der Schreibmarke ein; Vorschläge zum Notiztyp
+  (Figur, Ort, Fraktion, Ereignis) stehen oben.
 - **Der Assistent** schreibt nie in den Text.
 - **Das Markdown bleibt erhalten**: Kommentare, Linktitel, `<spitze>` Links
   und enge Listen kommen so heraus, wie sie hineingingen.
@@ -186,7 +194,9 @@ Obsidian.
   Feld neu würfeln, festhalten oder überschreiben.
 - Namensklang: feminin, maskulin, neutral.
 - Mit KI schlägt das Modell frei vor, ohne gelten die Tabellen.
-- **Export** legt eine Notiz in der offenen Kampagne an, ohne Doppel.
+- **Export** legt eine Notiz in der gewählten Kampagne an, mit der Spezies
+  im Steckbrief. Gibt es sie schon, bietet der Knopf „Dort aktualisieren“ an.
+- Die **Merkliste** bleibt über einen Neustart erhalten.
 
 ## Inspirationshilfe
 
@@ -199,7 +209,8 @@ Obsidian.
 - Das Figurengeflecht als Bild, per Klick über den ganzen Schirm.
 - „Karte anlegen" öffnet den Karteneditor mit den Notizen zum Ort als Pins.
 - „Alles von der KI" entwirft alle sechs Bausteine aufeinander bezogen.
-- **Übernehmen** legt Notizen und eine Übersicht in der offenen Kampagne an.
+- **Übernehmen** legt Notizen und eine Übersicht in der gewählten Kampagne
+  an. Vorhandene werden übersprungen oder auf Wunsch aktualisiert.
 
 Konzept: `docs/inspirationshilfe.md`.
 

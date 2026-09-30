@@ -231,7 +231,7 @@ const de = {
   'dialog.type': 'Typ',
   'dialog.deleteNote': 'Notiz löschen',
   'dialog.deleteNoteText':
-    '„{title}" löschen? Beziehungen anderer Notizen auf diese werden mit entfernt, [[Links]] im Text bleiben stehen.',
+    '„{title}" löschen? Direkt danach lässt es sich rückgängig machen. Beziehungen anderer Notizen auf diese werden mit entfernt, [[Links]] im Text bleiben stehen.',
 
   'toolbar.bold': 'Fett (Strg+B)',
   'toolbar.italic': 'Kursiv (Strg+I)',
@@ -444,7 +444,20 @@ const de = {
   'list.emptyCampaign': 'Noch keine Notizen. Lege oben eine an.',
   'editor.titleNeeded': 'Ein Titel fehlt, sonst geht es nicht weiter',
   'list.untitled': '(ohne Titel)',
-  'msg.createdInBackground': 'Notiz „{title}" angelegt. Du kannst hier weiterschreiben.'
+  'msg.createdInBackground': 'Notiz „{title}" angelegt. Du kannst hier weiterschreiben.',
+  'dialog.deleteNoteLinked': '{count} andere Notiz(en) verweisen darauf.',
+  'msg.noteDeleted': '„{title}“ gelöscht.',
+  'msg.undo': 'Rückgängig',
+  'error.restoreGone': 'Die Notiz lässt sich nicht mehr wiederherstellen.',
+  'edit.cut': 'Ausschneiden',
+  'edit.copy': 'Kopieren',
+  'edit.paste': 'Einfügen',
+  'spell.language': 'Rechtschreibung prüfen in',
+  'spell.auto': 'Wie die Oberfläche',
+  'spell.de': 'Deutsch',
+  'spell.en': 'Englisch',
+  'spell.off': 'Aus',
+  'dialog.titleTaken': '„{title}“ trägt diesen Namen schon. Beide gehen, aber [[Links]] darauf werden mehrdeutig.'
 } as const;
 
 export type MessageKey = keyof typeof de;
@@ -655,7 +668,7 @@ const en: Partial<Record<MessageKey, string>> = {
   'dialog.type': 'Type',
   'dialog.deleteNote': 'Delete note',
   'dialog.deleteNoteText':
-    'Delete “{title}”? Relationships of other notes pointing here are removed as well, [[links]] in text stay.',
+    'Delete “{title}”? You can undo this right afterwards. Relationships of other notes pointing here are removed as well, [[links]] in text stay.',
 
   'toolbar.bold': 'Bold (Ctrl+B)',
   'toolbar.italic': 'Italic (Ctrl+I)',
@@ -868,6 +881,19 @@ const en: Partial<Record<MessageKey, string>> = {
   'editor.titleNeeded': 'A title is needed to continue',
   'list.untitled': '(no title)',
   'msg.createdInBackground': 'Note "{title}" created. You can keep writing here.',
+  'dialog.deleteNoteLinked': '{count} other note(s) link to it.',
+  'msg.noteDeleted': '“{title}” deleted.',
+  'msg.undo': 'Undo',
+  'error.restoreGone': 'The note can no longer be restored.',
+  'edit.cut': 'Cut',
+  'edit.copy': 'Copy',
+  'edit.paste': 'Paste',
+  'spell.language': 'Check spelling in',
+  'spell.auto': 'Same as interface',
+  'spell.de': 'German',
+  'spell.en': 'English',
+  'spell.off': 'Off',
+  'dialog.titleTaken': '“{title}” already uses this name. Both can exist, but [[links]] to it become ambiguous.',
 };
 
 const MESSAGES: Record<Language, Partial<Record<MessageKey, string>>> = { de, en };

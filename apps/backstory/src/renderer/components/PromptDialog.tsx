@@ -9,13 +9,19 @@ interface Props {
   confirmLabel?: string;
   /** Zusaetzliche Felder oberhalb der Texteingabe. */
   children?: ReactNode;
+  /**
+   * Hinweis zur Eingabe, etwa „diesen Titel gibt es schon“. Haelt nicht auf:
+   * zwei gleichnamige Notizen sind erlaubt, nur machen sie [[Links]] mehrdeutig.
+   */
+  warnung?: (value: string) => string | null;
   onConfirm: (value: string) => void;
   onClose: () => void;
 }
 
-export function PromptDialog({ title, label, initialValue = '', confirmLabel, children, onConfirm, onClose }: Props) {
+export function PromptDialog({ title, label, initialValue = '', confirmLabel, children, warnung, onConfirm, onClose }: Props) {
   const t = useT();
   const [value, setValue] = useState(initialValue);
+  const hinweis = value.trim() ? (warnung?.(value.trim()) ?? null) : null;
 
   function submit() {
     if (!value.trim()) return;
@@ -49,6 +55,11 @@ export function PromptDialog({ title, label, initialValue = '', confirmLabel, ch
           }}
         />
       </label>
+      {hinweis ? (
+        <p className="modal__hint modal__hint--warnung" role="status" data-warnung>
+          {hinweis}
+        </p>
+      ) : null}
     </Modal>
   );
 }
