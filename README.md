@@ -160,6 +160,10 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   lists come out as they went in.
 - **Export**: PDF with table of contents, graph and jump links; Markdown with
   an alias header where the file name differs from the title.
+- **Graph window** with three views: relationship web, timeline (by the
+  "Date" field) and **plot threads**: plots as sequences of notes that can
+  branch off at a note of another thread and merge into another one. Stored
+  in `campaign.json` (`plots`).
 
 ## Character Sheet
 

@@ -7,6 +7,8 @@ import { typFarbe } from '../../shared/graphFarben';
 import { useT } from '../i18n';
 import { InfoCard } from './InfoCard';
 import { Zeitstrahl } from './Zeitstrahl';
+import { Handlungsstraenge } from './Handlungsstraenge';
+import type { Strang } from '../../shared/straenge';
 import type { Note } from '../../shared/types';
 
 interface Props {
@@ -19,6 +21,9 @@ interface Props {
   onClose: () => void;
   /** Fuer die Bilder in der Kurzinfo. */
   campaignId: string;
+  /** Handlungsstraenge der Kampagne. */
+  plots: Strang[];
+  onSavePlots: (plots: Strang[]) => void;
 }
 
 const WIDTH = 1200;
@@ -76,13 +81,13 @@ const LABEL_SIDE = 2.4;
 
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 
-export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose, campaignId }: Props) {
+export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose, campaignId, plots, onSavePlots }: Props) {
   const t = useT();
   const [mode, setMode] = useState<GraphMode>('both');
   const [seed, setSeed] = useState(42);
   const [hovered, setHovered] = useState<string | null>(null);
   /** Graph oder Zeitstrahl (Rueckmeldung: Ereignisse in zeitlicher Folge). */
-  const [ansicht, setAnsicht] = useState<'graph' | 'zeit'>('graph');
+  const [ansicht, setAnsicht] = useState<'graph' | 'zeit' | 'straenge'>('graph');
   /*
    * Kurzinfo beim Ueberfahren (Rueckmeldung), leicht verzoegert: sonst
    * flackerten beim Ueberstreichen des Graphen Karten auf.
@@ -285,6 +290,9 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
           </button>
           <button type="button" role="tab" data-ansicht="zeit" aria-selected={ansicht === 'zeit'} className={ansicht === 'zeit' ? 'is-active' : undefined} onClick={() => { setKarte(null); setAnsicht('zeit'); }}>
             {t('timeline.title')}
+          </button>
+          <button type="button" role="tab" data-ansicht="straenge" aria-selected={ansicht === 'straenge'} className={ansicht === 'straenge' ? 'is-active' : undefined} onClick={() => { setKarte(null); setAnsicht('straenge'); }}>
+            {t('plots.title')}
           </button>
         </div>
 
@@ -513,8 +521,10 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
 
       <p className="graph__hint">{t('graph.hintFull')}</p>
       </>
-      ) : (
+      ) : ansicht === 'zeit' ? (
         <Zeitstrahl index={index} activeNoteId={activeNoteId} onOpenNote={onOpenNote} onHover={zeigeKarte} />
+      ) : (
+        <Handlungsstraenge index={index} straenge={plots} speichern={onSavePlots} activeNoteId={activeNoteId} onOpenNote={onOpenNote} onHover={zeigeKarte} />
       )}
       {karte ? (
         <InfoCard note={karte.note} types={index.types} campaignId={campaignId} rect={karte.rect} onOpen={(id) => onOpenNote(id)} />

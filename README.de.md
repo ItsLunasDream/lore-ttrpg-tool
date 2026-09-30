@@ -172,6 +172,10 @@ Obsidian.
   und enge Listen kommen so heraus, wie sie hineingingen.
 - **Export**: PDF mit Inhaltsverzeichnis, Graph und Sprungzielen; Markdown
   mit Alias-Kopf, wenn der Dateiname vom Titel abweicht.
+- **Graph-Fenster** mit drei Ansichten: Beziehungsnetz, Zeitstrahl (nach dem
+  Feld „Zeitpunkt“) und **Handlungsstränge**: Plots als Folgen von Notizen,
+  die bei einer Notiz eines anderen Strangs abzweigen und in einen anderen
+  münden können. Gespeichert in `campaign.json` (`plots`).
 
 ## Charakterbogen
 

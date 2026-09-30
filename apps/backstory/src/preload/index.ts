@@ -234,6 +234,7 @@ const api = {
     get: (id: string) => invoke<Campaign>('campaign:get', id),
     updateNoteTypes: (id: string, types: NoteTypeDef[]) =>
       invoke<Campaign>('campaign:updateNoteTypes', id, types),
+    savePlots: (id: string, plots: unknown) => invoke<Campaign>('campaign:plots', id, plots),
     saveGraphPositions: (id: string, positions: Record<string, GraphPosition>) =>
       invoke<Campaign>('campaign:graphPositions', id, positions)
   },

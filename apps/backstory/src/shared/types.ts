@@ -1,3 +1,4 @@
+import type { Strang } from './straenge';
 import type { Language } from './i18n';
 
 /** Wird in jede Notiz- und Kampagnendatei geschrieben, damit spaetere Migrationen moeglich sind. */
@@ -101,6 +102,8 @@ export interface Campaign {
    * sagt nichts ueber die Notiz aus und haette dort nichts zu suchen.
    */
   graphPositions: Record<string, GraphPosition>;
+  /** Handlungsstraenge (shared/straenge.ts); fehlt bei alten Kampagnen. */
+  plots?: Strang[];
 }
 
 /**

@@ -1788,6 +1788,26 @@ app.whenReady().then(async () => {
       );
     }
 
+    // 17c. Handlungsstraenge: Strang anlegen, Notiz ueber die Suche, gespeichert
+    {
+      await run(window, `document.querySelector('[data-ansicht="straenge"]').click(); return true;`);
+      await sleep(500);
+      await run(window, `document.querySelector('[data-strang-neu]').click(); return true;`);
+      await sleep(300);
+      await run(window, `const i = document.querySelector('[data-strang-notiz-suche]'); setValue(i, 'a'); return true;`);
+      await sleep(300);
+      const gewaehlt = await run(window, `const b = document.querySelector('.straenge__wahl [data-wahl]'); if (!b) return null; b.click(); return b.dataset.wahl;`);
+      check(Boolean(gewaehlt), 'Handlungsstränge: die Notizsuche liefert nichts');
+      await sleep(300);
+      check(await run(window, `return document.querySelectorAll('[data-strang-knoten]').length === 1;`),
+        'Handlungsstränge: die gewählte Notiz erscheint nicht als Knoten');
+      await sleep(900);
+      const plots = JSON.parse(fs.readFileSync(path.join(userData, 'vault', 'campaigns', campaignId, 'campaign.json'), 'utf8')).plots ?? [];
+      check(plots.length === 1 && plots[0].notizen[0] === gewaehlt, `Handlungsstränge werden nicht gespeichert (${JSON.stringify(plots)})`);
+      await run(window, `document.querySelector('[data-ansicht="graph"]').click(); return true;`);
+      await sleep(500);
+    }
+
     // Druecken und Loslassen ohne Bewegung oeffnet die Notiz
     await run(
       window,

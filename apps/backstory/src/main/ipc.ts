@@ -219,6 +219,7 @@ export function registerIpc(context: IpcContext): void {
   handle<[string, string], Campaign>('campaign:rename', (id, name) => vault.renameCampaign(id, name));
   handle<[string], void>('campaign:delete', (id) => vault.deleteCampaign(id));
   handle<[string], Campaign>('campaign:get', (id) => vault.getCampaign(id));
+  handle<[string, unknown], Campaign>('campaign:plots', (id, plots) => vault.savePlots(id, plots));
   handle<[string, Record<string, GraphPosition>], Campaign>('campaign:graphPositions', (id, positions) =>
     vault.saveGraphPositions(id, positions)
   );
