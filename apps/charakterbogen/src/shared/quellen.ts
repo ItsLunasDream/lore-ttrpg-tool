@@ -150,6 +150,74 @@ export function srdMagie(sprache: 'de' | 'en'): Quelleintrag[] {
   return heraus;
 }
 
+/** Name zum Vergleichen: klein, ohne Klammern, ohne Mengenangabe, ohne Satzzeichen. */
+function vergleichsname(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/^\s*\d+\s*[x×]?\s+/, '')
+    .replace(/[^a-z0-9äöüß]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Ein Wurf auf eine Loot-Tabelle als Quelleintrag.
+ *
+ * Rückmeldung: aus der Tabelle „Weapons" kam „Longsword (15 GP)" ins
+ * Inventar — ohne Wert und nur mit „Longsword (15GP) (Loot table: Weapons)"
+ * als Beschreibung. Jetzt wird der Wurf mit den bekannten Gegenständen
+ * abgeglichen (SRD-Ausrüstung, magische Gegenstände des SRD, eigene aus dem
+ * Magic Item Creator); passt einer, kommen Wert, Gewicht, Beschreibung und
+ * Waffenwerte mit. Die Herkunft aus der Tabelle bleibt als letzte Zeile.
+ * Passt keiner, wird wenigstens der Preis aus der Klammer gelesen.
+ */
+export function lootAlsEintrag(
+  wurf: string,
+  tabellenId: string,
+  tabellenName: string,
+  sprache: 'de' | 'en',
+  eigene: readonly Quelleintrag[] = []
+): Quelleintrag {
+  const gesucht = vergleichsname(wurf);
+  const anders = sprache === 'de' ? 'en' : 'de';
+  const herkunft = `${sprache === 'de' ? 'Loot-Tabelle' : 'Loot table'}: ${tabellenName}`;
+  const kandidaten: Array<[readonly Quelleintrag[], readonly Quelleintrag[]]> = [
+    [eigene, eigene],
+    [srdAusruestung(sprache), srdAusruestung(sprache)],
+    [srdMagie(sprache), srdMagie(sprache)],
+    // Tabellen in der anderen Sprache: dort finden, in dieser Sprache übernehmen.
+    [srdAusruestung(anders), srdAusruestung(sprache)],
+    [srdMagie(anders), srdMagie(sprache)]
+  ];
+  for (const [suche, ziel] of kandidaten) {
+    const treffer = suche.find((e) => vergleichsname(e.name) === gesucht);
+    if (!treffer) continue;
+    const e = ziel.find((x) => x.kennung === treffer.kennung) ?? treffer;
+    return {
+      ...e,
+      // Der eigene Preis im Wurf (etwa ein Sonderangebot) gilt vor dem Listenpreis.
+      wert: preisAusText(wurf) ?? e.wert,
+      beschreibung: `${e.beschreibung}${e.beschreibung ? '\n\n' : ''}(${herkunft})`
+    };
+  }
+  const name = wurf.replace(/\s*\([^)]*\)\s*$/, '').trim() || wurf;
+  return {
+    quelle: 'loot',
+    kennung: tabellenId,
+    name: name.length > 80 ? `${name.slice(0, 79)}…` : name,
+    art: tabellenName,
+    gewicht: null,
+    wert: preisAusText(wurf),
+    beschreibung: `${wurf === name ? '' : `${wurf}\n\n`}(${herkunft})`
+  };
+}
+
+/** „Longsword (15 GP)", „Heiltrank, 50 GM" → Gold; sonst null. */
+function preisAusText(text: string): number | null {
+  const m = /(\d[\d.,]*)\s*(GP|SP|CP|GM|SM|KM|PP|PM|EP|EM)\b/i.exec(text);
+  return m ? preisInGold(`${m[1]} ${m[2]}`) : null;
+}
+
 /** Suche ueber Name und Art, alle Worte muessen passen. */
 export function sucheQuellen(liste: readonly Quelleintrag[], anfrage: string, hoechstens = 60): Quelleintrag[] {
   const worte = anfrage.toLowerCase().split(/\s+/).filter(Boolean);

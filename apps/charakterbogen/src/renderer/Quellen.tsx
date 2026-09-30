@@ -9,7 +9,7 @@ import { Segment } from './Bedienung';
 import { getLanguage, t } from './i18n';
 import type { Bogen } from '../shared/bogen';
 import { gewichtAnzeige } from '../shared/inventar';
-import { alsGegenstand, srdAusruestung, srdMagie, sucheQuellen, type Quelleintrag } from '../shared/quellen';
+import { alsGegenstand, lootAlsEintrag, srdAusruestung, srdMagie, sucheQuellen, type Quelleintrag } from '../shared/quellen';
 
 type Reiter = 'srd' | 'magie' | 'eigene' | 'loot';
 
@@ -29,7 +29,8 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
   const [wurf, setWurf] = useState<string | null>(null);
 
   useEffect(() => {
-    if (reiter === 'eigene' && eigene === null) {
+    // Auch fuer Loot: ein gewuerfelter eigener Gegenstand bringt so seine Werte mit.
+    if ((reiter === 'eigene' || reiter === 'loot') && eigene === null) {
       void api.quellen.magicitems().then((liste) =>
         setEigene(
           liste.map((g) => ({
@@ -124,16 +125,8 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
                   data-loot-dazu
                   onClick={() => {
                     const name = tabellen?.find((x) => x.id === tabelle)?.name ?? '';
-                    // Kurz als Name, der ganze Wurf in der Beschreibung.
-                    dazu({
-                      quelle: 'loot',
-                      kennung: tabelle,
-                      name: wurf.length > 80 ? `${wurf.slice(0, 79)}…` : wurf,
-                      art: name,
-                      gewicht: null,
-                      wert: null,
-                      beschreibung: `${wurf}\n\n(${t('quelle.loot')}: ${name})`
-                    });
+                    // Mit bekannten Gegenständen abgleichen: Wert, Gewicht, Iteminfo.
+                    dazu(lootAlsEintrag(wurf, tabelle, name, sprache, eigene ?? []));
                     setWurf(null);
                   }}
                 >

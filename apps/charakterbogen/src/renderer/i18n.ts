@@ -231,6 +231,8 @@ const TEXTE = {
   'gegenstand.ausgeruestet': ['Ausgerüstet', 'Equipped'],
   'gegenstand.eingestimmt': ['Eingestimmt', 'Attuned'],
   'gegenstand.mehr': ['Beschreibung und mehr', 'Description and more'],
+  'gegenstand.umbenennen': ['Umbenennen', 'Rename'],
+  'gegenstand.ohneName': ['(ohne Namen)', '(unnamed)'],
   'gegenstand.beschreibung': ['Beschreibung', 'Description'],
   'gegenstand.dazu': ['+ Gegenstand', '+ Item'],
   'summe.gewicht': ['Gewicht', 'Weight'],

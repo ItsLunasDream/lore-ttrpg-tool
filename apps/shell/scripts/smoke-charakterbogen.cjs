@@ -412,7 +412,7 @@ app.whenReady().then(async () => {
   await warte(200);
   await js(`document.querySelector('[data-geben-ok]').click(); true`);
   await warte(900);
-  pruefe((await js(`document.querySelectorAll('[data-gegenstand-name]').length`)) === 0, 'Geben nimmt das Seil aus der Gruppe');
+  pruefe((await js(`document.querySelectorAll('[data-gegenstand-name], [data-gegenstand-titel]').length`)) === 0, 'Geben nimmt das Seil aus der Gruppe');
   // Geld aufteilen (nur Mira ist Figur): alles geht an sie.
   await js(`document.querySelector('[data-aufteilen]').click(); true`);
   await warte(200);
@@ -446,7 +446,8 @@ app.whenReady().then(async () => {
   await new Promise((r) => setTimeout(r, 30));
   return true;
 })()`);
-  const namen = () => js(`[...document.querySelectorAll('[data-gegenstand-name]')].map((e) => e.value).join('|')`);
+  // Der Name ist ein Knopf zum Aufklappen; nur beim Umbenennen ein Eingabefeld.
+  const namen = () => js(`[...document.querySelectorAll('[data-gegenstand-name], [data-gegenstand-titel]')].map((e) => e.value || e.textContent.replace(/^[▸▾]\\s*/, '')).join('|')`);
   await js(`document.querySelector('[data-aus-quelle]').click(); true`);
   await warte(200);
   await js(tippe('[data-quelle-suche]', 'ritterrüstung'));
@@ -476,6 +477,18 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-loot-dazu]').click(); true`);
   await warte(200);
   pruefe((await namen()).split('|').length === vorher + 1, 'und landet als Gegenstand im Inventar');
+  // Klick auf den Namen klappt die Iteminfo auf, der Stift rechts benennt um.
+  const tid = await js(`document.querySelector('[data-gegenstand-titel]')?.dataset.gegenstandTitel ?? ''`);
+  const offenVorher = await js(`document.querySelectorAll('.gegenstand__detail').length`);
+  await js(`document.querySelector('[data-gegenstand-titel="${tid}"]').click(); true`);
+  await warte(150);
+  pruefe((await js(`document.querySelectorAll('.gegenstand__detail').length`)) !== offenVorher, 'Klick auf den Namen klappt die Iteminfo auf oder zu');
+  await js(`document.querySelector('[data-umbenennen="${tid}"]').click(); true`);
+  await warte(150);
+  pruefe(await js(`document.activeElement?.dataset?.gegenstandName === ${JSON.stringify(tid)}`), 'der Stift macht den Namen zum Eingabefeld');
+  await ereignis(`[data-gegenstand-name="${tid}"]`, 'keydown', ", key: 'Enter'");
+  await warte(150);
+  pruefe(await js(`Boolean(document.querySelector('[data-gegenstand-titel="${tid}"]'))`), 'Enter beendet das Umbenennen');
   await warte(1200);
   const gruppe = fs.readFileSync(path.join(ordner, dateien().find((d) => !d.startsWith('neue-figur'))), 'utf8');
   pruefe(/"art": "magicitem",\s*"kennung": "sturmklinge"/.test(gruppe), 'die Herkunft steht in der Datei');
