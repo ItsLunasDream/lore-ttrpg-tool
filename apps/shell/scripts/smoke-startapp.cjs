@@ -57,7 +57,7 @@ app.whenReady().then(async () => {
   // Der Platzhalter darf nicht stehen: dahinter liegt eine echte Anwendung.
   pruefe(!(await js("Boolean(document.querySelector('.platzhalter'))")), 'kein Platzhaltertext');
 
-  const anwendung = fenster.contentView.children[1];
+  const anwendung = fenster?.contentView?.children?.find((v) => v.webContents?.getURL().includes('/apps/backstory/'));
   pruefe(
     await anwendung.webContents.executeJavaScript("Boolean(document.querySelector('.campaign-bar'))"),
     'die Anwendung ist wirklich hochgekommen'

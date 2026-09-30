@@ -73,7 +73,7 @@ app.whenReady().then(async () => {
   const fenster = BaseWindow.getAllWindows()[0];
   fenster.setBounds({ x: 0, y: 0, width: 1280, height: 900 });
   const huelle = fenster.contentView.children[0];
-  const tracker = fenster.contentView.children[1];
+  const tracker = fenster?.contentView?.children?.find((v) => v.webContents?.getURL().includes('/apps/initiative/'));
   if (!tracker) {
     console.log('  FEHL der Tracker steht nicht');
     app.exit(1);

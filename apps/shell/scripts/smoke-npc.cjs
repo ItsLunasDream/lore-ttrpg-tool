@@ -28,7 +28,7 @@ const pruefe = (b, t) => {
 app.whenReady().then(async () => {
   await warte(5000);
   const fenster = BaseWindow.getAllWindows()[0];
-  const sicht = fenster?.contentView?.children?.[1];
+  const sicht = fenster?.contentView?.children?.find((v) => v.webContents?.getURL().includes('/apps/npc/'));
   pruefe(Boolean(sicht), 'der NPC Creator haengt als eigene Ansicht im Fenster');
   if (!sicht) {
     app.exit(1);

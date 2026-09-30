@@ -385,7 +385,13 @@ app.whenReady().then(async () => {
   pruefe(Boolean(map), 'der Karteneditor kommt nach vorn');
   if (map) {
     const mjsKarte = (a) => map.webContents.executeJavaScript(a);
-    const name = await mjsKarte("document.querySelector('.map-name')?.textContent ?? ''");
+    // Warten, bis der Name ankommt: der Editor kommt nach vorn, bevor die
+    // Nachricht mit dem Namen verarbeitet ist.
+    let name = '';
+    for (let versuch = 0; versuch < 20 && name !== ortsname; versuch += 1) {
+      name = await mjsKarte("document.querySelector('.map-name')?.textContent ?? ''");
+      if (name !== ortsname) await warte(250);
+    }
     pruefe(name === ortsname, `und die neue Karte heisst wie der Ort (${name} / ${ortsname})`);
 
     /*

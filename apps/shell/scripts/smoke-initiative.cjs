@@ -27,7 +27,7 @@ const pruefe = (b, t) => { console.log(`  ${b ? 'ok  ' : 'FEHL'} ${t}`); if (!b)
 app.whenReady().then(async () => {
   await warte(5000);
   const fenster = BaseWindow.getAllWindows()[0];
-  const sicht = fenster?.contentView?.children?.[1];
+  const sicht = fenster?.contentView?.children?.find((v) => v.webContents?.getURL().includes('/apps/initiative/'));
   pruefe(Boolean(sicht), 'der Tracker haengt als eigene Ansicht im Fenster');
   if (!sicht) { app.exit(1); return; }
 
