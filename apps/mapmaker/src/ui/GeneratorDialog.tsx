@@ -7,13 +7,12 @@
  * einer Kette aus Anwenden und Rückgängig.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEditor } from '@/model/store';
 import { canHoldObjects } from '@/model/document';
 import {
   GENERATOR_IDS,
   buildGeneratorCommands,
-  defaultGeneratorParams,
   generatorCommand,
   runGenerator,
   type GeneratorId,
@@ -32,6 +31,7 @@ import {
   type TownSurround,
 } from '@/model/generators/town';
 import { TEMPLATE_IDS, templateSize, type TemplateId } from '@/model/generators/template';
+import { ladeGeneratorMerker, speichereGeneratorMerker, type GeneratorZiel } from './generatorMerker';
 
 const NAME: Record<GeneratorId, StringKey> = {
   template: 'gen.template',
@@ -55,7 +55,17 @@ const BESCHREIBUNG: Record<GeneratorId, StringKey> = {
 
 const zufallsSeed = () => Math.floor(Math.random() * 0xffffff);
 
-export function GeneratorDialog({ onClose }: { onClose: () => void }) {
+export function GeneratorDialog({
+  onClose,
+  neueKarte,
+}: {
+  onClose: () => void;
+  /**
+   * Legt eine leere Karte an, mit derselben Rückfrage wie „Neu" im
+   * Datei-Menü; false, wenn abgebrochen wurde.
+   */
+  neueKarte?: () => boolean;
+}) {
   const { t } = useT();
   useEscapeClose(onClose);
   const doc = useEditor((s) => s.doc);
@@ -63,10 +73,16 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
   const activeLayerId = useEditor((s) => s.activeLayerId);
   const setStatus = useEditor((s) => s.setStatusMessage);
 
-  const [id, setId] = useState<GeneratorId>('dungeon');
-  const [params, setParams] = useState<GeneratorParams>(defaultGeneratorParams);
+  // Einstellungen bleiben über Sitzungen erhalten (generatorMerker.ts).
+  const [start] = useState(ladeGeneratorMerker);
+  const [id, setId] = useState<GeneratorId>(start.id);
+  const [params, setParams] = useState<GeneratorParams>(start.params);
   const [seed, setSeed] = useState(zufallsSeed);
-  const [resize, setResize] = useState(true);
+  const [resize, setResize] = useState(start.resize);
+  const [ziel, setZiel] = useState<GeneratorZiel>(start.ziel);
+  useEffect(() => {
+    speichereGeneratorMerker({ id, params, resize, ziel });
+  }, [id, params, resize, ziel]);
 
   const ergebnis = useMemo(
     () => runGenerator(id, params, seed, doc.grid.tileSize),
@@ -78,21 +94,29 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
   };
 
   const anwenden = () => {
-    if (!canHoldObjects(doc, activeLayerId)) {
+    // In eine neue Karte: dieselbe Rückfrage wie bei „Neu", wenn die jetzige
+    // Inhalt hat (Rückmeldung: „auch hier nachfragen").
+    const inNeue = ziel === 'neu' && !!neueKarte;
+    if (inNeue && !neueKarte!()) return;
+    const st = useEditor.getState();
+    const aktDoc = st.doc;
+    const layer = inNeue ? st.activeLayerId : activeLayerId;
+    if (!canHoldObjects(aktDoc, layer)) {
       setStatus(t('gen.layerLocked'));
       return;
     }
     const label = t('gen.command', { name: t(NAME[id]) });
-    const teile = buildGeneratorCommands(doc, ergebnis, activeLayerId, activeLayerId, label);
+    const teile = buildGeneratorCommands(aktDoc, ergebnis, layer, layer, label);
     // Die Karte zuerst passend machen: sonst ragt der Grundriss über den Rand.
-    if (resize) {
+    // Eine neue Karte bekommt immer die Größe des Ergebnisses.
+    if (resize || inNeue) {
       teile.unshift(new ResizeMap(ergebnis.size.cols, ergebnis.size.rows, 'top-left'));
     }
     const cmd = generatorCommand(teile, label);
     if (cmd) exec(cmd);
     // Die Karte hat jetzt meist eine andere Größe; ohne Einpassen stünde die
     // Kamera weiter auf dem alten Ausschnitt und man sähe eine Ecke.
-    if (resize) getRenderer()?.fitToDocument();
+    if (resize || inNeue) getRenderer()?.fitToDocument();
     onClose();
   };
 
@@ -358,7 +382,20 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
             {felder()}
 
             <div className="divider" />
-            <Toggle label={t('gen.resize')} checked={resize} onChange={setResize} />
+            {neueKarte ? (
+              <Select<GeneratorZiel>
+                label={t('gen.target')}
+                value={ziel}
+                options={[
+                  { value: 'aktuell', label: t('gen.targetCurrent') },
+                  { value: 'neu', label: t('gen.targetNew') },
+                ]}
+                onChange={setZiel}
+              />
+            ) : null}
+            {ziel === 'neu' && neueKarte ? null : (
+              <Toggle label={t('gen.resize')} checked={resize} onChange={setResize} />
+            )}
             <p className="hint">{t('gen.applyHint')}</p>
           </div>
 

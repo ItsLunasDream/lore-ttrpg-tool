@@ -25,6 +25,8 @@ import { getProp, propName } from '@/assets/library';
 import { importFont, importedFonts } from '@/assets/fontStore';
 import { worldAABB } from '@/engine/hitTest';
 import type { DrawSettings, RouteSettings } from '@/model/toolSettings';
+import type { PropLight } from '@/model/types';
+import { lichtFuerProp } from '@/assets/propLights';
 import { PATTERN_KINDS } from '@/model/types';
 import { gridDistance } from '@/model/grid';
 import type {
@@ -710,6 +712,14 @@ export function ObjectInspector() {
     for (const o of objects) map.set(o.id, p);
     exec(new PatchObjects(map, label, key));
   };
+  /** Ändert das Licht aller ausgewählten leuchtenden Props, jedes vom eigenen Stand aus. */
+  const patchLicht = (p: Partial<PropLight>, key?: string) => {
+    const map = new Map<string, Record<string, unknown>>();
+    for (const o of objects) {
+      if (o.kind === 'prop' && o.light) map.set(o.id, { light: { ...o.light, ...p } });
+    }
+    if (map.size > 0) exec(new PatchObjects(map, t('sel.propLight'), key));
+  };
   const shiftBy = (axis: 'x' | 'y', target: number) => {
     const delta = target - first[axis];
     const map = new Map<string, Record<string, unknown>>();
@@ -845,6 +855,41 @@ export function ObjectInspector() {
               <button onClick={() => patchAll({ flipY: !first.flipY }, t('sel.mirror'))}>↕</button>
             </div>
           </Row>
+          {/* Licht als Teil des Props (model/propLights.ts): hier und nur hier bearbeitet. */}
+          <Toggle
+            label={t('sel.propLight')}
+            checked={!!first.light}
+            onChange={(v) => {
+              const map = new Map<string, Record<string, unknown>>();
+              for (const o of objects) {
+                if (o.kind !== 'prop') continue;
+                map.set(o.id, { light: v ? (o.light ?? lichtFuerProp(o.propId) ?? { range: 4, color: 0xffcc88, intensity: 1 }) : null });
+              }
+              exec(new PatchObjects(map, t('sel.propLight')));
+            }}
+          />
+          {first.light ? (
+            <>
+              <Slider
+                label={t('light.range')}
+                min={0.5}
+                max={30}
+                step={0.5}
+                value={first.light.range}
+                onChange={(v) => patchLicht({ range: v }, 'prop-licht-range')}
+                format={(v) => (v === 1 ? t('light.rangeUnitOne') : t('light.rangeUnit', { n: v }))}
+              />
+              <ColorField label={t('light.color')} value={first.light.color} onChange={(v) => patchLicht({ color: v })} />
+              <Slider
+                label={t('light.intensity')}
+                min={0}
+                max={4}
+                step={0.05}
+                value={first.light.intensity}
+                onChange={(v) => patchLicht({ intensity: v }, 'prop-licht-int')}
+              />
+            </>
+          ) : null}
         </>
       ) : null}
 

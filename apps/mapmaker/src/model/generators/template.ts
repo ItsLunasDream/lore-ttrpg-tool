@@ -166,7 +166,8 @@ class Bau {
 
   licht(c: number, r: number, reichweite: number): void {
     if (!this.opts.lights) return;
-    this.out.lights.push({ x: c * this.s, y: r * this.s, range: reichweite * this.s });
+    // Reichweite in Feldern, wie UVTT sie will — nicht in Pixeln (war 100-fach zu gross).
+    this.out.lights.push({ x: c * this.s, y: r * this.s, range: reichweite });
   }
 
   /** Stühle rund um einen Tisch — der Griff, den ein Speisesaal braucht. */

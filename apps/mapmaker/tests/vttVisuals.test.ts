@@ -118,3 +118,38 @@ describe('Raum-Werkzeug', () => {
     expect(st.selection).toHaveLength(1);
   });
 });
+
+describe('Licht als Teil des Props', () => {
+  it('Fackel bringt ihr Licht mit, es wandert mit und geht mit zurück', async () => {
+    const { AddObjects, PatchObjects, RemoveObjects } = await import('@/model/commands');
+    const { createProp } = await import('@/tools/factory');
+    const { lichtFuerProp } = await import('@/assets/propLights');
+    const { propLichtId } = await import('@/model/propLights');
+    const { doc, layer } = karte();
+    useEditor.getState().loadDocument(doc);
+    const st = useEditor.getState();
+    const fackel = createProp(doc, layer, 'wall_torch', 300, 300, { light: lichtFuerProp('wall_torch') ?? null });
+    const licht = () => doc.vtt.lights.find((l) => l.id === propLichtId(fackel.id));
+
+    st.exec(new AddObjects([fackel]));
+    expect(licht()).toMatchObject({ x: 300, y: 300, range: 8, propLink: fackel.id });
+
+    st.exec(new PatchObjects(new Map([[fackel.id, { x: 500 }]])));
+    expect(licht()?.x).toBe(500);
+
+    st.exec(new PatchObjects(new Map([[fackel.id, { light: null }]])));
+    expect(licht()).toBeUndefined();
+    st.undo();
+    expect(licht()?.range).toBe(8);
+
+    st.exec(new RemoveObjects([fackel.id]));
+    expect(licht()).toBeUndefined();
+    st.undo();
+    expect(licht()?.x).toBe(500);
+  });
+
+  it('ein Stein leuchtet nicht', async () => {
+    const { lichtFuerProp } = await import('@/assets/propLights');
+    expect(lichtFuerProp('boulder')).toBeUndefined();
+  });
+});

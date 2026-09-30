@@ -119,3 +119,34 @@ describe('Dungeon mit Thema', () => {
     expect(weit.props.length).toBeGreaterThan(eng.props.length * 0.5);
   });
 });
+
+describe('Vielfalt der Raumtypen (Rückmeldung: nur drei zu sehen)', () => {
+  it('das voreingestellte Thema kennt mindestens 20 Raumtypen', async () => {
+    const { ROOM_KINDS } = await import('@/model/generators/roomThemes');
+    expect(defaultDungeonOptions().theme).toBe('plain');
+    expect(ROOM_KINDS.plain.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('jede Raumart nennt nur Props, die es gibt, und Nachbarn aus demselben Thema', async () => {
+    const { ROOM_KINDS } = await import('@/model/generators/roomThemes');
+    const { getProp } = await import('@/assets/library');
+    for (const arten of Object.values(ROOM_KINDS)) {
+      const ids = new Set(arten.map((a) => a.id));
+      for (const a of arten) {
+        for (const p of [...a.center, ...a.around, ...a.walls, ...a.scatter]) {
+          expect(getProp(p), `${a.id}: ${p}`).toBeDefined();
+        }
+        for (const n of a.neighbours) expect(ids.has(n), `${a.id} -> ${n}`).toBe(true);
+      }
+    }
+  });
+
+  it('ein großer Dungeon bekommt viele verschiedene Räume', () => {
+    const arten = new Set<string>();
+    for (const seed of [1, 2, 3]) {
+      const d = generateDungeon({ ...defaultDungeonOptions(), roomCount: 20, seed, tileSize: 100 });
+      for (const n of d.notes) arten.add(n.nameKey);
+    }
+    expect(arten.size).toBeGreaterThanOrEqual(12);
+  });
+});

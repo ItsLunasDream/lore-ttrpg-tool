@@ -11,6 +11,7 @@ import { AddObjects, AddVttItems, CompositeCommand, PatchGrid, type Command } fr
 import { nextZ } from '../document';
 import { makeId } from '../ids';
 import { t, type StringKey } from '@/i18n';
+import { lichtFuerProp } from '@/assets/propLights';
 import type { LayerId, MapDocument, MapNote, Portal, PropObject, ShapeObject, Wall } from '../types';
 import { generateCave, generateIsland, type CaveOptions, type IslandOptions } from './cave';
 import { generateDungeon, type DungeonOptions } from './dungeon';
@@ -175,6 +176,8 @@ export function buildGeneratorCommands(
       z: pz++,
       locked: false,
       seed: Math.floor(Math.random() * 0xffffff),
+      // Leuchtende Props tragen ihr Licht selbst (model/propLights.ts).
+      light: lichtFuerProp(p.propId) ?? null,
     });
   }
 
@@ -200,11 +203,16 @@ export function buildGeneratorCommands(
     teile.push(new AddVttItems('portals', tueren, label));
   }
 
-  if (result.lights.length > 0) {
+  // Lichter, die schon an einem leuchtenden Prop hängen, nicht doppelt setzen.
+  const leuchten = result.props.filter((p) => lichtFuerProp(p.propId));
+  const freieLichter = result.lights.filter(
+    (l) => !leuchten.some((p) => Math.hypot(p.x - l.x, p.y - l.y) < doc.grid.tileSize),
+  );
+  if (freieLichter.length > 0) {
     teile.push(
       new AddVttItems(
         'lights',
-        result.lights.map((l) => ({
+        freieLichter.map((l) => ({
           id: makeId('light'),
           x: l.x,
           y: l.y,

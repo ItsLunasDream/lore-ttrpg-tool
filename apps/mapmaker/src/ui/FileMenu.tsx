@@ -718,7 +718,7 @@ export function FileMenu() {
       {status ? <span className="toast">{status}</span> : null}
       {showExport ? <ExportDialog onClose={() => setShowExport(false)} /> : null}
       {showUvtt ? <UvttDialog onClose={() => setShowUvtt(false)} /> : null}
-      {showGen ? <GeneratorDialog onClose={() => setShowGen(false)} /> : null}
+      {showGen ? <GeneratorDialog onClose={() => setShowGen(false)} neueKarte={() => onNew()} /> : null}
       <SaveAsDialog
         offen={showSaveAs}
         name={doc.meta.name}

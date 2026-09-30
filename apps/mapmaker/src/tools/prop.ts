@@ -22,6 +22,7 @@ import { symmetryCopies } from '@/model/symmetry';
 import { snapPoint } from '@/model/grid';
 import { canHoldObjects } from '@/model/document';
 import { t } from '@/i18n';
+import { lichtFuerProp } from '@/assets/propLights';
 import { getPropTexture, variantFor } from '@/engine/propTextures';
 import { tileScale } from '@/engine/hitTest';
 import { createProp } from './factory';
@@ -115,6 +116,8 @@ export class PropTool implements Tool {
       opacity: s.opacity,
       flipX: s.flipX,
       flipY: s.flipY,
+      // Fackel, Kohlebecken & Co. bringen ihr VTT-Licht gleich mit.
+      light: lichtFuerProp(propId) ?? null,
     });
     // Spiegelungen und Kachelkopien hängen an denselben Befehl: für den
     // Benutzer war es ein Setzen, also ist es ein Rückgängig-Schritt.

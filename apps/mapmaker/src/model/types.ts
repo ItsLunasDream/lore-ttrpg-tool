@@ -240,6 +240,19 @@ export interface PropObject extends BaseObject {
   flipY: boolean;
   /** Steuert prozedurale Varianten — gleicher Seed, gleiches Aussehen. */
   seed: number;
+  /**
+   * Das Prop leuchtet: daraus entsteht ein VTT-Licht, das mit dem Prop
+   * wandert und mit ihm verschwindet (`model/propLights.ts`). Fehlt oder
+   * null heißt: kein Licht.
+   */
+  light?: PropLight | null;
+}
+
+/** Licht eines Props; Reichweite in Feldern wie bei `LightSource`. */
+export interface PropLight {
+  range: number;
+  color: number;
+  intensity: number;
 }
 
 export type ShapeKind = 'freehand' | 'line' | 'rect' | 'ellipse' | 'polygon';
@@ -482,6 +495,8 @@ export interface LightSource {
   color: number;
   alpha: number;
   shadows: boolean;
+  /** Gehört zu diesem Prop (`PropObject.light`); bearbeitet wird es dort. */
+  propLink?: ObjectId;
 }
 
 /**

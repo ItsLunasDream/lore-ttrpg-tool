@@ -13,6 +13,7 @@ import { History, type Command, type DocChange, type VttKind } from './commands'
 import { createDocument, defaultTargetLayer, uebersetzeStandardnamen } from './document';
 import { onLanguageChange } from '@/i18n';
 import { braucheAbgleich, syncVttVisuals, verknuepfeAltesMauerwerk } from './vttVisuals';
+import { lichtKandidaten, syncPropLights } from './propLights';
 import { defaultSymmetry, type SymmetrySettings } from './symmetry';
 import { SYSTEM_GRID, SYSTEM_VTT, type LayerId, type MapDocument, type ObjectId } from './types';
 import {
@@ -71,9 +72,17 @@ export function subscribeChanges(fn: ChangeListener): () => void {
  * Aenderung an Waenden, Layern oder Raster folgt die Zeichnung der Wand.
  */
 function mitMauerwerk(doc: MapDocument, changes: DocChange[]): DocChange[] {
-  if (!braucheAbgleich(changes)) return changes;
-  const ids = syncVttVisuals(doc);
-  return ids.length > 0 ? [...changes, { type: 'objects', ids }] : changes;
+  let out = changes;
+  if (braucheAbgleich(changes)) {
+    const ids = syncVttVisuals(doc);
+    if (ids.length > 0) out = [...out, { type: 'objects', ids }];
+  }
+  // Licht leuchtender Props (model/propLights.ts) folgt dem Prop.
+  const kandidaten = lichtKandidaten(out);
+  if (kandidaten !== undefined && syncPropLights(doc, kandidaten ?? undefined)) {
+    out = [...out, { type: 'vtt' }];
+  }
+  return out;
 }
 
 function emit(changes: DocChange[]): void {
@@ -600,6 +609,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     // Alte Karten: loses Mauerwerk an seine Wand haengen, dann ableiten.
     verknuepfeAltesMauerwerk(doc);
     syncVttVisuals(doc);
+    syncPropLights(doc);
     set({
       doc,
       rev: get().rev + 1,
