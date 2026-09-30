@@ -359,6 +359,28 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
         en: 'The die on a tile rolls right away, without opening the table.'
       }
     ]
+  },
+  {
+    id: 'charakterbogen',
+    titel: { de: 'Charakterbogen', en: 'Character Sheet' },
+    satz: {
+      de: 'Ein kleiner Bogen für D&D 5.5e (2024), der mitrechnet.',
+      en: 'A small sheet for D&D 5.5e (2024) that does the maths.'
+    },
+    punkte: [
+      {
+        de: 'Modifikatoren, Übungsbonus, Fertigkeiten und passive Wahrnehmung rechnet der Bogen selbst.',
+        en: 'Modifiers, proficiency bonus, skills and passive Perception are worked out for you.'
+      },
+      {
+        de: 'Ins Feld „Schaden / Heilung": „-7" zieht ab, „+5" heilt, Würfel gehen auch. Temporäre TP gehen zuerst.',
+        en: 'In the “Damage / Healing” field: “-7” subtracts, “+5” heals, dice work too. Temporary HP go first.'
+      },
+      {
+        de: 'Gespeichert wird von selbst, als Markdown-Datei, die jeder Editor lesen kann.',
+        en: 'Saving happens by itself, as a Markdown file any editor can read.'
+      }
+    ]
   }
 ];
 

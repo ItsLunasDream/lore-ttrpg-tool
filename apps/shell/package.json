@@ -155,6 +155,15 @@
         ]
       },
       {
+        "from": "../charakterbogen/dist",
+        "to": "apps/charakterbogen/dist",
+        "filter": [
+          "**/*",
+          "!tests/**",
+          "!**/*.map"
+        ]
+      },
+      {
         "from": "../loot/dist",
         "to": "apps/loot/dist",
         "filter": [

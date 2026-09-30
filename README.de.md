@@ -14,6 +14,7 @@ KI-Anbindung, die man selbst einrichtet.
   Abzug.
 - **Story Creator**: Figuren, Orte, Beziehungen als Markdown-Notizen mit
   Wiki-Links.
+- **Charakterbogen**: kleiner Bogen für D&D 5.5e, der mitrechnet.
 - **NPC Creator**: Randfiguren aus Tabellen oder per KI.
 - **Inspirationshilfe**: Gerüst für eine neue Kampagne (Aufhänger,
   Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl).
@@ -171,6 +172,17 @@ Obsidian.
   und enge Listen kommen so heraus, wie sie hineingingen.
 - **Export**: PDF mit Inhaltsverzeichnis, Graph und Sprungzielen; Markdown
   mit Alias-Kopf, wenn der Dateiname vom Titel abweicht.
+
+## Charakterbogen
+
+- Kleiner Bogen für D&D 5.5e (2024): Attribute, Rettungswürfe, 18
+  Fertigkeiten mit Übung und Expertise, RK, Initiative, TP, Trefferwürfel,
+  Zustände, Erschöpfung, Heldische Inspiration, Angriffe, Notizen.
+- Rechnet Modifikatoren, Übungsbonus, Fertigkeiten und passive Wahrnehmung.
+- **Schaden / Heilung**: `-7` oder `7` zieht ab, `+5` heilt, Würfel gehen
+  (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
+- Speichert von selbst als Markdown. Inventar, Zauber und der Raum folgen
+  (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
 
@@ -349,7 +361,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
-| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Konzept, nicht gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Schritt 1 gebaut) |
 
 ## Lizenz
 

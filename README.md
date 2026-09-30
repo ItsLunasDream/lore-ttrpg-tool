@@ -13,6 +13,7 @@ connection you set up yourself.
 - **Dice**: d4 to d100 plus a custom die, flat or 3D, subtraction included.
 - **Story Creator**: characters, places, relationships as Markdown notes with
   wiki links.
+- **Character Sheet**: a small D&D 5.5e sheet that does the maths.
 - **NPC Creator**: background characters from tables or AI.
 - **Inspiration**: scaffold for a new campaign (hook, factions, characters,
   places, connections, timeline).
@@ -159,6 +160,17 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   lists come out as they went in.
 - **Export**: PDF with table of contents, graph and jump links; Markdown with
   an alias header where the file name differs from the title.
+
+## Character Sheet
+
+- A small sheet for D&D 5.5e (2024): abilities, saves, 18 skills with
+  proficiency and expertise, AC, initiative, HP, Hit Point Dice, conditions,
+  exhaustion, Heroic Inspiration, attacks, notes.
+- Works out modifiers, proficiency bonus, skills and passive Perception.
+- **Damage / Healing**: `-7` or `7` subtracts, `+5` heals, dice work
+  (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
+- Saves itself as Markdown. Inventory, spells and the room come next
+  (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
 
@@ -331,7 +343,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory and room roles (concept, not built) |
+| `charakterbogen.md` | Character sheet with inventory and room roles (step 1 built) |
 
 ## License
 

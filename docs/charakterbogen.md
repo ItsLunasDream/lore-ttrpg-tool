@@ -6,7 +6,7 @@ live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
-**Stand:** Konzept, nichts davon ist gebaut. Es nimmt `docs/inventar.md`
+**Stand:** Schritt 1 ist gebaut (siehe „Der Bogen“), der Rest ist Konzept. Es nimmt `docs/inventar.md`
 auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
 Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 überdauern den Raum. Offene Fragen stehen am Ende.
@@ -41,9 +41,15 @@ Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 Eingaben mit Rechnung wie im Initiative Tracker: Ins TP-Feld `-7` schreiben
 zieht ab, `+5` heilt; Schaden frisst zuerst die temporären TP.
 
-Kurze Rast und lange Rast als Knöpfe: lange Rast füllt TP und Zauberplätze
-und gibt die Hälfte der Trefferwürfel zurück (Regel des SRD, beim Bauen gegen
-den Text prüfen). Was genau zurückkommt, zeigt der Knopf vorher an.
+Kurze Rast und lange Rast als Knöpfe. Lange Rast nach SRD 5.2: alle TP und
+**alle** Trefferwürfel zurück (nicht die Hälfte wie in den Regeln von 2014),
+eine Erschöpfungsstufe weniger; mit 0 TP geht keine Rast. Kurze Rast:
+Trefferwürfel ausgeben, je Würfel Wurf + KON-Modifikator, mindestens 1 TP.
+Zauberplätze kommen mit der Zauberliste dazu.
+
+**Stand:** Schritt 1 ist gebaut (`apps/charakterbogen`): Werte, Rechnungen,
+TP-Feld, Todesrettungswürfe, Trefferwürfel, Rasten, Zustände, Angriffe,
+Notizen, Ablage als Markdown, Suche und Teilen über die Hülle.
 
 ## Zauberliste
 

@@ -45,6 +45,7 @@ import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
 import { mountLoot } from '../../../loot/src/main/embed';
+import { mountCharakterbogen } from '../../../charakterbogen/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
@@ -551,6 +552,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
   if (id === 'magicitems') return montiereMagicItems(id, haken);
   if (id === 'loot') return montiereLoot(id, haken);
+  if (id === 'charakterbogen') return montiereCharakterbogen(id, haken);
   return null;
 }
 
@@ -1471,6 +1473,46 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     // Der Bestand des Magic Item Creators, gelesen wie fuer die Suche: die
     // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
     gegenstaende: () => leseNamenUndSeltenheit(app.getPath('userData'))
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+/** Der Charakterbogen. Gebaut wie der Loot Generator. */
+async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountCharakterbogen({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.CHARAKTERBOGEN_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
