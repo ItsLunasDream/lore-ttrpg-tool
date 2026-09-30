@@ -177,7 +177,7 @@ export function buildGeneratorCommands(
       locked: false,
       seed: Math.floor(Math.random() * 0xffffff),
       // Leuchtende Props tragen ihr Licht selbst (model/propLights.ts).
-      light: lichtFuerProp(p.propId) ?? null,
+      light: p.ohneLicht ? null : (lichtFuerProp(p.propId) ?? null),
     });
   }
 
@@ -204,7 +204,7 @@ export function buildGeneratorCommands(
   }
 
   // Lichter, die schon an einem leuchtenden Prop hängen, nicht doppelt setzen.
-  const leuchten = result.props.filter((p) => lichtFuerProp(p.propId));
+  const leuchten = result.props.filter((p) => !p.ohneLicht && lichtFuerProp(p.propId));
   const freieLichter = result.lights.filter(
     (l) => !leuchten.some((p) => Math.hypot(p.x - l.x, p.y - l.y) < doc.grid.tileSize),
   );

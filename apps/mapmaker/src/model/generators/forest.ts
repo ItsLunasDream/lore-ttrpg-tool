@@ -10,9 +10,11 @@
  * wird übernommen und selbst zum Ausgangspunkt.
  */
 
-import { Rng } from '../rng';
+import { Rng, hashSeed } from '../rng';
 import { strokeBand } from '../geometry';
 import { emptyResult, type BaseOptions, type GeneratedMap } from './types';
+
+export type ForestWater = 'random' | 'none' | 'pond' | 'stream' | 'lake' | 'river';
 
 export interface ForestOptions extends BaseOptions {
   /** Mindestabstand der Bäume in Tiles. */
@@ -21,17 +23,15 @@ export interface ForestOptions extends BaseOptions {
   pineShare: number;
   /** Anzahl Lichtungen. */
   clearings: number;
-  /** Pfad durch den Wald legen. */
+  /** Pfad durch den Wald legen (Richtung und Verlauf würfeln). */
   path: boolean;
   /** Unterholz: Büsche, Farn, Pilze. */
   undergrowth: boolean;
   /**
-   * Gewässer im Wald.
-   *
-   * Beides zugleich wäre auf einer Battlemap selten sinnvoll — ein Waldstück
-   * von 40×30 Feldern hat entweder einen Tümpel oder einen Bach.
+   * Gewässer im Wald. 'random' würfelt je Karte (Rückmeldung: „Wald hat immer
+   * gleiches Layout"); ein Waldstück hat meist höchstens eins davon.
    */
-  water: 'none' | 'pond' | 'stream';
+  water: ForestWater;
   /** Anteil Felsbrocken, 0–1. */
   rocks: number;
   /** Anzahl Hügelkuppen. */
@@ -47,7 +47,7 @@ export function defaultForestOptions(): Omit<ForestOptions, 'seed' | 'tileSize'>
     clearings: 3,
     path: true,
     undergrowth: true,
-    water: 'none',
+    water: 'random',
     rocks: 0.15,
     hills: 0,
   };
@@ -137,63 +137,176 @@ function poisson(rng: Rng, cols: number, rows: number, r: number, versuche = 24)
   return punkte;
 }
 
+/** Punkt auf einem Kartenrand: 0 oben, 1 rechts, 2 unten, 3 links. */
+function randPunkt(rng: Rng, seite: number, cols: number, rows: number): Punkt {
+  switch (seite) {
+    case 0: return { x: rng.range(cols * 0.15, cols * 0.85), y: -1 };
+    case 1: return { x: cols + 1, y: rng.range(rows * 0.15, rows * 0.85) };
+    case 2: return { x: rng.range(cols * 0.15, cols * 0.85), y: rows + 1 };
+    default: return { x: -1, y: rng.range(rows * 0.15, rows * 0.85) };
+  }
+}
+
+/**
+ * Geschwungener Zug von A nach B über einen versetzten Mittelpunkt, dazu
+ * etwas Zittern — Wege und Bäche laufen nie mit dem Lineal.
+ */
+function schwung(rng: Rng, a: Punkt, b: Punkt, ausschlag: number, schritt = 1.6): Punkt[] {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const bogen = rng.range(-ausschlag, ausschlag);
+  const out: Punkt[] = [];
+  const n = Math.max(2, Math.ceil(len / schritt));
+  let zitter = 0;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    zitter = Math.max(-1.2, Math.min(1.2, zitter + rng.range(-0.45, 0.45)));
+    const bauch = Math.sin(Math.PI * t) * bogen + (i > 0 && i < n ? zitter : 0);
+    out.push({ x: a.x + dx * t + nx * bauch, y: a.y + dy * t + ny * bauch });
+  }
+  return out;
+}
+
+const naeher = (p: Punkt, zug: readonly Punkt[], d: number): boolean =>
+  zug.some((q) => (p.x - q.x) ** 2 + (p.y - q.y) ** 2 < d * d);
+
 export function generateForest(opts: ForestOptions): GeneratedMap {
-  const rng = new Rng(opts.seed);
-  const ergebnis = emptyResult(opts.cols, opts.rows);
+  const { cols, rows } = opts;
   const s = opts.tileSize;
+  const ergebnis = emptyResult(cols, rows);
+  // Getrennte Zufallsquellen je Teil: schaltet man den Pfad aus, soll das
+  // Wasser dasselbe bleiben, statt dass sich die ganze Karte verwürfelt.
+  const rngWasser = new Rng(hashSeed(opts.seed, 1));
+  const rngPfad = new Rng(hashSeed(opts.seed, 2));
+  const rngLicht = new Rng(hashSeed(opts.seed, 3));
+  const rng = new Rng(hashSeed(opts.seed, 4));
 
-  // Waldboden als ganze Fläche.
-  ergebnis.floors.push({
-    points: [0, 0, opts.cols * s, 0, opts.cols * s, opts.rows * s, 0, opts.rows * s],
-    color: 0x4c5c34,
-  });
+  // Waldboden in einem von drei Tönen: Laubwald, Nadelwald, Moor.
+  const boden = rngLicht.pick([0x4c5c34, 0x445536, 0x505a3a]);
+  ergebnis.floors.push({ points: [0, 0, cols * s, 0, cols * s, rows * s, 0, rows * s], color: boden });
 
-  // Lichtungen als kreisrunde Aussparungen.
-  const lichtungen = Array.from({ length: opts.clearings }, () => ({
-    x: rng.range(opts.cols * 0.15, opts.cols * 0.85),
-    y: rng.range(opts.rows * 0.15, opts.rows * 0.85),
-    r: rng.range(2.5, 5),
-  }));
+  // ---- Wasser -------------------------------------------------------------
+  const wasserArt =
+    opts.water === 'random'
+      ? rngWasser.pickWeighted(['none', 'pond', 'stream', 'lake', 'river'] as const, [0.3, 0.2, 0.25, 0.12, 0.13])
+      : opts.water;
+  const WASSER = 0x3d6b7d;
+  const wasser: Array<(p: Punkt) => boolean> = [];
+  const ufer: Punkt[] = [];
+  let wasserZug: Punkt[] = [];
+  let wasserBreite = 0;
 
-  // Pfad als Streckenzug von links nach rechts.
-  const pfad: Punkt[] = [];
-  if (opts.path) {
-    let y = rng.range(opts.rows * 0.3, opts.rows * 0.7);
-    for (let x = 0; x <= opts.cols; x += 2) {
-      y = Math.max(2, Math.min(opts.rows - 2, y + rng.range(-1.2, 1.2)));
-      pfad.push({ x, y });
+  if (wasserArt === 'pond' || wasserArt === 'lake') {
+    const see = wasserArt === 'lake';
+    // Der See liegt am Rand und reicht über ihn hinaus, der Tümpel im Wald.
+    const seite = rngWasser.int(0, 3);
+    const rand = randPunkt(rngWasser, seite, cols, rows);
+    const cx = see ? rand.x : rngWasser.range(cols * 0.25, cols * 0.75);
+    const cy = see ? rand.y : rngWasser.range(rows * 0.25, rows * 0.75);
+    const r = see ? rngWasser.range(Math.min(cols, rows) * 0.28, Math.min(cols, rows) * 0.42) : rngWasser.range(2.5, 5.5);
+    ergebnis.floors.push({ points: blob(rngWasser, cx * s, cy * s, r * s, 0.3, 26), color: WASSER });
+    wasser.push((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 < (r * 1.3) ** 2);
+    for (let i = 0; i < Math.round(r * 5); i++) {
+      const w = rngWasser.range(0, Math.PI * 2);
+      ufer.push({ x: cx + Math.cos(w) * r * rngWasser.range(1.08, 1.32), y: cy + Math.sin(w) * r * rngWasser.range(1.08, 1.32) });
     }
-    // Aus der Mittellinie ein Band machen: die Linie selbst zu füllen ergäbe
-    // ein entartetes Polygon ohne Fläche.
-    const mittellinie = pfad.flatMap((p) => [p.x * s, p.y * s]);
-    ergebnis.floors.push({ points: strokeBand(mittellinie, 0.9 * s), color: 0x8a7a5c });
+  } else if (wasserArt === 'stream' || wasserArt === 'river') {
+    const fluss = wasserArt === 'river';
+    const von = rngWasser.int(0, 3);
+    const nach = (von + rngWasser.pick([1, 2, 2, 3])) % 4;
+    wasserZug = schwung(rngWasser, randPunkt(rngWasser, von, cols, rows), randPunkt(rngWasser, nach, cols, rows), fluss ? 4 : 6);
+    wasserBreite = fluss ? rngWasser.range(2.6, 4) : rngWasser.range(0.9, 1.5);
+    // strokeBand nimmt die halbe Breite.
+    ergebnis.floors.push({ points: strokeBand(wasserZug.flatMap((p) => [p.x * s, p.y * s]), (wasserBreite / 2) * s), color: WASSER });
+    wasser.push((p) => naeher(p, wasserZug, wasserBreite / 2 + 0.6));
+    for (const q of wasserZug) {
+      for (const seite of [-1, 1]) {
+        if (rngWasser.bool(0.5)) ufer.push({ x: q.x + seite * (wasserBreite / 2 + rngWasser.range(0.3, 0.9)), y: q.y + rngWasser.range(-0.6, 0.6) });
+      }
+    }
+  }
+  const imWasser = (p: Punkt): boolean => wasser.some((f) => f(p));
+
+  // Schilf, Seerosen und Steine am Ufer.
+  for (const u of ufer) {
+    if (u.x < 0 || u.y < 0 || u.x > cols || u.y > rows) continue;
+    ergebnis.props.push({
+      propId: rngWasser.pick(['reeds', 'reeds', 'grass_tuft', 'stone_small', 'lilypads']),
+      x: u.x * s,
+      y: u.y * s,
+      scale: rngWasser.range(0.7, 1.1),
+      rotation: rngWasser.range(0, Math.PI * 2),
+    });
   }
 
-  /**
-   * Hügelkuppen: hellere Flächen mit Felsen am Rand.
-   *
-   * Höhe lässt sich auf einer Battlemap nicht zeigen, nur andeuten — heller
-   * Boden liest sich als Erhebung, und die Steine am Rand geben ihr eine
-   * Kante. Sie kommen *vor* die Bäume, damit die darauf stehen können: ein
-   * bewaldeter Hügel ist der Normalfall, ein kahler die Ausnahme.
-   */
+  // ---- Lichtungen ------------------------------------------------------------
+  const lichtungen = Array.from({ length: Math.max(0, Math.round(opts.clearings)) }, () => ({
+    x: rngLicht.range(cols * 0.12, cols * 0.88),
+    y: rngLicht.range(rows * 0.12, rows * 0.88),
+    r: rngLicht.range(2.2, 5.5),
+  })).filter((l) => !imWasser(l));
+  for (const l of lichtungen) {
+    ergebnis.floors.push({ points: blob(rngLicht, l.x * s, l.y * s, l.r * 1.1 * s, 0.3, 22), color: 0x5f7a44 });
+  }
+  const inLichtung = (p: Punkt): boolean => lichtungen.some((l) => (p.x - l.x) ** 2 + (p.y - l.y) ** 2 < l.r * l.r);
+
+  // ---- Pfad -------------------------------------------------------------------
+  // Von einem zufälligen Rand zu einem anderen, manchmal über eine Lichtung,
+  // manchmal mit Abzweig. Früher lief er immer waagerecht von links nach rechts.
+  const pfade: Punkt[][] = [];
+  if (opts.path) {
+    const von = rngPfad.int(0, 3);
+    const nach = (von + rngPfad.pick([1, 2, 2, 3])) % 4;
+    const a = randPunkt(rngPfad, von, cols, rows);
+    const b = randPunkt(rngPfad, nach, cols, rows);
+    const ziel = lichtungen.length > 0 && rngPfad.bool(0.6) ? rngPfad.pick(lichtungen) : null;
+    const haupt = ziel ? [...schwung(rngPfad, a, ziel, 3), ...schwung(rngPfad, ziel, b, 3).slice(1)] : schwung(rngPfad, a, b, 5);
+    pfade.push(haupt);
+    if (rngPfad.bool(0.4)) {
+      const ab = haupt[Math.floor(haupt.length * rngPfad.range(0.3, 0.7))];
+      const frei = [0, 1, 2, 3].filter((x) => x !== von && x !== nach);
+      pfade.push(schwung(rngPfad, ab, randPunkt(rngPfad, rngPfad.pick(frei), cols, rows), 3));
+    }
+    for (const zug of pfade) {
+      ergebnis.floors.push({ points: strokeBand(zug.flatMap((p) => [p.x * s, p.y * s]), 0.9 * s), color: 0x8a7a5c });
+    }
+    // Wo der Weg das Wasser kreuzt: Trittsteine als Furt.
+    if (wasserZug.length > 0) {
+      for (const zug of pfade) {
+        for (const p of zug) {
+          if (!naeher(p, wasserZug, wasserBreite / 2 + 0.3)) continue;
+          for (let i = 0; i < Math.max(2, Math.round(wasserBreite * 1.5)); i++) {
+            ergebnis.props.push({
+              propId: 'stone_medium',
+              x: (p.x + rngPfad.range(-0.5, 0.5)) * s,
+              y: (p.y + rngPfad.range(-0.5, 0.5)) * s,
+              scale: rngPfad.range(0.6, 0.85),
+              rotation: rngPfad.range(0, Math.PI * 2),
+            });
+          }
+        }
+      }
+    }
+  }
+  const aufPfad = (p: Punkt): boolean => pfade.some((zug) => naeher(p, zug, 1.4));
+
+  // ---- Hügelkuppen -----------------------------------------------------------
   const kuppen = Array.from({ length: Math.max(0, Math.round(opts.hills)) }, () => ({
-    x: rng.range(opts.cols * 0.2, opts.cols * 0.8),
-    y: rng.range(opts.rows * 0.2, opts.rows * 0.8),
+    x: rng.range(cols * 0.2, cols * 0.8),
+    y: rng.range(rows * 0.2, rows * 0.8),
     r: rng.range(3.5, 6.5),
   }));
   for (const k of kuppen) {
-    ergebnis.floors.push({
-      points: blob(rng, k.x * s, k.y * s, k.r * s, 0.22),
-      color: 0x5c6b3c,
-    });
-    // Steine auf dem Rand, nicht darin: sie zeichnen die Kante nach.
+    ergebnis.floors.push({ points: blob(rng, k.x * s, k.y * s, k.r * s, 0.22), color: 0x5c6b3c });
     const n = Math.round(k.r * 2.2);
     for (let i = 0; i < n; i++) {
       const w = (i / n) * Math.PI * 2 + rng.range(-0.15, 0.15);
       const d = k.r * rng.range(0.82, 1.02);
       ergebnis.props.push({
-        propId: rng.pick(['stone_medium', 'boulder_mossy', 'rock']),
+        propId: rng.pick(['stone_medium', 'boulder_mossy', 'stone_large']),
         x: (k.x + Math.cos(w) * d) * s,
         y: (k.y + Math.sin(w) * d) * s,
         scale: rng.range(0.7, 1.2),
@@ -202,82 +315,34 @@ export function generateForest(opts: ForestOptions): GeneratedMap {
     }
   }
 
-  /**
-   * Gewässer. Der Tümpel ist ein Blob, der Bach ein Band quer über die Karte.
-   *
-   * Beide werden als Fläche *und* als Verbotszone geführt: eine Wasserfläche,
-   * auf der Bäume stehen, ist der Fehler, den man auf einer erzeugten Karte
-   * sofort sieht.
-   */
-  const wasser: Array<(p: Punkt) => boolean> = [];
-  if (opts.water === 'pond') {
-    const cx = rng.range(opts.cols * 0.3, opts.cols * 0.7);
-    const cy = rng.range(opts.rows * 0.3, opts.rows * 0.7);
-    const r = rng.range(3.5, 6);
-    ergebnis.floors.push({ points: blob(rng, cx * s, cy * s, r * s, 0.3), color: 0x3d6b7d });
-    // Etwas Luft: der Blob ragt an manchen Stellen über r hinaus.
-    wasser.push((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 < (r * 1.32) ** 2);
-    // Schilf am Ufer.
-    const n = Math.round(r * 3);
-    for (let i = 0; i < n; i++) {
-      const w = rng.range(0, Math.PI * 2);
-      const d = r * rng.range(1.05, 1.28);
-      ergebnis.props.push({
-        propId: rng.pick(['grass_tuft', 'fern', 'flowers']),
-        x: (cx + Math.cos(w) * d) * s,
-        y: (cy + Math.sin(w) * d) * s,
-        scale: rng.range(0.7, 1.1),
-        rotation: rng.range(0, Math.PI * 2),
-      });
-    }
-  } else if (opts.water === 'stream') {
-    const bach: Punkt[] = [];
-    let x = rng.range(opts.cols * 0.25, opts.cols * 0.75);
-    for (let y = -1; y <= opts.rows + 1; y += 2) {
-      x = Math.max(2, Math.min(opts.cols - 2, x + rng.range(-1.4, 1.4)));
-      bach.push({ x, y });
-    }
-    const breite = rng.range(0.9, 1.6);
-    ergebnis.floors.push({
-      points: strokeBand(bach.flatMap((p) => [p.x * s, p.y * s]), breite * s),
-      color: 0x3d6b7d,
-    });
-    const nah = (breite + 0.5) ** 2;
-    wasser.push((p) => bach.some((q) => (p.x - q.x) ** 2 + (p.y - q.y) ** 2 < nah));
-  }
-
-  const imWasser = (p: Punkt): boolean => wasser.some((f) => f(p));
-
-  const inLichtung = (p: Punkt): boolean =>
-    lichtungen.some((l) => (p.x - l.x) ** 2 + (p.y - l.y) ** 2 < l.r * l.r);
-
-  const aufPfad = (p: Punkt): boolean =>
-    pfad.some((q) => (p.x - q.x) ** 2 + (p.y - q.y) ** 2 < 1.4 * 1.4);
-
   const freiHalten = (p: Punkt): boolean => inLichtung(p) || aufPfad(p) || imWasser(p);
 
-  for (const p of poisson(rng, opts.cols, opts.rows, opts.spacing)) {
+  // ---- Bäume ------------------------------------------------------------------
+  // Art nach Standort: Weiden am Wasser, Birken an Lichtungsrändern, sonst
+  // Laub oder Nadel nach Anteil; vereinzelt tote und umgestürzte Stämme.
+  const amWasser = (p: Punkt) => wasser.length > 0 && !imWasser(p) && wasser.some((f) => f({ x: p.x + 1.6, y: p.y }) || f({ x: p.x - 1.6, y: p.y }) || f({ x: p.x, y: p.y + 1.6 }) || f({ x: p.x, y: p.y - 1.6 }));
+  const amLichtungsrand = (p: Punkt) => lichtungen.some((l) => (p.x - l.x) ** 2 + (p.y - l.y) ** 2 < (l.r + 1.8) ** 2);
+  for (const p of poisson(rng, cols, rows, opts.spacing)) {
     if (freiHalten(p)) continue;
-    const nadel = rng.next() < opts.pineShare;
-    ergebnis.props.push({
-      propId: nadel ? 'tree_pine' : 'tree_deciduous',
-      x: p.x * s,
-      y: p.y * s,
-      scale: rng.range(0.8, 1.35),
-      rotation: rng.range(0, Math.PI * 2),
-    });
+    let art: string;
+    const w = rng.next();
+    if (amWasser(p) && w < 0.55) art = 'tree_willow';
+    else if (w < 0.04) art = 'tree_dead';
+    else if (w < 0.07) art = 'tree_fallen';
+    else if (amLichtungsrand(p) && w < 0.35) art = 'tree_birch';
+    else if (rng.next() < opts.pineShare) art = rng.bool(0.3) ? 'tree_pine_slim' : 'tree_pine';
+    else art = rng.bool(0.15) ? 'tree_birch' : 'tree_deciduous';
+    ergebnis.props.push({ propId: art, x: p.x * s, y: p.y * s, scale: rng.range(0.8, 1.35), rotation: rng.range(0, Math.PI * 2) });
   }
 
   if (opts.undergrowth) {
-    const streu = ['bush', 'fern', 'grass_tuft', 'mushrooms', 'stone_small', 'leaves', 'log'];
-    // Dichter als die Bäume, aber mit demselben Verfahren — sonst klumpt es.
-    for (const p of poisson(rng, opts.cols, opts.rows, opts.spacing * 0.55)) {
-      // Auf dem Pfad wächst nichts; auf einer Lichtung nur vereinzelt Gras.
+    const streu = ['bush', 'fern', 'grass_tuft', 'mushrooms', 'stone_small', 'leaves', 'log', 'berry_bush', 'flowers', 'stump'];
+    for (const p of poisson(rng, cols, rows, opts.spacing * 0.55)) {
       if (aufPfad(p) || imWasser(p)) continue;
-      if (inLichtung(p) && rng.bool(0.85)) continue;
+      if (inLichtung(p) && rng.bool(0.8)) continue;
       if (rng.bool(0.45)) continue;
       ergebnis.props.push({
-        propId: rng.pick(streu),
+        propId: inLichtung(p) ? rng.pick(['flowers', 'grass_tuft', 'flower_patch']) : rng.pick(streu),
         x: p.x * s,
         y: p.y * s,
         scale: rng.range(0.6, 1.15),
@@ -286,19 +351,12 @@ export function generateForest(opts: ForestOptions): GeneratedMap {
     }
   }
 
-  /**
-   * Felsbrocken, gestreut wie die Bäume.
-   *
-   * Eigener Durchgang und nicht unter das Unterholz gemischt: Steine sollen
-   * sich vom Anteil her getrennt regeln lassen, und ein Wald ohne Unterholz
-   * darf trotzdem steinig sein.
-   */
   if (opts.rocks > 0) {
-    for (const p of poisson(rng, opts.cols, opts.rows, opts.spacing * 1.4)) {
+    for (const p of poisson(rng, cols, rows, opts.spacing * 1.4)) {
       if (aufPfad(p) || imWasser(p)) continue;
       if (!rng.bool(opts.rocks)) continue;
       ergebnis.props.push({
-        propId: rng.pick(['stone_medium', 'boulder_mossy', 'rock', 'rubble']),
+        propId: rng.pick(['stone_medium', 'boulder_mossy', 'stone_large', 'rubble']),
         x: p.x * s,
         y: p.y * s,
         scale: rng.range(0.7, 1.3),
@@ -307,5 +365,16 @@ export function generateForest(opts: ForestOptions): GeneratedMap {
     }
   }
 
+  // Flächen auf die Karte klemmen: ein See am Rand soll am Rand enden, nicht
+  // weit darüber hinaus (was draußen liegt, fehlt ohnehin im Export).
+  const W = cols * s;
+  const H = rows * s;
+  for (const f of ergebnis.floors) {
+    for (let i = 0; i < f.points.length; i += 2) {
+      f.points[i] = Math.max(0, Math.min(W, f.points[i]));
+      f.points[i + 1] = Math.max(0, Math.min(H, f.points[i + 1]));
+    }
+  }
+  ergebnis.props = ergebnis.props.filter((p) => p.x >= 0 && p.y >= 0 && p.x <= W && p.y <= H);
   return ergebnis;
 }

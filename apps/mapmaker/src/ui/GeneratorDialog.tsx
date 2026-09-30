@@ -31,6 +31,7 @@ import {
   type TownSurround,
 } from '@/model/generators/town';
 import { TEMPLATE_IDS, templateSize, type TemplateId } from '@/model/generators/template';
+import type { ForestWater } from '@/model/generators/forest';
 import { ladeGeneratorMerker, speichereGeneratorMerker, type GeneratorZiel } from './generatorMerker';
 
 const NAME: Record<GeneratorId, StringKey> = {
@@ -190,13 +191,16 @@ export function GeneratorDialog({
               onChange={(v) => patch('forest', { path: v })} />
             <Toggle label={t('gen.undergrowth')} checked={p.undergrowth}
               onChange={(v) => patch('forest', { undergrowth: v })} />
-            <Select<'none' | 'pond' | 'stream'>
+            <Select<ForestWater>
               label={t('gen.water')}
               value={p.water}
               options={[
+                { value: 'random', label: t('gen.waterRandom') },
                 { value: 'none', label: t('gen.waterNone') },
                 { value: 'pond', label: t('gen.waterPond') },
                 { value: 'stream', label: t('gen.waterStream') },
+                { value: 'lake', label: t('gen.waterLake') },
+                { value: 'river', label: t('gen.waterRiver') },
               ]}
               onChange={(v) => patch('forest', { water: v })}
             />
@@ -248,13 +252,6 @@ export function GeneratorDialog({
         const p = params.template;
         return (
           <>
-            <Select<TemplateId>
-              label={t('gen.templateVariant')}
-              value={p.variant}
-              options={TEMPLATE_IDS.map((v) => ({ value: v, label: t(`template.${v}` as StringKey) }))}
-              onChange={(v) => patch('template', { variant: v })}
-            />
-            <p className="hint">{t(`template.${p.variant}Hint` as StringKey)}</p>
             <Toggle label={t('gen.decorate')} checked={p.furnish}
               onChange={(v) => patch('template', { furnish: v })} />
             <Toggle label={t('gen.templateLights')} checked={p.lights}
@@ -348,13 +345,28 @@ export function GeneratorDialog({
 
         <div className="modal-body gen-body">
           <div className="gen-controls">
-            <Select<GeneratorId>
+            {/*
+              Die Vorlagen stehen einzeln in der Liste (Rückmeldung: „Was ist
+              Template für eine Vorlage? Mach daraus extra Vorlagen für Taverne
+              etc."), intern bleiben sie ein Generator mit Variante.
+            */}
+            <Select<string>
               label={t('gen.type')}
-              value={id}
-              options={GENERATOR_IDS.map((g) => ({ value: g, label: t(NAME[g]) }))}
-              onChange={setId}
+              value={id === 'template' ? `template:${params.template.variant}` : id}
+              options={[
+                ...TEMPLATE_IDS.map((v) => ({ value: `template:${v}`, label: t(`template.${v}` as StringKey) })),
+                ...GENERATOR_IDS.filter((g) => g !== 'template').map((g) => ({ value: g, label: t(NAME[g]) })),
+              ]}
+              onChange={(v) => {
+                if (v.startsWith('template:')) {
+                  setId('template');
+                  patch('template', { variant: v.slice('template:'.length) as TemplateId });
+                } else setId(v as GeneratorId);
+              }}
             />
-            <p className="hint">{t(BESCHREIBUNG[id])}</p>
+            <p className="hint">
+              {id === 'template' ? t(`template.${params.template.variant}Hint` as StringKey) : t(BESCHREIBUNG[id])}
+            </p>
 
             <div className="divider" />
 
