@@ -380,6 +380,12 @@ const TEXTE = {
   'story.angelegt': ['Notiz angelegt: {text}', 'Note created: {text}'],
   'story.fehlt': ['Die Notiz gibt es nicht mehr. Die Verknüpfung wurde gelöst.', 'That note no longer exists. The link was removed.'],
   'story.loesen': ['Verknüpfung lösen', 'Unlink'],
+  'story.sync': ['Synchron', 'Synced'],
+  'story.sync.titel': [
+    'Die Notiz stetig mit dem Bogen abgleichen. Der Bogen schreibt nur seinen eigenen Abschnitt; was du sonst in der Notiz schreibst, bleibt.',
+    'Keep the note in step with this sheet. The sheet only rewrites its own section; anything else you write in the note stays.'
+  ],
+  'story.sync.an': ['Die Notiz wird jetzt mit dem Bogen abgeglichen.', 'The note now follows this sheet.'],
   'waffe.suche': ['Waffe suchen', 'Search weapons']
 } as const;
 

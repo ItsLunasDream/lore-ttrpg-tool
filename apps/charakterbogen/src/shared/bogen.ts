@@ -144,7 +144,7 @@ export interface Bogen {
   /** Aussehen dieses Bogens; fehlt es, gilt die Vorgabe. */
   design?: Design;
   /** Verknuepfte Notiz im Story Creator (`<Kampagne>/<Notiz>`). */
-  storyNotiz?: { kennung: string; titel: string };
+  storyNotiz?: { kennung: string; titel: string; sync?: boolean };
   /** Zaehlt bei jeder gespeicherten Aenderung hoch. */
   fassung: number;
   geaendert: string;
@@ -386,7 +386,10 @@ export function bereinige(roh: unknown, id: string): Bogen {
   const kennwort = (x: unknown) => (typeof x === 'string' && /^[a-z0-9-]{1,30}$/.test(x) ? x : '');
   const design: Design | null = d ? { farbe: kennwort(d.farbe), papier: kennwort(d.papier), schrift: kennwort(d.schrift) } : null;
   const sn = (r.storyNotiz && typeof r.storyNotiz === 'object' ? r.storyNotiz : null) as Record<string, unknown> | null;
-  const story = sn && typeof sn.kennung === 'string' && sn.kennung ? { kennung: sn.kennung.slice(0, 200), titel: text(sn.titel, 200) } : null;
+  const story =
+    sn && typeof sn.kennung === 'string' && sn.kennung
+      ? { kennung: sn.kennung.slice(0, 200), titel: text(sn.titel, 200), ...(sn.sync === true ? { sync: true } : {}) }
+      : null;
   const bogen: Bogen = {
     ...basis,
     muenzen: {

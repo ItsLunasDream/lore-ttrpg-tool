@@ -215,6 +215,27 @@ app.whenReady().then(async () => {
     // Zurueck zum Bogen fuer den Rest.
     await wechsle('/Charakter/');
     await warte(1500);
+
+    // Stetiger Abgleich: Schalter an, Feld aendern, die Notiz zieht nach; eigener Text dort bleibt.
+    const notizDatei = () => {
+      for (const k of fs.readdirSync(kampagnen)) {
+        const o = path.join(kampagnen, k, 'notes');
+        if (!fs.existsSync(o)) continue;
+        for (const d of fs.readdirSync(o)) if (/Heimlichkeit/.test(fs.readFileSync(path.join(o, d), 'utf8'))) return path.join(o, d);
+      }
+      return null;
+    };
+    await js(`document.querySelector('[data-story-sync]').click(); true`);
+    pruefe(await bis(async () => /charakterbogen:anfang/.test(fs.readFileSync(notizDatei(), 'utf8')), 6000), 'Synchron an: die Notiz bekommt den markierten Abschnitt');
+    fs.appendFileSync(notizDatei(), '\n\nEigener Satz der Spielerin.\n');
+    await js(tippe('[data-feld="sprachen"]', 'Sylvanisch'));
+    pruefe(
+      await bis(async () => {
+        const t = fs.readFileSync(notizDatei(), 'utf8');
+        return /Sylvanisch/.test(t) && /Eigener Satz der Spielerin/.test(t);
+      }, 8000),
+      'eine Aenderung am Bogen landet in der Notiz, eigener Text dort bleibt'
+    );
   }
 
   // --- Trefferpunkte -------------------------------------------------------

@@ -185,7 +185,8 @@ Obsidian.
 - **Aussehen je Bogen**: Akzentfarbe, Papier und Schrift (sieben freie
   Schriften sind dabei). Kaum Auswahllisten: Segmente, Punkte und
   durchsuchbare Wahl statt dessen.
-- **Story Creator**: eine Notiz zur Figur anlegen und später öffnen.
+- **Story Creator**: eine Notiz zur Figur anlegen, später öffnen und auf
+  Wunsch stetig mit dem Bogen abgleichen (eigener Text in der Notiz bleibt).
 - **Schaden / Heilung**: `-7` oder `7` zieht ab, `+5` heilt, Würfel gehen
   (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
 - **Zauber**: SG und Angriff, Plätze je Grad (auch Paktmagie), Liste aus

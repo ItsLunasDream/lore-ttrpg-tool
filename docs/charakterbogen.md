@@ -420,8 +420,12 @@ Gebaut auf Wunsch nach Schritt 7:
   benutzten Kampagne eine Notiz mit der Lesefassung der Figur an und merkt
   sich die Verknüpfung (`Bogen.storyNotiz`). Danach öffnet der Knopf „Notiz“
   den Story Creator an dieser Stelle; gibt es die Notiz nicht mehr, wird die
-  Verknüpfung gelöst. Die Notiz ist ein Schnappschuss und wird nicht
-  nachgeführt.
+  Verknüpfung gelöst. Mit **„↻ Synchron“** wird die Notiz stetig
+  nachgeführt (nur Bogen → Notiz): Der Bogen schreibt nach jedem Speichern
+  (gebündelt, 1,5 s) nur den Abschnitt zwischen
+  `<!-- charakterbogen:anfang -->` und `<!-- charakterbogen:ende -->` neu;
+  was davor oder danach in der Notiz steht, bleibt. Änderungen innerhalb des
+  Abschnitts überschreibt der Bogen.
 - **Eigene Zustände:** Die Zustände aus dem Status Effect Creator stehen in
   der Suchwahl unter „Eigene“ und tragen ihren Text als Hinweis; im Bogen
   als `eigen:<Name>`.
@@ -467,8 +471,8 @@ Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
 - **Loot Generator**: gebaut andersherum: der Bogen würfelt über „Aus Quelle
   … → Loot-Tabelle“. Ein Knopf „Ins Inventar“ im Loot Generator selbst
   fehlt noch.
-- **Story Creator**: gebaut, siehe „Aussehen und Bedienung“. Die Notiz ist
-  ein Schnappschuss; Nachführen bei Änderungen fehlt.
+- **Story Creator**: gebaut, siehe „Aussehen und Bedienung“ (Notiz anlegen,
+  öffnen, auf Wunsch stetig nachführen).
 
 ## Ablage
 
@@ -524,7 +528,7 @@ interface Bogen {
   gegenstaende: InventarGegenstand[];         // aus docs/inventar.md
   notizen: string;
   design?: { farbe: string; papier: string; schrift: string };
-  storyNotiz?: { kennung: string; titel: string }; // `<Kampagne>/<Notiz>`
+  storyNotiz?: { kennung: string; titel: string; sync?: boolean }; // `<Kampagne>/<Notiz>`
   fassung: number;
 }
 ```

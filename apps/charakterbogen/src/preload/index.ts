@@ -65,7 +65,10 @@ const api = {
   },
   /** Notiz im Story Creator anlegen oder oeffnen. */
   story: {
-    anlegen: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:anlegen'), bogen) as Promise<{ ok: boolean; text: string; kennung?: string }>,
+    anlegen: (bogen: Bogen, sync = false) =>
+      ipcRenderer.invoke(kanal('story:anlegen'), bogen, sync) as Promise<{ ok: boolean; text: string; kennung?: string }>,
+    /** Den Abschnitt in der Notiz jetzt neu schreiben. */
+    jetzt: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:jetzt'), bogen) as Promise<boolean>,
     oeffne: (kennung: string) => ipcRenderer.invoke(kanal('story:oeffne'), kennung) as Promise<boolean>
   },
   /** Eigene Zustaende aus dem Status Effect Creator. */

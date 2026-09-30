@@ -213,6 +213,28 @@ export function storyText(b: Bogen, sprache: Sprache): string {
   return ohneBlock.replace(/^# .*\n\n?/, '').trim() + '\n';
 }
 
+/*
+ * Stetiger Abgleich mit dem Story Creator (nur Bogen → Notiz). Der Bogen
+ * schreibt ausschliesslich zwischen diesen zwei Kommentaren; was jemand in
+ * der Notiz davor oder danach schreibt, bleibt. Der Story Creator bewahrt
+ * HTML-Kommentare (apps/backstory/src/renderer/editor/kommentar.ts).
+ */
+const BLOCK_ANFANG = '<!-- charakterbogen:anfang -->';
+const BLOCK_ENDE = '<!-- charakterbogen:ende -->';
+const BLOCK = /<!--\s*charakterbogen:anfang\s*-->[\s\S]*?<!--\s*charakterbogen:ende\s*-->/;
+
+/** Der Abschnitt, den der Bogen in der Notiz fuehrt. */
+export function storyBlock(b: Bogen, sprache: Sprache): string {
+  return `${BLOCK_ANFANG}\n\n${storyText(b, sprache).trim()}\n\n${BLOCK_ENDE}`;
+}
+
+/** Setzt den Abschnitt in einen Notiztext: ersetzt den alten, sonst unten angehaengt. */
+export function ersetzeStoryBlock(text: string, block: string): string {
+  if (BLOCK.test(text)) return text.replace(BLOCK, () => block);
+  const rest = text.trimEnd();
+  return rest ? `${rest}\n\n${block}\n` : `${block}\n`;
+}
+
 /** Liest eine Datei. Ohne JSON-Block (etwa von Hand angelegt) wird es ein leerer Bogen mit dem Namen aus dem Kopf. */
 export function leseBogen(inhalt: string, id: string): Bogen {
   const start = inhalt.lastIndexOf(MARKE);

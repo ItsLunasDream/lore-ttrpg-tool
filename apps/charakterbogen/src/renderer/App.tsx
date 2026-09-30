@@ -490,6 +490,26 @@ export function App() {
               </button>
               <button
                 type="button"
+                data-story-sync
+                className={offen.storyNotiz.sync ? 'ist-an' : ''}
+                aria-pressed={offen.storyNotiz.sync === true}
+                title={t('story.sync.titel')}
+                onClick={() => {
+                  const an = !offen.storyNotiz?.sync;
+                  aendere((b) => (b.storyNotiz ? { ...b, storyNotiz: { ...b.storyNotiz, sync: an } } : b));
+                  // Beim Einschalten sofort abgleichen; danach nach jedem Speichern.
+                  if (an && offenRef.current) {
+                    void api.story.jetzt(offenRef.current).then((ok) => {
+                      if (ok) setMeldung(t('story.sync.an'));
+                      else setFehler(t('story.fehlt'));
+                    });
+                  }
+                }}
+              >
+                ↻ {t('story.sync')}
+              </button>
+              <button
+                type="button"
                 className="knopf--leise"
                 aria-label={t('story.loesen')}
                 title={t('story.loesen')}

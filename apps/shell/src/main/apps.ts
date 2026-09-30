@@ -49,6 +49,7 @@ import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
 import { wuerfle as wuerfleTabelle } from '@suite/tabellen';
 import { mountCharakterbogen } from '../../../charakterbogen/src/main/embed';
+import { ersetzeStoryBlock } from '../../../charakterbogen/src/shared/ablage';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
@@ -715,6 +716,31 @@ async function legeNotizAn(
   }
   haken.onEreignis?.('backstory');
   return { ok: true, text: `${titel} → ${kampagne.name}`, kennung };
+}
+
+/**
+ * Schreibt den Abschnitt des Charakterbogens in seine Notiz (stetiger
+ * Abgleich, nur Bogen → Notiz). Was ausserhalb der Markierungen steht,
+ * bleibt; siehe `ersetzeStoryBlock`.
+ */
+async function aktualisiereStoryNotiz(kennung: string, block: string, haken: MontageHaken): Promise<boolean> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
+  const teiler = kennung.indexOf('/');
+  if (!backstoryEmbed || teiler <= 0) return false;
+  const kampagne = kennung.slice(0, teiler);
+  let notiz;
+  try {
+    notiz = await backstoryEmbed.vault.getNote(kampagne, kennung.slice(teiler + 1));
+  } catch {
+    return false;
+  }
+  const neu = ersetzeStoryBlock(notiz.body, block);
+  if (neu === notiz.body) return true;
+  await backstoryEmbed.vault.saveNote(kampagne, { ...notiz, body: neu });
+  if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
+  return true;
 }
 
 /** Gibt es die Notiz `<Kampagne>/<Notiz>` noch? */
@@ -1574,7 +1600,8 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
         if (!(await storyNotizDa(kennung, haken))) return false;
         haken.zeigeInStory?.(kennung);
         return true;
-      }
+      },
+      aktualisiere: (kennung, block) => aktualisiereStoryNotiz(kennung, block, haken)
     },
     eigeneZustaende: async () => (await leseEigeneZustaende()).map((z) => ({ name: z.name, text: z.text })),
     // Quellen fuers Inventar aus anderen Werkzeugen. Die Werkzeuge kennen
