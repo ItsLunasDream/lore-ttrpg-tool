@@ -326,8 +326,36 @@ export function GridSettings() {
 /** Terrain-Pinsel: Bodenflächen malen. */
 export function TerrainSettingsPanel() {
   const { t } = useT();
-  const terrain = useEditor((s) => s.terrain);
-  const patch = useEditor((s) => s.patchTerrain);
+  const vorgabe = useEditor((s) => s.terrain);
+  const patchVorgabe = useEditor((s) => s.patchTerrain);
+  const doc = useEditor((s) => s.doc);
+  const selection = useEditor((s) => s.selection);
+  const exec = useEditor((s) => s.exec);
+  const rev = useEditor((s) => s.rev);
+  void rev;
+  // Terrainflächen: gefüllte, ungestrichene Polygone (so legt der Pinsel sie an).
+  const flaechen = selection
+    .map((id) => doc.objects[id])
+    .filter((o): o is ShapeObj => !!o && o.kind === 'shape' && o.shape === 'polygon' && !!o.fill && !o.stroke);
+  const f0 = flaechen[0];
+  const terrain = f0?.fill ? { ...vorgabe, color: f0.fill.color, alpha: f0.fill.alpha } : vorgabe;
+  /** Farbe und Deckkraft wirken auch auf die Auswahl; Breite und Glättung stecken in der Form. */
+  const patch = (p: Partial<typeof vorgabe>) => {
+    patchVorgabe(p);
+    if (flaechen.length === 0 || (p.color === undefined && p.alpha === undefined)) return;
+    exec(
+      new PatchObjects(
+        new Map(
+          flaechen.map((o) => [
+            o.id,
+            { fill: { ...o.fill!, ...(p.color !== undefined ? { color: p.color } : {}), ...(p.alpha !== undefined ? { alpha: p.alpha } : {}) } },
+          ]),
+        ),
+        t('cmd.terrain'),
+        `terrain-panel:${Object.keys(p).join(',')}`,
+      ),
+    );
+  };
 
   return (
     <Section title={t('terrain.title')}>
@@ -359,6 +387,7 @@ export function TerrainSettingsPanel() {
         onChange={(v) => patch({ smoothing: v })}
         format={pct}
       />
+      {flaechen.length > 0 ? <p className="hint">{t('terrain.selectionHint')}</p> : null}
       <p className="hint">{t('terrain.hint')}</p>
     </Section>
   );

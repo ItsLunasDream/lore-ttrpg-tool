@@ -24,6 +24,8 @@ const VIEW: Entry[] = [
  * Belegung selbst, samt Möglichkeit, sie zu ändern.
  */
 const EDITING: Entry[] = [
+  ['help.shiftWheel', 'help.shiftWheelAction'],
+  ['help.clickThrough', 'help.clickThroughAction'],
   ['help.altDrag', 'help.altDragAction'],
   ['help.ctrlDrag', 'help.ctrlDragAction'],
   ['help.propGrab', 'help.propGrabAction'],

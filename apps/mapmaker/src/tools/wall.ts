@@ -7,20 +7,13 @@
  */
 
 import { Graphics } from 'pixi.js';
-import {
-  AddObjects,
-  AddVttItems,
-  CompositeCommand,
-  RemoveVttItems,
-  type Command,
-} from '@/model/commands';
+import { AddVttItems, RemoveVttItems, type Command } from '@/model/commands';
 import { snapPoint } from '@/model/grid';
 import { dropDensePoints, hasExtent } from '@/model/geometry';
 import { makeId } from '@/model/ids';
-import { canHoldObjects } from '@/model/document';
-import { buildWallShape } from '@/assets/wallStyles';
 import type { Wall } from '@/model/types';
 import { pickWall, snapToWallVertex } from './vttPick';
+import { stilFuer, waehleGesetztes } from './auswahlNachSetzen';
 import type { Tool, ToolContext, ToolPointerEvent } from './types';
 import { t } from '@/i18n';
 
@@ -149,30 +142,15 @@ export class WallTool implements Tool {
         // Nur mitgeben, wenn abweichend: eine gewöhnliche Wand soll keine vier
         // redundanten Flags mitschleppen.
         ...(ctx.state.wall.senses ? { senses: { ...ctx.state.wall.senses } } : {}),
+        // Mauerwerk als Teil der Wand; gezeichnet wird es in model/vttVisuals.ts.
+        ...stilFuer(ctx, ctx.state.wall.style),
       };
       const parts: Command[] = [new AddVttItems('walls', [wall], t('cmd.addWall'))];
 
-      // Sichtbares Wandstück gleich mitlegen, sofern ein Stil gewählt ist:
-      // sonst steht die Geometrie für Foundry da, im Bild ist aber nichts.
-      const shape = buildWallShape(
-        ctx.doc,
-        ctx.state.activeLayerId,
-        ctx.state.wall.style,
-        wall.points,
-        closed,
-      );
-      if (shape) {
-        // Nicht wortlos fallenlassen: wer einen Stil gewählt hat und dann
-        // nichts sieht, sucht den Fehler bei sich.
-        if (canHoldObjects(ctx.doc, ctx.state.activeLayerId)) {
-          parts.push(new AddObjects([shape], t('cmd.addWall')));
-        } else {
-          ctx.state.setStatusMessage(t('wallStyle.layerCannotHold'));
-        }
-      }
-
       // Ein Zug ist ein Undo-Schritt, auch wenn zwei Dinge entstehen.
-      ctx.exec(parts.length > 1 ? new CompositeCommand(parts, t('cmd.addWall')) : parts[0]);
+      ctx.exec(parts[0]);
+      // Gleich ausgewaehlt: Aenderungen rechts wirken auf die eben gezogene Wand.
+      waehleGesetztes(ctx, { walls: [wall.id] });
     }
     this.reset(ctx);
   }

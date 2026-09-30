@@ -12,7 +12,7 @@
 
 import { Graphics } from 'pixi.js';
 import { AddObjects, AddVttItems, CompositeCommand, type Command } from '@/model/commands';
-import { buildWallShape } from '@/assets/wallStyles';
+import { stilFuer, waehleGesetztes } from './auswahlNachSetzen';
 import { snapPoint } from '@/model/grid';
 import { makeId } from '@/model/ids';
 import type { MapDocument, Wall } from '@/model/types';
@@ -65,6 +65,7 @@ export class RoomTool implements Tool {
     const parts: Command[] = [];
     const layerId = ctx.state.activeLayerId;
 
+    let bodenId: string | null = null;
     if (s.createFloor) {
       if (canHoldObjects(ctx.doc, layerId)) {
         const floor = createShape(
@@ -83,12 +84,14 @@ export class RoomTool implements Tool {
           [0, 0, x1 - x0, y1 - y0],
           true,
         );
+        bodenId = floor.id;
         parts.push(new AddObjects([floor], t('cmd.room')));
       } else {
         ctx.state.setStatusMessage(t('room.layerCannotHold'));
       }
     }
 
+    let wandId: string | null = null;
     if (s.createWalls) {
       const wall: Wall = {
         id: makeId('wall'),
@@ -97,23 +100,18 @@ export class RoomTool implements Tool {
         points: [x0, y0, x1, y0, x1, y1, x0, y1],
         type: s.wallType,
         closed: true,
+        // Sichtbares Mauerwerk als Teil der Wand (model/vttVisuals.ts). Ohne
+        // das stünde der Raum für Foundry bereit, im Bild wäre er aber leer.
+        ...stilFuer(ctx, s.style),
       };
+      wandId = wall.id;
       parts.push(new AddVttItems('walls', [wall], t('cmd.room')));
-
-      // Sichtbares Mauerwerk gleich mit, wie beim Wand-Werkzeug. Ohne das
-      // stünde der Raum für Foundry bereit, im Bild wäre er aber leer.
-      const shape = buildWallShape(ctx.doc, layerId, s.style, wall.points, true);
-      if (shape) {
-        if (canHoldObjects(ctx.doc, layerId)) {
-          parts.push(new AddObjects([shape], t('cmd.room')));
-        } else {
-          ctx.state.setStatusMessage(t('wallStyle.layerCannotHold'));
-        }
-      }
     }
 
     if (parts.length === 1) ctx.exec(parts[0]);
     else if (parts.length > 1) ctx.exec(new CompositeCommand(parts, t('cmd.room')));
+    // Gleich ausgewählt: Wandtyp, Mauerwerk und Bodenfarbe rechts wirken auf diesen Raum.
+    waehleGesetztes(ctx, { walls: wandId ? [wandId] : [] }, bodenId ? [bodenId] : []);
   }
 
   deactivate(ctx: ToolContext): void {

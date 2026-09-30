@@ -167,6 +167,15 @@ des Projekts, nicht bloß Ordnung:
   Objekteigenschaften zeigt, übernimmt darum beides — Vorgabe *und* Auswahl —
   und zeigt an, was die Auswahl sagt. Und es erscheint, sobald ein passendes
   Objekt ausgewählt ist, nicht erst beim zugehörigen Werkzeug.
+- **Mauerwerk ist Teil der Wand.** Wand und Tür tragen ihren Stil selbst
+  (`style`, `styleLayerId`); die sichtbare Zeichnung leitet
+  `model/vttVisuals.ts` nach jedem Befehl, Rückgängig und Wiederholen daraus
+  ab. Sie ist nicht einzeln anfassbar (`isObjectEditable`) und braucht keinen
+  eigenen Rückgängig-Schritt. Wer Wände neu anlegt, setzt den Stil an der Wand
+  und legt **keine** lose Zeichnung daneben — genau das ließ sich früher
+  auseinanderziehen.
+- **Setz-Werkzeuge wählen aus, was sie gesetzt haben** (`tools/auswahlNachSetzen.ts`),
+  damit die Einstellungen rechts sofort auf das eben Gesetzte wirken.
 - **Wer eine Eigenschaft hinzufügt, die man sieht, ergänzt `viewKey`.** Der
   Renderer baut einen Knoten nur neu, wenn dieser Schlüssel sich ändert. Fehlt
   die Eigenschaft darin, ist die Änderung im Modell da und im Bild nicht — bei

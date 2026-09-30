@@ -649,6 +649,7 @@ export function FileMenu() {
             </button>
             {saveTarget ? <p className="menu-note">{t('file.targetIs', { name: saveTarget })}</p> : null}
             <div className="menu-sep" />
+            <p className="menu-note">{t('file.exportTitle')}</p>
             <button onClick={() => run(() => setShowExport(true))} title={t('file.imageHint')}>
               {t('file.image')}
             </button>

@@ -42,6 +42,7 @@ import { SelectTool } from './select';
 import { TextTool } from './text';
 import { WallTool } from './wall';
 import type { Tool, ToolContext, ToolPointerEvent } from './types';
+import { radDrehBefehl, radSchritt } from './radDrehung';
 import { t } from '@/i18n';
 
 /** Interne Zwischenablage — die System-Zwischenablage kann keine Objekte halten. */
@@ -292,6 +293,19 @@ export class ToolManager {
       const next = Math.max(4, Math.min(2000, s.radius * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
       useEditor.getState().patchBrush({ radius: next });
       return;
+    }
+
+    // Shift+Rad dreht die Auswahl, Strg+Shift fein (tools/radDrehung.ts).
+    // Manche Browser melden Shift+Rad als waagerechtes Rollen, darum deltaX mit.
+    if (e.shiftKey) {
+      const state = useEditor.getState();
+      const richtung = Math.sign(e.deltaY || e.deltaX);
+      if (state.selection.length > 0 && richtung !== 0) {
+        const grad = richtung * radSchritt(state.doc, e.ctrlKey);
+        const befehl = radDrehBefehl(state.doc, state.selection, grad, this.renderer.textMetrics);
+        if (befehl) state.exec(befehl);
+        return;
+      }
     }
 
     const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;

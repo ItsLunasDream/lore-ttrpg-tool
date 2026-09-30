@@ -101,7 +101,8 @@ app.whenReady().then(async () => {
     setz(document.querySelector('.aussehen__farbe input'),'#e0af68');
     [...document.querySelectorAll('.musterknopf')][2].click(); return true; })()`);
   await warte(500);
-  await djs(`(() => { [...document.querySelectorAll('button')].find(b=>/Roll|Rollen/.test(b.textContent)).click(); return true; })()`);
+  // Der Hauptknopf, nicht die Klappe „Roll mode" (die trifft /Roll/ zuerst).
+  await djs(`(() => { document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); return true; })()`);
   await warte(1000);
   const vorher = await djs("document.querySelector('.buehne__ausdruck').textContent");
 

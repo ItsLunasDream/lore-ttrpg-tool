@@ -6,6 +6,7 @@ import {
   AddVttItems,
   CompositeCommand,
   PatchVttEnvironment,
+  PatchObjects,
   PatchVttItems,
   RemoveVttItems,
   SetHeightMap,
@@ -30,12 +31,60 @@ import {
 import { WALL_STYLES, type WallStyleId } from '@/assets/wallStyles';
 import type { SelectFilter } from '@/model/toolSettings';
 import { BIOMES, NOTE_ICONS } from '@/model/types';
-import type { NoteIcon, WallSenses, WallType } from '@/model/types';
+import type { LightSource, MapNote, NoteIcon, Portal, ShapeObject, Wall, WallSenses, WallType } from '@/model/types';
+import type { VttKind } from '@/model/store';
 import { PRESET_SENSES, WALL_SENSES, blocksAnything } from '@/model/wallSenses';
 import type { HeightMode } from '@/model/toolSettings';
 import { useT } from '@/i18n/useT';
 import type { StringKey } from '@/i18n';
 import { ColorField, Row, Section, Select, Slider, Toggle } from './controls';
+
+/**
+ * Ausgewählte VTT-Teile einer Art samt Patch.
+ *
+ * Grundlage für „Einstellungen wirken auf die Auswahl" (CLAUDE.md): die
+ * Setz-Werkzeuge wählen das eben Gesetzte aus, und jedes Panel schreibt
+ * Vorgabe *und* Auswahl. Sonst verstellt man den Wandtyp eines gerade
+ * gesetzten Raums, und nichts passiert.
+ */
+function useVttAuswahl<T extends { id: string }>(kind: VttKind) {
+  const doc = useEditor((s) => s.doc);
+  const sel = useEditor((s) => s.vttSelection);
+  const exec = useEditor((s) => s.exec);
+  const rev = useEditor((s) => s.rev);
+  void rev;
+  const items = (doc.vtt[kind] as unknown as T[]).filter((i) => sel[kind].includes(i.id));
+  const patchItems = (
+    build: Record<string, unknown> | ((item: T) => Record<string, unknown>),
+    label: string,
+    mergeKey?: string,
+  ) => {
+    if (items.length === 0) return;
+    const map = new Map<string, Record<string, unknown>>();
+    for (const i of items) map.set(i.id, typeof build === 'function' ? build(i) : build);
+    exec(new PatchVttItems(kind, map, label, mergeKey));
+  };
+  return { items, patchItems };
+}
+
+/**
+ * Patch für den Wandstil einer Wand oder Tür.
+ *
+ * Das Mauerwerk bleibt auf seinem Layer; bekommt eine Wand erstmals einen
+ * Stil, landet es auf dem aktiven. „Kein Stil" nimmt beide Felder weg.
+ */
+function stilPatch(
+  style: WallStyleId,
+  item: { styleLayerId?: string },
+  activeLayerId: string,
+): Record<string, unknown> {
+  if (style === 'none') return { style: undefined, styleLayerId: undefined };
+  return { style, styleLayerId: item.styleLayerId ?? activeLayerId };
+}
+
+function ohneStil(v: string | undefined): WallStyleId {
+  return (v as WallStyleId | undefined) ?? 'none';
+}
 
 export function WallSettingsPanel() {
   const { t } = useT();
@@ -44,6 +93,13 @@ export function WallSettingsPanel() {
   const doc = useEditor((s) => s.doc);
   const exec = useEditor((s) => s.exec);
   const setStatus = useEditor((s) => s.setStatusMessage);
+  const activeLayerId = useEditor((s) => s.activeLayerId);
+  const { items: walls, patchItems } = useVttAuswahl<Wall>('walls');
+  // Angezeigt wird, was die Auswahl sagt, sonst die Vorgabe.
+  const erste = walls[0];
+  const typ = erste?.type ?? wall.type;
+  const sinne = erste ? (erste.senses ?? null) : wall.senses;
+  const stil = erste ? ohneStil(erste.style) : wall.style;
   const [derive, setDerive] = useState<DeriveOptions>(() => defaultDeriveOptions(doc));
 
   const run = () => {
@@ -56,32 +112,42 @@ export function WallSettingsPanel() {
     <Section title={t('wall.title')}>
       <Select<WallType>
         label={t('wall.type')}
-        value={wall.type}
+        value={typ}
         options={[
           { value: 'normal', label: t('wall.normal') },
           { value: 'window', label: t('wall.window') },
           { value: 'ethereal', label: t('wall.ethereal') },
           { value: 'invisible', label: t('wall.invisible') },
         ]}
-        onChange={(v) => patch({ type: v })}
+        onChange={(v) => {
+          patch({ type: v });
+          patchItems({ type: v }, t('vttSel.setWallType'));
+        }}
       />
       <p className="hint">{t('wall.hint')}</p>
 
       <WallSensesEditor
-        type={wall.type}
-        senses={wall.senses}
-        onChange={(v) => patch({ senses: v })}
+        type={typ}
+        senses={sinne}
+        onChange={(v) => {
+          patch({ senses: v });
+          patchItems({ senses: v ?? undefined }, t('vttSel.setWallSenses'));
+        }}
       />
 
       <Select<WallStyleId>
         label={t('wallStyle.label')}
-        value={wall.style}
+        value={stil}
         options={[
           { value: 'none', label: t('wallStyle.none') },
           ...WALL_STYLES.map((st) => ({ value: st.id, label: t(st.nameKey as StringKey) })),
         ]}
-        onChange={(v) => patch({ style: v })}
+        onChange={(v) => {
+          patch({ style: v });
+          patchItems((w) => stilPatch(v, w, activeLayerId), t('vttSel.setWallStyle'));
+        }}
       />
+      {walls.length > 0 ? <p className="hint">{t('vttSel.appliesTo', { count: walls.length })}</p> : null}
       <p className="hint">{t('wallStyle.hint')}</p>
 
       <div className="divider" />
@@ -164,6 +230,18 @@ export function RoomSettingsPanel() {
   const { t } = useT();
   const room = useEditor((s) => s.room);
   const patch = useEditor((s) => s.patchRoom);
+  const doc = useEditor((s) => s.doc);
+  const selection = useEditor((s) => s.selection);
+  const exec = useEditor((s) => s.exec);
+  const activeLayerId = useEditor((s) => s.activeLayerId);
+  const { items: walls, patchItems } = useVttAuswahl<Wall>('walls');
+  // Böden: ausgewählte gefüllte Rechtecke (so legt das Raum-Werkzeug sie an).
+  const boeden = selection
+    .map((id) => doc.objects[id])
+    .filter((o): o is ShapeObject => !!o && o.kind === 'shape' && o.shape === 'rect' && !!o.fill);
+  const typ = walls[0]?.type ?? room.wallType;
+  const stil = walls[0] ? ohneStil(walls[0].style) : room.style;
+  const boden = boeden[0]?.fill?.color ?? room.floorColor;
 
   return (
     <Section title={t('room.title')}>
@@ -175,25 +253,31 @@ export function RoomSettingsPanel() {
       {room.createWalls ? (
         <Select<WallType>
           label={t('wall.type')}
-          value={room.wallType}
+          value={typ}
           options={[
             { value: 'normal', label: t('wall.normal') },
             { value: 'window', label: t('wall.window') },
             { value: 'ethereal', label: t('wall.ethereal') },
             { value: 'invisible', label: t('wall.invisible') },
           ]}
-          onChange={(v) => patch({ wallType: v })}
+          onChange={(v) => {
+            patch({ wallType: v });
+            patchItems({ type: v }, t('vttSel.setWallType'));
+          }}
         />
       ) : null}
       {room.createWalls ? (
         <Select<WallStyleId>
           label={t('wallStyle.label')}
-          value={room.style}
+          value={stil}
           options={[
             { value: 'none', label: t('wallStyle.none') },
             ...WALL_STYLES.map((st) => ({ value: st.id, label: t(st.nameKey as StringKey) })),
           ]}
-          onChange={(v) => patch({ style: v })}
+          onChange={(v) => {
+            patch({ style: v });
+            patchItems((w) => stilPatch(v, w, activeLayerId), t('vttSel.setWallStyle'));
+          }}
         />
       ) : null}
       <Toggle
@@ -204,8 +288,19 @@ export function RoomSettingsPanel() {
       {room.createFloor ? (
         <ColorField
           label={t('room.floorColor')}
-          value={room.floorColor}
-          onChange={(v) => patch({ floorColor: v })}
+          value={boden}
+          onChange={(v) => {
+            patch({ floorColor: v });
+            if (boeden.length > 0) {
+              exec(
+                new PatchObjects(
+                  new Map(boeden.map((o) => [o.id, { fill: { ...o.fill!, color: v } }])),
+                  t('room.floorColor'),
+                  'raum-boden',
+                ),
+              );
+            }
+          }}
         />
       ) : null}
       <p className="hint">{t('room.hint')}</p>
@@ -221,6 +316,13 @@ export function OpeningSettingsPanel({ kind }: { kind: 'door' | 'window' }) {
   const { t } = useT();
   const opening = useEditor((s) => s.opening);
   const patch = useEditor((s) => s.patchOpening);
+  const activeLayerId = useEditor((s) => s.activeLayerId);
+  const tueren = useVttAuswahl<Portal>('portals');
+  // Fenster sind Wände vom Typ „Fenster".
+  const waende = useVttAuswahl<Wall>('walls');
+  const fenster = waende.items.filter((w) => w.type === 'window');
+  const erstes = kind === 'door' ? tueren.items[0] : fenster[0];
+  const stil = erstes ? ohneStil(erstes.style) : opening.style;
 
   return (
     <Section title={kind === 'door' ? t('opening.doorTitle') : t('opening.windowTitle')}>
@@ -231,12 +333,21 @@ export function OpeningSettingsPanel({ kind }: { kind: 'door' | 'window' }) {
       />
       <Select<WallStyleId>
         label={t('wallStyle.label')}
-        value={opening.style}
+        value={stil}
         options={[
           { value: 'none', label: t('wallStyle.none') },
           ...WALL_STYLES.map((st) => ({ value: st.id, label: t(st.nameKey as StringKey) })),
         ]}
-        onChange={(v) => patch({ style: v })}
+        onChange={(v) => {
+          patch({ style: v });
+          tueren.patchItems((p) => stilPatch(v, p, activeLayerId), t('vttSel.setWallStyle'));
+          if (fenster.length > 0) {
+            waende.patchItems(
+              (w) => (w.type === 'window' ? stilPatch(v, w, activeLayerId) : {}),
+              t('vttSel.setWallStyle'),
+            );
+          }
+        }}
       />
       <p className="hint">{t('wallStyle.hint')}</p>
       <p className="hint">{t('opening.hint')}</p>
@@ -247,8 +358,14 @@ export function OpeningSettingsPanel({ kind }: { kind: 'door' | 'window' }) {
 
 export function LightSettingsPanel() {
   const { t } = useT();
-  const light = useEditor((s) => s.light);
-  const patch = useEditor((s) => s.patchLight);
+  const vorgabe = useEditor((s) => s.light);
+  const patchVorgabe = useEditor((s) => s.patchLight);
+  const { items: lights, patchItems } = useVttAuswahl<LightSource>('lights');
+  const light = lights[0] ?? vorgabe;
+  const patch = (p: Partial<typeof vorgabe>) => {
+    patchVorgabe(p);
+    patchItems(p as Record<string, unknown>, t('vttSel.setLight'), `licht-panel:${Object.keys(p).join(',')}`);
+  };
 
   return (
     <Section title={t('light.title')}>
@@ -284,6 +401,7 @@ export function LightSettingsPanel() {
         checked={light.shadows}
         onChange={(v) => patch({ shadows: v })}
       />
+      {lights.length > 0 ? <p className="hint">{t('vttSel.appliesTo', { count: lights.length })}</p> : null}
       <p className="hint">{t('light.hint')}</p>
     </Section>
   );
@@ -297,8 +415,14 @@ export function LightSettingsPanel() {
  */
 export function NoteSettingsPanel() {
   const { t } = useT();
-  const note = useEditor((s) => s.note);
-  const patch = useEditor((s) => s.patchNote);
+  const vorgabe = useEditor((s) => s.note);
+  const patchVorgabe = useEditor((s) => s.patchNote);
+  const { items: notes, patchItems } = useVttAuswahl<MapNote>('notes');
+  const note = notes[0] ?? vorgabe;
+  const patch = (p: Partial<typeof vorgabe>) => {
+    patchVorgabe(p);
+    patchItems(p as Record<string, unknown>, t('cmd.editNote'), `notiz-panel:${Object.keys(p).join(',')}`);
+  };
 
   return (
     <Section title={t('note.title')}>
@@ -522,8 +646,50 @@ export function LegendPanel() {
 /** Regionen: Fläche, Grenze und Name in einem Zug. */
 export function RegionSettingsPanel() {
   const { t } = useT();
-  const r = useEditor((s) => s.region);
-  const patch = useEditor((s) => s.patchRegion);
+  const vorgabe = useEditor((s) => s.region);
+  const patchVorgabe = useEditor((s) => s.patchRegion);
+  const doc = useEditor((s) => s.doc);
+  const selection = useEditor((s) => s.selection);
+  const exec = useEditor((s) => s.exec);
+  const rev = useEditor((s) => s.rev);
+  void rev;
+  const gewaehlt = selection.map((id) => doc.objects[id]).filter(Boolean);
+  // Flächen: geschlossene, gefüllte Polygone; Namen: Texte (so legt das Werkzeug sie an).
+  const flaechen = gewaehlt.filter(
+    (o): o is ShapeObject => o.kind === 'shape' && o.shape === 'polygon' && o.closed && !!o.fill && !o.vttLink,
+  );
+  const namen = gewaehlt.filter((o) => o.kind === 'text');
+  const f0 = flaechen[0];
+  const n0 = namen[0];
+  const r = {
+    ...vorgabe,
+    ...(f0?.fill ? { fillColor: f0.fill.color, fillAlpha: f0.fill.alpha } : {}),
+    ...(f0?.stroke ? { borderColor: f0.stroke.color, borderWidth: f0.stroke.width, dash: f0.stroke.dash } : {}),
+    ...(n0 && n0.kind === 'text' ? { labelSize: n0.fontSize, labelColor: n0.color } : {}),
+  };
+  const patch = (p: Partial<typeof vorgabe>) => {
+    patchVorgabe(p);
+    const map = new Map<string, Record<string, unknown>>();
+    for (const o of flaechen) {
+      const fill = { ...o.fill! };
+      if (p.fillColor !== undefined) fill.color = p.fillColor;
+      if (p.fillAlpha !== undefined) fill.alpha = p.fillAlpha;
+      const stroke = o.stroke ? { ...o.stroke } : { color: r.borderColor, width: r.borderWidth, alpha: 1, dash: [...r.dash] };
+      if (p.borderColor !== undefined) stroke.color = p.borderColor;
+      if (p.borderWidth !== undefined) stroke.width = p.borderWidth;
+      if (p.dash !== undefined) stroke.dash = [...p.dash];
+      map.set(o.id, { fill, stroke });
+    }
+    if (p.labelSize !== undefined || p.labelColor !== undefined) {
+      for (const o of namen) {
+        map.set(o.id, {
+          ...(p.labelSize !== undefined ? { fontSize: p.labelSize } : {}),
+          ...(p.labelColor !== undefined ? { color: p.labelColor } : {}),
+        });
+      }
+    }
+    if (map.size > 0) exec(new PatchObjects(map, t('cmd.region'), `region-panel:${Object.keys(p).join(',')}`));
+  };
 
   return (
     <Section title={t('region.title')}>
@@ -772,18 +938,25 @@ export function SelectFilterPanel() {
  * Steht neben dem Objekt-Inspektor, weil VTT-Elemente keine Layer-Objekte sind:
  * sie haben weder Drehung noch Deckkraft noch z-Reihenfolge.
  */
+const SETZ_WERKZEUGE = new Set(['wall', 'room', 'door', 'window', 'light', 'note']);
+
 export function VttSelectionInspector() {
   const { t } = useT();
   const doc = useEditor((s) => s.doc);
   const rev = useEditor((s) => s.rev);
   const sel = useEditor((s) => s.vttSelection);
   const exec = useEditor((s) => s.exec);
+  const tool = useEditor((s) => s.tool);
+  const activeLayerId = useEditor((s) => s.activeLayerId);
   void rev;
 
   const walls = doc.vtt.walls.filter((w) => sel.walls.includes(w.id));
   const portals = doc.vtt.portals.filter((p) => sel.portals.includes(p.id));
   const lights = doc.vtt.lights.filter((l) => sel.lights.includes(l.id));
   if (walls.length + portals.length + lights.length === 0) return null;
+  // Die Setz-Werkzeuge zeigen dieselben Regler schon in ihrem Panel, dort
+  // wirken sie auf das eben Gesetzte. Zweimal dieselben Regler verwirren.
+  if (SETZ_WERKZEUGE.has(tool)) return null;
 
   const patchMany = <T,>(
     kind: 'walls' | 'portals' | 'lights',
@@ -835,6 +1008,25 @@ export function VttSelectionInspector() {
               t('vttSel.setWallSenses'),
             )
           }
+        />
+      ) : null}
+
+      {walls.length + portals.length > 0 ? (
+        <Select<WallStyleId>
+          label={t('wallStyle.label')}
+          value={ohneStil((walls[0] ?? portals[0]).style)}
+          options={[
+            { value: 'none', label: t('wallStyle.none') },
+            ...WALL_STYLES.map((st) => ({ value: st.id, label: t(st.nameKey as StringKey) })),
+          ]}
+          onChange={(v) => {
+            if (walls.length > 0) {
+              exec(new PatchVttItems('walls', new Map(walls.map((w) => [w.id, stilPatch(v, w, activeLayerId)])), t('vttSel.setWallStyle')));
+            }
+            if (portals.length > 0) {
+              exec(new PatchVttItems('portals', new Map(portals.map((p) => [p.id, stilPatch(v, p, activeLayerId)])), t('vttSel.setWallStyle')));
+            }
+          }}
         />
       ) : null}
 

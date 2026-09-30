@@ -165,6 +165,43 @@ export function pickObject(
   return null;
 }
 
+/**
+ * Alle anfassbaren Objekte an einer Stelle, oberstes zuerst.
+ *
+ * Für das Durchklicken (Rückmeldung): liegen mehrere Objekte übereinander,
+ * wählt jeder weitere Klick an derselben Stelle das nächste darunter.
+ * Objekte einer Gruppe zählen einmal, sonst bliebe der Klick in der Gruppe
+ * hängen.
+ */
+export function pickAllObjects(
+  doc: MapDocument,
+  p: Point,
+  metrics?: TextMetrics,
+  accept?: (o: MapObject) => boolean,
+): MapObject[] {
+  const out: MapObject[] = [];
+  const gruppen = new Set<string>();
+  const layers = flattenLayers(doc);
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const layer = layers[i];
+    if (layer.isGroup || isSystemLayer(layer.id)) continue;
+    if (!isEffectivelyVisible(doc, layer.id)) continue;
+    const objects = objectsOfLayer(doc, layer.id);
+    for (let j = objects.length - 1; j >= 0; j--) {
+      const o = objects[j];
+      if (!isObjectEditable(doc, o.id)) continue;
+      if (accept && !accept(o)) continue;
+      if (!containsPoint(doc, o, p, metrics)) continue;
+      if (o.groupId) {
+        if (gruppen.has(o.groupId)) continue;
+        gruppen.add(o.groupId);
+      }
+      out.push(o);
+    }
+  }
+  return out;
+}
+
 /** Alle anfassbaren Objekte, deren Hülle im Rechteck liegt — Rubberband-Auswahl. */
 export function pickInRect(
   doc: MapDocument,
