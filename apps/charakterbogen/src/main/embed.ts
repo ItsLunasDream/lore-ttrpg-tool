@@ -12,7 +12,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
-import { alsKachel, alsMarkdown, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
+import { alsKachel, alsMarkdown, storyText, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
@@ -36,6 +36,14 @@ export interface BogenEmbedOptions {
     lootTabellen(sprache: 'de' | 'en'): Promise<{ id: string; name: string }[]>;
     lootWuerfle(tabellenId: string, sprache: 'de' | 'en'): Promise<string | null>;
   };
+  /** Notizen im Story Creator (ueber die Huelle). */
+  readonly story?: {
+    anlegen(titel: string, markdown: string): Promise<{ ok: boolean; text: string; kennung?: string }>;
+    /** Holt den Story Creator nach vorn und zeigt die Notiz; `false`, wenn es sie nicht mehr gibt. */
+    oeffne(kennung: string): Promise<boolean>;
+  };
+  /** Eigene Zustaende aus dem Status Effect Creator. */
+  readonly eigeneZustaende?: () => Promise<{ name: string; text: string }[]>;
   /** Der Raum der Huelle, wenn es einen gibt: Boegen live teilen. */
   readonly raum?: {
     sende(inhalt: string, an: string | null): boolean;
@@ -246,6 +254,31 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
     }
   });
 
+  /** Eine Notiz fuer diese Figur im Story Creator: die Lesefassung ohne Kopf und Datenblock. */
+  handle('story:anlegen', async (_e: never, roh: unknown) => {
+    if (!options.story) return { ok: false, text: '' };
+    const b = bereinige(roh, 'story');
+    try {
+      return await options.story.anlegen(b.name, storyText(b, sprache));
+    } catch (fehler) {
+      return { ok: false, text: fehler instanceof Error ? fehler.message : String(fehler) };
+    }
+  });
+  handle('story:oeffne', async (_e: never, kennung: string) => {
+    try {
+      return (await options.story?.oeffne(String(kennung))) ?? false;
+    } catch {
+      return false;
+    }
+  });
+  handle('zustaende:eigene', async () => {
+    try {
+      return ((await options.eigeneZustaende?.()) ?? []).slice(0, 500).map((z) => ({ name: z.name, text: z.text.slice(0, 2000) }));
+    } catch {
+      return [];
+    }
+  });
+
   /** Figuren in den Initiative Tracker (neu oder aufgefrischt), vom Knopf am Bogen. */
   handle('tracker', (ereignis: never, figuren: Figur[]) => {
     merkeOberflaeche(ereignis);
@@ -442,7 +475,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:oeffne', 'zustaende:eigene']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

@@ -226,6 +226,8 @@ export interface MontageHaken {
   readonly figurenAnTracker?: (figuren: readonly unknown[], hinzufuegen: boolean) => void;
   /** Neue TP aus dem Tracker an den Charakterbogen. */
   readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
+  /** Holt den Story Creator nach vorn und zeigt eine Notiz (`<Kampagne>/<Notiz>`). */
+  readonly zeigeInStory?: (kennung: string) => void;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -685,7 +687,7 @@ async function legeNotizAn(
   markdown: string,
   wuensche: readonly string[],
   haken: MontageHaken
-): Promise<{ ok: boolean; text: string }> {
+): Promise<{ ok: boolean; text: string; kennung?: string }> {
   if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
   if (!backstoryEmbed) {
     return { ok: false, text: OHNE_STORY() };
@@ -697,9 +699,11 @@ async function legeNotizAn(
   const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
   const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
   const typ = passenderNotiztyp(kampagne, wuensche);
+  let kennung: string;
   try {
     const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
     await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+    kennung = `${kampagne.id}/${notiz.id}`;
   } catch (fehler) {
     return { ok: false, text: fehlerText(fehler) };
   }
@@ -710,7 +714,20 @@ async function legeNotizAn(
     backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
   }
   haken.onEreignis?.('backstory');
-  return { ok: true, text: `${titel} → ${kampagne.name}` };
+  return { ok: true, text: `${titel} → ${kampagne.name}`, kennung };
+}
+
+/** Gibt es die Notiz `<Kampagne>/<Notiz>` noch? */
+async function storyNotizDa(kennung: string, haken: MontageHaken): Promise<boolean> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
+  const teiler = kennung.indexOf('/');
+  if (!backstoryEmbed || teiler <= 0) return false;
+  try {
+    await backstoryEmbed.vault.getNote(kennung.slice(0, teiler), kennung.slice(teiler + 1));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -1551,6 +1568,15 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
         }
       : undefined,
     tracker: (figuren, hinzufuegen) => haken.figurenAnTracker?.(figuren, hinzufuegen),
+    story: {
+      anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['character', 'npc', 'creature', 'note'], haken),
+      oeffne: async (kennung) => {
+        if (!(await storyNotizDa(kennung, haken))) return false;
+        haken.zeigeInStory?.(kennung);
+        return true;
+      }
+    },
+    eigeneZustaende: async () => (await leseEigeneZustaende()).map((z) => ({ name: z.name, text: z.text })),
     // Quellen fuers Inventar aus anderen Werkzeugen. Die Werkzeuge kennen
     // einander nicht; die Huelle liest fuer den Charakterbogen mit.
     quellen: {

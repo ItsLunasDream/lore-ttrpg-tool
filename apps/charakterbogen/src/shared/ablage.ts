@@ -205,6 +205,14 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
   return [...kopf, ...teile, MARKE, JSON.stringify(b, null, 2), '```', ''].join('\n');
 }
 
+/** Fuer eine Notiz im Story Creator: die Lesefassung ohne YAML-Kopf, Titelzeile und Datenblock. */
+export function storyText(b: Bogen, sprache: Sprache): string {
+  const md = alsMarkdown(b, sprache);
+  const ohneKopf = md.replace(/^---\n[\s\S]*?\n---\n/, '');
+  const ohneBlock = ohneKopf.slice(0, ohneKopf.lastIndexOf(MARKE));
+  return ohneBlock.replace(/^# .*\n\n?/, '').trim() + '\n';
+}
+
 /** Liest eine Datei. Ohne JSON-Block (etwa von Hand angelegt) wird es ein leerer Bogen mit dem Namen aus dem Kopf. */
 export function leseBogen(inhalt: string, id: string): Bogen {
   const start = inhalt.lastIndexOf(MARKE);

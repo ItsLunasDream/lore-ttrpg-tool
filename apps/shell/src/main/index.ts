@@ -433,6 +433,20 @@ async function oeffneBegegnungImTracker(uebergabe: Uebergabe): Promise<boolean> 
   return true;
 }
 
+/** Eine Notiz, die der Story Creator nach dem Laden zeigen soll (vom Charakterbogen). */
+let wartendeStoryNotiz: string | null = null;
+
+function zeigeInStory(kennung: string): void {
+  if (!huelle) return;
+  const montiert = offen.get('backstory');
+  if (aktiveApp === 'backstory' && montiert?.istGeladen()) {
+    void montiert.zeigeEintrag?.(kennung);
+  } else {
+    wartendeStoryNotiz = kennung;
+  }
+  huelle.webContents.send('app:oeffne', 'backstory');
+}
+
 /** Figuren aus dem Charakterbogen, die auf einen noch nicht geladenen Tracker warten. */
 let wartendeFiguren: readonly unknown[] | null = null;
 
@@ -551,6 +565,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     oeffneKarte: oeffneKarteImEditor,
     inDenTracker: oeffneBegegnungImTracker,
     figurenAnTracker,
+    zeigeInStory,
     bogenTp: (kennung, hp, temp) =>
       void montiereImHintergrund('charakterbogen')
         .then(() => offen.get('charakterbogen')?.setzeTp?.(kennung, hp, temp))
@@ -1544,6 +1559,13 @@ function registriereKanaele(): void {
     if (wartendeKarte && montiert.neueKarte) {
       montiert.neueKarte(wartendeKarte.name, wartendeKarte.notizen);
       wartendeKarte = null;
+    }
+
+    // Eine Notiz, die der Charakterbogen im Story Creator zeigen will.
+    if (id === 'backstory' && wartendeStoryNotiz && montiert.zeigeEintrag) {
+      const kennung = wartendeStoryNotiz;
+      wartendeStoryNotiz = null;
+      void montiert.zeigeEintrag(kennung);
     }
 
     // Figuren aus dem Charakterbogen, die auf den Tracker warten.

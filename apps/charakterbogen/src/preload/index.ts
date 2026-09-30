@@ -63,6 +63,13 @@ const api = {
     lootTabellen: () => ipcRenderer.invoke(kanal('quellen:lootTabellen')) as Promise<{ id: string; name: string }[]>,
     lootWuerfle: (id: string) => ipcRenderer.invoke(kanal('quellen:lootWuerfle'), id) as Promise<string | null>
   },
+  /** Notiz im Story Creator anlegen oder oeffnen. */
+  story: {
+    anlegen: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:anlegen'), bogen) as Promise<{ ok: boolean; text: string; kennung?: string }>,
+    oeffne: (kennung: string) => ipcRenderer.invoke(kanal('story:oeffne'), kennung) as Promise<boolean>
+  },
+  /** Eigene Zustaende aus dem Status Effect Creator. */
+  eigeneZustaende: () => ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<{ name: string; text: string }[]>,
   /** Figuren in den Initiative Tracker. */
   tracker: (figuren: Figur[]) => ipcRenderer.invoke(kanal('tracker'), figuren) as Promise<boolean>,
   /** Ein Bogen wurde von aussen geaendert (Initiative Tracker). */

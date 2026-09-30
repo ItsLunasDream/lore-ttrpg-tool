@@ -93,6 +93,13 @@ steht nicht im SRD und ist nicht frei lizenziert — auch nicht „nur die
 Zahlen". Wer die Richtwerte erweitert, nimmt sie aus einer Quelle, deren
 Lizenz das erlaubt, und trägt sie hier ein.
 
+## Schriften
+
+Der Charakterbogen liefert freie Schriften mit (Alegreya, Cinzel, IM Fell
+English, MedievalSharp, Uncial Antiqua, Caveat). Sie stehen unter der SIL
+Open Font License 1.1; Urheber und Lizenztexte stehen in
+[apps/charakterbogen/SCHRIFTEN.md](apps/charakterbogen/SCHRIFTEN.md).
+
 ## Bibliotheken
 
 Die Abhängigkeiten aus `node_modules` sind nicht einzeln aufgeführt; ihre
