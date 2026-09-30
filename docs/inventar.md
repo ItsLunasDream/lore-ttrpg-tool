@@ -6,6 +6,8 @@ dort ohnehin um Dinge geht, die zwischen Personen wandern, und weil der Raum
 dort schon offen ist.
 
 **Stand:** Konzept, nichts davon ist gebaut. Offene Fragen stehen am Ende.
+Der Charakterbogen (`docs/charakterbogen.md`) nimmt dieses Inventar auf und
+ersetzt den Abschnitt „Im Raum“; Frage 1 und 4 beantwortet er dort.
 
 ## Was es können soll
 

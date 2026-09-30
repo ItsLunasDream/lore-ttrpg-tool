@@ -57,7 +57,8 @@ gespeichert: er lebt nur, solange der Raum offen ist (entschieden).
   Grenze: wer das Passwort kennt, kann mitlesen. **Ohne Passwort** bleibt
   der Raum offen; die App sagt das beim Eröffnen und bei Direktnachrichten
   und zeigt im Raum „verschlüsselt“ oder „nicht verschlüsselt“.
-- **Über das Internet** (Häkchen „Auch über das Internet“): der Raum
+- **Über das Internet** (Häkchen „Auch über das Internet“, Anleitung für
+  Gastgeber in `docs/raum-online.md`): der Raum
   bekommt einen **festen Port** (Vorgabe 47812) und **braucht ein
   Passwort**. Der Gastgeber lauscht auf IPv4 und IPv6. Erreichbar ist er
   - per **Portfreigabe** (IPv4): im Router den TCP-Port an die lokale

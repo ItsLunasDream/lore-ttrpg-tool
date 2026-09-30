@@ -326,10 +326,12 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `statuseffekte.md` | Status Effect Creator |
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Sharing and rooms |
+| `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
 | `magicitems.md` | Magic Item Creator |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
+| `charakterbogen.md` | Character sheet with inventory and room roles (concept, not built) |
 
 ## License
 

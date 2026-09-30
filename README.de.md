@@ -344,10 +344,12 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `statuseffekte.md` | Status Effect Creator |
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Teilen und Räume |
+| `raum-online.md` | Anleitung: Raum übers Internet (Portfreigabe, IPv6) |
 | `magicitems.md` | Magic Item Creator |
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Konzept, nicht gebaut) |
 
 ## Lizenz
 
