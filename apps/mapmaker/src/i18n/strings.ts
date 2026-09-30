@@ -676,6 +676,7 @@ export const strings = {
   'pattern.tiles': ['Platten', 'Tiles'],
   'pattern.dots': ['Punkte', 'Dots'],
   'pattern.scales': ['Schuppen', 'Scales'],
+  'pattern.waves': ['Wellen', 'Waves'],
   'draw.gradientAngle': ['Richtung', 'Direction'],
   'draw.smoothing': ['Glättung', 'Smoothing'],
   'draw.blend': ['Blendmodus', 'Blend mode'],
@@ -774,6 +775,11 @@ export const strings = {
   'terrain.width': ['Breite', 'Width'],
   'terrain.opacity': ['Deckkraft', 'Opacity'],
   'terrain.smoothing': ['Glättung', 'Smoothing'],
+  'terrain.water': ['Wasser (Fluss, See)', 'Water (river, lake)'],
+  'terrain.waterHint': [
+    'Malt Wasser mit Wellen und heller Uferkante. Für einen Fluss einfach ziehen; für einen See den Umriss umfahren und am Anfang enden.',
+    'Paints water with waves and a light shoreline. For a river just drag; for a lake trace the outline and end where you started.',
+  ],
   'terrain.hint': [
     'Ziehen malt eine Fläche in Pinselbreite — für Wege, Wiesen und Schlammlöcher. Das Ergebnis ist eine gewöhnliche Zeichnung. Eine weiche Kante bekommt man am saubersten über einen kleinen Weichzeichner auf diesem Layer (Filter-Panel).',
     'Dragging paints an area at brush width — for paths, meadows and mud. The result is an ordinary drawing. For a soft edge, a small blur on this layer works best (filter panel).',

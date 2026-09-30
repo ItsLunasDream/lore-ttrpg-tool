@@ -218,6 +218,8 @@ export interface TerrainSettings {
   width: number;
   /** Glättung der Mittellinie, 0–1. */
   smoothing: number;
+  /** Wasser statt Boden: Wellen, Uferkante, umfahrener Umriss wird zum See. */
+  water?: boolean;
 }
 
 export function defaultTerrain(): TerrainSettings {

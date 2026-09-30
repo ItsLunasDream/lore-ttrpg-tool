@@ -21,6 +21,7 @@ import { nextZ } from '@/model/document';
 import type { ShapeObject } from '@/model/types';
 import type { Tool, ToolContext, ToolPointerEvent } from './types';
 import { t } from '@/i18n';
+import { istRundum, wasserAussehen } from '@/model/wasser';
 
 export class TerrainTool implements Tool {
   readonly cursor = 'crosshair';
@@ -55,7 +56,7 @@ export class TerrainTool implements Tool {
     const s = ctx.state.terrain;
     const mittellinie = this.aufbereiten(s.smoothing);
     if (mittellinie.length >= 4) {
-      const band = strokeBand(mittellinie, s.width / 2);
+      const band = this.form(mittellinie, ctx);
       // Ursprung auf den ersten Punkt legen, wie bei jeder anderen Zeichnung —
       // sonst ließe sich die Fläche später nicht um ihre Mitte drehen.
       const ox = band[0];
@@ -77,8 +78,9 @@ export class TerrainTool implements Tool {
         points: lokal,
         closed: true,
         blend: 'normal',
-        stroke: null,
-        fill: { color: s.color, alpha: s.alpha },
+        ...(s.water
+          ? wasserAussehen(s.color, s.alpha, ctx.doc.grid.tileSize)
+          : { stroke: null, fill: { color: s.color, alpha: s.alpha } }),
       };
       ctx.exec(new AddObjects([obj], t('cmd.terrain')));
       ctx.state.setSelection([obj.id]);
@@ -106,6 +108,13 @@ export class TerrainTool implements Tool {
     if (this.points.length < 4) return this.points;
     const duenn = dropDensePoints(this.points, 4);
     return smoothing > 0 ? smoothStroke(duenn, smoothing) : duenn;
+  }
+
+  /** Band in Pinselbreite — oder beim Wasser der umfahrene See. */
+  private form(mittellinie: number[], ctx: ToolContext): number[] {
+    const s = ctx.state.terrain;
+    if (s.water && istRundum(mittellinie, s.width, ctx.doc.grid.tileSize)) return mittellinie;
+    return strokeBand(mittellinie, s.width / 2);
   }
 
   private attach(ctx: ToolContext): void {
@@ -143,7 +152,7 @@ export class TerrainTool implements Tool {
     if (this.points.length < 4) return;
     const mittellinie = this.aufbereiten(s.smoothing);
     if (mittellinie.length < 4) return;
-    const band = strokeBand(mittellinie, s.width / 2);
+    const band = this.form(mittellinie, ctx);
     if (band.length < 6) return;
     this.preview
       .poly(band)

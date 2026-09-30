@@ -25,6 +25,8 @@ import { getProp, propName } from '@/assets/library';
 import { importFont, importedFonts } from '@/assets/fontStore';
 import { worldAABB } from '@/engine/hitTest';
 import type { DrawSettings, RouteSettings } from '@/model/toolSettings';
+import { defaultTerrain } from '@/model/toolSettings';
+import { istWasser, WASSER_FARBE } from '@/model/wasser';
 import type { PropLight } from '@/model/types';
 import { lichtFuerProp } from '@/assets/propLights';
 import { PATTERN_KINDS } from '@/model/types';
@@ -338,7 +340,7 @@ export function TerrainSettingsPanel() {
   // Terrainflächen: gefüllte, ungestrichene Polygone (so legt der Pinsel sie an).
   const flaechen = selection
     .map((id) => doc.objects[id])
-    .filter((o): o is ShapeObj => !!o && o.kind === 'shape' && o.shape === 'polygon' && !!o.fill && !o.stroke);
+    .filter((o): o is ShapeObj => !!o && o.kind === 'shape' && o.shape === 'polygon' && !!o.fill && (!o.stroke || istWasser(o.fill)));
   const f0 = flaechen[0];
   const terrain = f0?.fill ? { ...vorgabe, color: f0.fill.color, alpha: f0.fill.alpha } : vorgabe;
   /** Farbe und Deckkraft wirken auch auf die Auswahl; Breite und Glättung stecken in der Form. */
@@ -361,6 +363,19 @@ export function TerrainSettingsPanel() {
 
   return (
     <Section title={t('terrain.title')}>
+      <Toggle
+        label={t('terrain.water')}
+        checked={!!vorgabe.water}
+        onChange={(v) =>
+          // Beim Umschalten auf Wasser die Bodenfarbe gegen Wasserblau
+          // tauschen; eine selbst gewählte Farbe bleibt.
+          patchVorgabe({
+            water: v,
+            ...(v && vorgabe.color === defaultTerrain().color ? { color: WASSER_FARBE } : {}),
+            ...(!v && vorgabe.color === WASSER_FARBE ? { color: defaultTerrain().color } : {}),
+          })
+        }
+      />
       <ColorField label={t('terrain.color')} value={terrain.color} onChange={(v) => patch({ color: v })} />
       <Slider
         label={t('terrain.width')}
@@ -390,7 +405,7 @@ export function TerrainSettingsPanel() {
         format={pct}
       />
       {flaechen.length > 0 ? <p className="hint">{t('terrain.selectionHint')}</p> : null}
-      <p className="hint">{t('terrain.hint')}</p>
+      <p className="hint">{t(vorgabe.water ? 'terrain.waterHint' : 'terrain.hint')}</p>
     </Section>
   );
 }

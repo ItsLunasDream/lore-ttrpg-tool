@@ -304,7 +304,8 @@ export type PatternKind =
   | 'planks'
   | 'tiles'
   | 'dots'
-  | 'scales';
+  | 'scales'
+  | 'waves';
 
 export const PATTERN_KINDS: PatternKind[] = [
   'hatch',
@@ -314,6 +315,7 @@ export const PATTERN_KINDS: PatternKind[] = [
   'tiles',
   'dots',
   'scales',
+  'waves',
 ];
 
 export interface Fill {
