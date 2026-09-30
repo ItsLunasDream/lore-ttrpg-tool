@@ -6,7 +6,7 @@ live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
-**Stand:** Schritte 1 bis 3 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner). Ab Schritt 4 (Raum) ist es Konzept. Es nimmt `docs/inventar.md`
+**Stand:** Schritte 1 bis 4 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner; Rollen im Raum, Tischschlüssel, gespeicherte Räume). Ab Schritt 5 (Bögen live im Raum) ist es Konzept. Es nimmt `docs/inventar.md`
 auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
 Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 überdauern den Raum. Offene Fragen stehen am Ende.
@@ -144,9 +144,27 @@ Neu am Bogen:
   einmal ein zufälliges Schlüsselpaar an und beweist beim Beitreten, dass
   sie den geheimen Teil hat. Am Namen allein geht es nicht, sonst bekäme
   jede:r SL-Rechte, der sich so nennt wie die SL. Wer die App neu
-  installiert oder den Rechner wechselt, bekommt die Rolle einmal von Hand
-  neu. Das braucht eine Erweiterung des Raumprotokolls (Nachweis im
-  `hallo`).
+  installiert, bekommt die Rolle einmal von Hand neu. Wer den Rechner mit
+  einer Sicherung der Sammlung wechselt, behält den Schlüssel (er liegt als
+  `tischschluessel.json` im Datenordner und ist in der Sicherung). Eine
+  Sicherung deshalb nicht weitergeben: wer sie hat, kann sich als diese
+  Person ausweisen.
+
+**Gebaut (Schritt 4):**
+
+- Protokoll: `hallo` trägt optional den öffentlichen Schlüssel (Ed25519,
+  SPKI) und eine Unterschrift über `Zufallszahl:Raumname`; ohne gültige
+  Unterschrift gilt der Schlüssel nicht. `Person.sl` und die Nachricht
+  `rolle` sind neu, alle Felder optional, die Protokollversion bleibt 2.
+  Ältere Gäste kommen also weiter herein, nur ohne Wiedererkennung.
+- Ernennen darf jede SL; gibt es keine SL, der Gastgeber. Die letzte SL kann
+  nicht abgeben. Ein Gast bittet den Gastgeber, der prüft.
+- Im Reiter Raum: Haken „Ich leite (SL)“, Marke „SL“ an Namen, Rechtsklick
+  (oder Menütaste) auf einen Namen für „Zur SL machen“ / „SL-Rolle abgeben“.
+- Würfel: „Nur an SL“ geht an jede SL im Raum als eigene Direktnachricht.
+  Ist man selbst die einzige SL, bleibt der Wurf verdeckt hier.
+- Noch nicht: Zuschauer:innen und die Rechte an Bögen. Beides kommt mit
+  Schritt 5, weil es erst dann etwas zu schützen gibt.
 
 **Freigabe eines Bogens** für die anderen Spieler:innen, einstellbar je
 Bogen: *nichts*, *Übersicht* (Name, Klasse, Stufe, TP-Stufe, RK, Zustände)
@@ -243,13 +261,20 @@ was man zum Mitlesen braucht.
 
 **Bedienung:**
 
-- Gespeichert wird von selbst: beim Schließen des Raums und alle paar
-  Minuten, solange er offen ist. Ein neuer Raum fragt beim Eröffnen:
-  „Neu“ oder „Gespeicherten Raum fortsetzen“.
+- Gespeichert wird von selbst: beim Eröffnen und bei jeder Änderung einer
+  Rolle (gebaut). Ab Schritt 6 auch bei jeder Änderung am Gruppeninventar.
+  Fortsetzen geht über „Meine Räume“: Name, Internet und Port werden
+  eingetragen, das Passwort nicht. Beim Fortsetzen entscheiden die gemerkten
+  Rollen, der Haken „Ich leite“ entfällt.
 - Im Reiter Raum steht eine Liste **„Meine Räume“**: fortsetzen, umbenennen,
-  löschen, als Datei exportieren.
-- **Gastgeber wechseln**: Export als Paketdatei, die neue Person liest sie
-  ein und eröffnet den Raum bei sich. Rollen und Gruppeninventar kommen mit.
+  löschen (mit Rückfrage), als Datei exportieren, einlesen (gebaut).
+- **Gastgeber wechseln**: Export als Datei (`*.lore-raum.json`), die neue
+  Person liest sie ein und eröffnet den Raum bei sich. Die Rollen kommen mit;
+  der Schlüssel der alten Gastgeberin steht darin wie jeder andere, sie wird
+  also als Gast wiedererkannt. Das Gruppeninventar folgt mit Schritt 6.
+- Die Einstellungen des Raums (aus dem Gruppeninventar nehmen, SL-Änderungen
+  markieren) stehen schon in der Datei, Vorgabe jeweils ja. Eine Oberfläche
+  dafür kommt mit Schritt 5 und 6, wenn sie etwas bewirken.
 - Ablage: eine Datei je Raum im Datenordner der Hülle
   (`userData/raeume/<id>.json`), in der Sicherung der Sammlung enthalten.
 
@@ -259,8 +284,9 @@ was man zum Mitlesen braucht.
   RK, TP, Initiativebonus). Schaden im geteilten Kampf schreibt in den Bogen
   und umgekehrt. Heute ordnet der Tracker Figuren einer Person zu; das
   würde zur Zuordnung zu einem Bogen.
-- **SL-Rolle für alle Werkzeuge**: Der Würfel schickt heute „Nur an SL“ an
-  den Gastgeber. Mit Rollen ginge das an alle SL. Ebenso im geteilten Kampf.
+- **SL-Rolle für alle Werkzeuge**: Der Würfel schickt „Nur an SL“ an alle
+  SL (gebaut). Werkzeuge bekommen die Rollen über die Personenliste
+  (`sl` an der Person). Im geteilten Kampf ist das noch offen.
 - **Encounter Creator**: Gruppengröße und Stufen aus den Bögen im Raum.
 - **Loot Generator**: „Ins Inventar“ zeigt auch die Gruppeninventare.
 - **Story Creator**: Bogen als Notiz exportieren (Werte als Steckbrief).

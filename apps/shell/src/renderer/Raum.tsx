@@ -15,8 +15,10 @@
  * Ein geschlossener Dialog verliert also nichts.
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { MessageKey, MessageParams } from '../shared/i18n';
 import type { Chatzeile, GefundenerRaum, Raumzustand } from '../main/raum';
+import type { GespeicherterRaum } from '../main/raeume';
 import { alsAdresse, leseAdresse, RAUM_INTERNETPORT } from '@suite/austausch';
 
 interface Props {
@@ -37,6 +39,14 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [an, setAn] = useState('');
   const [internet, setInternet] = useState(false);
   const [internetPort, setInternetPort] = useState(String(RAUM_INTERNETPORT));
+  // Rollen und gespeicherte Raeume (docs/charakterbogen.md).
+  const [ichLeite, setIchLeite] = useState(true);
+  const [gespeicherte, setGespeicherte] = useState<readonly GespeicherterRaum[]>([]);
+  const [fortsetzen, setFortsetzen] = useState<GespeicherterRaum | null>(null);
+  const [loeschFrage, setLoeschFrage] = useState<string | null>(null);
+  const [umbenennenId, setUmbenennenId] = useState<string | null>(null);
+  const [umbenennenText, setUmbenennenText] = useState('');
+  const [menue, setMenue] = useState<{ id: string; x: number; y: number } | null>(null);
   const [eigenerFehler, setEigenerFehler] = useState('');
   const [oeffentlich, setOeffentlich] = useState<string | null | 'fragt' | 'fehlt'>(null);
   const [kopiert, setKopiert] = useState('');
@@ -74,7 +84,23 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
 
   useEffect(() => {
     void window.shell.raum.suchen();
+    void window.shell.raum.gespeicherte().then(setGespeicherte);
+    return window.shell.raum.beiEreignis((e) => {
+      if (e.art === 'gespeichert') setGespeicherte(e.raeume);
+    });
   }, []);
+  // Ein Rechtsklickmenue schliesst bei jedem Klick daneben und mit Escape.
+  useEffect(() => {
+    if (!menue) return;
+    const zu = () => setMenue(null);
+    const taste = (e: KeyboardEvent) => e.key === 'Escape' && zu();
+    window.addEventListener('click', zu);
+    window.addEventListener('keydown', taste);
+    return () => {
+      window.removeEventListener('click', zu);
+      window.removeEventListener('keydown', taste);
+    };
+  }, [menue]);
   // Der Name kann sich im Raum geaendert haben; nach dem Verlassen steht hier der aktuelle.
   useEffect(() => {
     if (zustand.rolle === 'aus') void window.shell.einstellungen.lesen().then((e) => setName(e.tischName));
@@ -110,13 +136,32 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const eroeffnen = () => {
     setEigenerFehler('');
     void window.shell.raum
-      .eroeffnen(raumName, passwort, internet ? { internet: true, port: portZahl } : {})
+      .eroeffnen(raumName, passwort, {
+        ...(internet ? { internet: true, port: portZahl } : {}),
+        // Beim Fortsetzen entscheiden die gemerkten Rollen, sonst der Haken.
+        ...(fortsetzen ? { raumId: fortsetzen.id } : { sl: ichLeite })
+      })
       .then((antwort) => {
+        if (antwort.ok) setFortsetzen(null);
         if (!antwort.ok) {
           const grund = antwort.grund === 'passwort-noetig' || antwort.grund === 'port-belegt' ? antwort.grund : 'eroeffnen';
           setEigenerFehler(t(`room.error.${grund}` as MessageKey, { port: internetPort }));
         }
       });
+  };
+
+  const setzeFort = (r: GespeicherterRaum) => {
+    setFortsetzen(r);
+    setRaumName(r.name);
+    setInternet(r.internet);
+    if (r.port) setInternetPort(String(r.port));
+    setPasswort('');
+    setEigenerFehler('');
+  };
+  const leseRaumEin = () => {
+    void window.shell.raum.gespeichertImport().then((a) => {
+      if (!a.ok && !a.abgebrochen) setEigenerFehler(t('room.importFailed'));
+    });
   };
 
   const speichereName = (neu: string) => {
@@ -280,10 +325,24 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             title={internet && !passwort ? t('room.hint.password') : internet && !portGut ? t('room.hint.port') : undefined}
             onClick={eroeffnen}
           >
-            {t('room.openButton')}
+            {fortsetzen ? t('room.resumeButton') : t('room.openButton')}
           </button>
         </div>
+        {fortsetzen && (
+          <p className="einst__satz" data-raum-fortsetzen={fortsetzen.name}>
+            {t('room.resuming', { name: fortsetzen.name })}{' '}
+            <button type="button" className="dialog__knopf" onClick={() => setFortsetzen(null)}>
+              {t('room.newInstead')}
+            </button>
+          </p>
+        )}
         <div className="raum__reihe">
+          {!fortsetzen && (
+            <label className="raum__schalter" title={t('room.gmHint')}>
+              <input type="checkbox" data-raum-sl checked={ichLeite} onChange={(e) => setIchLeite(e.target.checked)} />
+              {t('room.gm')}
+            </label>
+          )}
           <label className="raum__schalter">
             <input type="checkbox" data-raum-internet checked={internet} onChange={(e) => setInternet(e.target.checked)} />
             {t('room.internet')}
@@ -307,6 +366,79 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             {eigenerFehler}
           </p>
         )}
+        <section className="raum__gespeichert" data-raum-gespeichert>
+          <div className="raum__suchkopf">
+            <h3 className="raum__kopf">{t('room.saved')}</h3>
+            <button type="button" className="dialog__knopf" data-raum-einlesen onClick={leseRaumEin}>
+              {t('room.import')}
+            </button>
+          </div>
+          {gespeicherte.length === 0 ? (
+            <p className="einst__satz">{t('room.savedEmpty')}</p>
+          ) : (
+            <ul className="austausch__liste">
+              {gespeicherte.map((r) => (
+                <li key={r.id} className="austausch__zeile" data-gespeichert={r.name}>
+                  {umbenennenId === r.id ? (
+                    <input
+                      className="suche__feld raum__eingabe"
+                      autoFocus
+                      value={umbenennenText}
+                      maxLength={60}
+                      onChange={(e) => setUmbenennenText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setUmbenennenId(null);
+                        if (e.key === 'Enter' && umbenennenText.trim()) {
+                          void window.shell.raum.gespeichertUmbenennen(r.id, umbenennenText).then(() => setUmbenennenId(null));
+                        }
+                      }}
+                      onBlur={() => setUmbenennenId(null)}
+                    />
+                  ) : (
+                    <span className="austausch__name">{r.name}</span>
+                  )}
+                  <span className="austausch__art">
+                    {t('room.savedRoles', { anzahl: Object.keys(r.rollen).length })}
+                    {r.internet ? ` · ${t('room.savedInternet')}` : ''}
+                  </span>
+                  <span className="raum__knoepfe">
+                    <button type="button" className="dialog__knopf" data-fortsetzen={r.name} onClick={() => setzeFort(r)}>
+                      {t('room.resume')}
+                    </button>
+                    <button
+                      type="button"
+                      className="dialog__knopf"
+                      onClick={() => {
+                        setUmbenennenId(r.id);
+                        setUmbenennenText(r.name);
+                      }}
+                    >
+                      {t('room.renameSaved')}
+                    </button>
+                    <button type="button" className="dialog__knopf" onClick={() => void window.shell.raum.gespeichertExport(r.id)}>
+                      {t('room.export')}
+                    </button>
+                    {/* Loeschen nur mit zweitem Klick: der Raum traegt die Rollen der Runde. */}
+                    <button
+                      type="button"
+                      className="dialog__knopf"
+                      data-loeschen={r.name}
+                      onClick={() => {
+                        if (loeschFrage !== r.id) return setLoeschFrage(r.id);
+                        setLoeschFrage(null);
+                        if (fortsetzen?.id === r.id) setFortsetzen(null);
+                        void window.shell.raum.gespeichertLoeschen(r.id);
+                      }}
+                      onBlur={() => setLoeschFrage((alt) => (alt === r.id ? null : alt))}
+                    >
+                      {loeschFrage === r.id ? t('room.deleteConfirm') : t('room.delete')}
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
         {zustand.letzter && (
           <section className="raum__letzter" data-raum-letzter>
             <div className="raum__suchkopf">
@@ -325,6 +457,11 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   }
 
   const andere = zustand.personen.filter((p) => p.id !== zustand.ich?.id);
+  // Rollen vergeben darf jede SL; gibt es keine, der Gastgeber (wie im Raumdienst).
+  const slZahl = zustand.personen.filter((p) => p.sl).length;
+  const ichBinSl = zustand.personen.some((p) => p.id === zustand.ich?.id && p.sl);
+  const darfRollen = ichBinSl || (slZahl === 0 && zustand.rolle === 'gastgeber');
+  const menuePerson = menue ? zustand.personen.find((p) => p.id === menue.id) : undefined;
   const umbenennen = () => {
     if (!neuerName.trim() || neuerName.trim() === zustand.ich?.name) return;
     void window.shell.raum.umbenennen(neuerName).then((ok) => ok && setNeuerName(''));
@@ -406,14 +543,66 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
       <p className="austausch__art" data-personen>
         {t('room.people')}:{' '}
         {zustand.personen.map((p, i) => (
-          <span key={p.id} data-person={p.name}>
+          <span
+            key={p.id}
+            data-person={p.name}
+            data-sl={p.sl === true}
+            tabIndex={darfRollen ? 0 : undefined}
+            className={darfRollen ? 'raum__person' : undefined}
+            onContextMenu={(e) => {
+              if (!darfRollen) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setMenue({ id: p.id, x: e.clientX, y: e.clientY });
+            }}
+          >
             {i > 0 ? ', ' : ''}
             {p.name}
+            {p.sl && (
+              <span className="raum__marke raum__sl" title={t('room.gmHint')}>
+                {t('room.gmBadge')}
+              </span>
+            )}
             {/* Beim Gastgeber: der Ping zu jedem Gast. */}
             {zustand.pings[p.id] !== undefined && <span className="raum__personping"> ({zustand.pings[p.id]} ms)</span>}
           </span>
         ))}
       </p>
+      {/* Ueber ein Portal: im Dialog (mit Transform) waere `position: fixed` nicht am Fenster ausgerichtet. */}
+      {menue &&
+        menuePerson &&
+        createPortal(
+          <div className="raum__menue" role="menu" style={{ left: menue.x, top: menue.y }} data-raum-menue onClick={(e) => e.stopPropagation()}>
+            {menuePerson.sl ? (
+              <button
+                type="button"
+                role="menuitem"
+                data-sl-abgeben
+                disabled={slZahl <= 1}
+                title={slZahl <= 1 ? t('room.lastGm') : undefined}
+                onClick={() => {
+                  setMenue(null);
+                  void window.shell.raum.rolle(menuePerson.id, false);
+                }}
+              >
+                {t('room.dropGm')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                data-sl-machen
+                onClick={() => {
+                  setMenue(null);
+                  void window.shell.raum.rolle(menuePerson.id, true);
+                }}
+              >
+                {t('room.makeGm')}
+              </button>
+            )}
+          </div>,
+          document.body
+        )}
       <div className="raum__chat" ref={liste} data-chat>
         {zustand.chat.length === 0 ? (
           <p className="einst__satz">{t('room.emptyChat')}</p>

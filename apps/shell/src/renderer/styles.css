@@ -1923,6 +1923,69 @@ body {
   opacity: 0.8;
 }
 
+.raum__sl {
+  margin-left: 4px;
+  padding: 0 6px;
+  border-color: var(--fest);
+  color: var(--fest);
+  opacity: 1;
+}
+
+.raum__person {
+  cursor: context-menu;
+  border-radius: 4px;
+}
+
+.raum__person:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+}
+
+.raum__menue {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand-stark);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.raum__menue button {
+  text-align: left;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.raum__menue button:hover:not(:disabled),
+.raum__menue button:focus-visible {
+  background: var(--lasur);
+}
+
+.raum__menue button:disabled {
+  color: var(--text-leise);
+  cursor: not-allowed;
+}
+
+.raum__gespeichert .austausch__zeile {
+  cursor: default;
+  align-items: center;
+}
+
+.raum__knoepfe {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .raum__marke.is-sicher {
   border-color: var(--betont);
   color: var(--betont);

@@ -7,6 +7,7 @@
  */
 import { contextBridge, ipcRenderer } from 'electron';
 import type { GefundenerRaum, Raumereignis, Raumzustand } from '../main/raum';
+import type { GespeicherterRaum, Raumeinstellungen } from '../main/raeume';
 
 /** Ein angekommenes Paket, ohne seinen Inhalt. */
 export interface Raumpaket {
@@ -17,8 +18,9 @@ export interface Raumpaket {
 }
 /** Was aus dem Raum an die Oberflaeche geht. */
 export type RaumereignisOberflaeche =
-  | Exclude<Raumereignis, { art: 'paket' }>
-  | { readonly art: 'pakete'; readonly pakete: readonly Raumpaket[] };
+  | Exclude<Raumereignis, { art: 'paket' | 'rollen' }>
+  | { readonly art: 'pakete'; readonly pakete: readonly Raumpaket[] }
+  | { readonly art: 'gespeichert'; readonly raeume: readonly GespeicherterRaum[] };
 import type { Ankunft } from '../main/austausch';
 import type { Modus } from '@suite/austausch';
 import type { ShellSettings } from '../main/settings';
@@ -276,8 +278,26 @@ const api = {
       }>,
     suchen: () => ipcRenderer.invoke('raum:suchen') as Promise<GefundenerRaum[]>,
     aktualisieren: () => ipcRenderer.invoke('raum:aktualisieren') as Promise<GefundenerRaum[]>,
-    eroeffnen: (name: string, passwort: string, optionen: { internet?: boolean; port?: number } = {}) =>
-      ipcRenderer.invoke('raum:eroeffnen', name, passwort, optionen) as Promise<{ ok: boolean; port?: number; grund?: string }>,
+    eroeffnen: (name: string, passwort: string, optionen: { internet?: boolean; port?: number; sl?: boolean; raumId?: string } = {}) =>
+      ipcRenderer.invoke('raum:eroeffnen', name, passwort, optionen) as Promise<{
+        ok: boolean;
+        port?: number;
+        raumId?: string;
+        grund?: string;
+      }>,
+    /** Jemanden zur SL machen (`true`) oder die Rolle abgeben (`false`). */
+    rolle: (ziel: string, sl: boolean) => ipcRenderer.invoke('raum:rolle', ziel, sl) as Promise<boolean>,
+    /** Gespeicherte Raeume dieses Gastgebers, ohne Passwort. */
+    gespeicherte: () => ipcRenderer.invoke('raum:gespeicherte') as Promise<GespeicherterRaum[]>,
+    gespeichertLoeschen: (id: string) => ipcRenderer.invoke('raum:gespeichertLoeschen', id) as Promise<boolean>,
+    gespeichertUmbenennen: (id: string, name: string) =>
+      ipcRenderer.invoke('raum:gespeichertUmbenennen', id, name) as Promise<boolean>,
+    gespeichertExport: (id: string) =>
+      ipcRenderer.invoke('raum:gespeichertExport', id) as Promise<{ ok: boolean; abgebrochen?: boolean }>,
+    gespeichertImport: () =>
+      ipcRenderer.invoke('raum:gespeichertImport') as Promise<{ ok: boolean; abgebrochen?: boolean; raum?: GespeicherterRaum }>,
+    einstellungen: (aenderung: Partial<Raumeinstellungen>) =>
+      ipcRenderer.invoke('raum:einstellungen', aenderung) as Promise<Raumeinstellungen | null>,
     kopieren: (text: string) => ipcRenderer.invoke('raum:kopieren', text) as Promise<boolean>,
     oeffentlicheIp: () => ipcRenderer.invoke('raum:oeffentlicheIp') as Promise<string | null>,
     beitreten: (adresse: string, port: number, passwort: string) =>

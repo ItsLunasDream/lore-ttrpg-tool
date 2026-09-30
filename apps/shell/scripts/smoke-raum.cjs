@@ -88,6 +88,21 @@ app.whenReady().then(async () => {
   const { zustand } = await js('window.shell.raum.zustand()');
   pruefe(zustand.rolle === 'gastgeber' && zustand.port > 0, `die App ist Gastgeber (Port ${zustand.port})`);
   pruefe(zustand.ich.name === 'Spielleitung', 'unter dem eigenen Namen');
+  pruefe(zustand.ich.sl === true, 'mit Haken „Ich leite" ist der Gastgeber SL');
+  pruefe(
+    await bis(async () => /SL|GM/.test(await js("document.querySelector('[data-person=\"Spielleitung\"]')?.textContent ?? ''"))),
+    'und traegt die Marke SL'
+  );
+  const raumDateien = () => {
+    try {
+      return fs.readdirSync(path.join(userData, 'raeume')).filter((n) => n.endsWith('.json'));
+    } catch {
+      return [];
+    }
+  };
+  pruefe(raumDateien().length === 1, 'der Raum ist gespeichert');
+  pruefe(!fs.readFileSync(path.join(userData, 'raeume', raumDateien()[0]), 'utf8').includes('"pw"'), 'ohne Passwort');
+  pruefe(fs.existsSync(path.join(userData, 'tischschluessel.json')), 'der Tischschluessel ist angelegt');
   pruefe(
     /Freitagsrunde/.test(await js("document.querySelector('[data-im-raum]')?.textContent ?? ''")),
     'links neben „Teilen" steht der gruene Raumknopf mit dem Raumnamen'
@@ -267,6 +282,37 @@ app.whenReady().then(async () => {
   );
   pruefe(!anna.alle.slice(vorher).some((n) => n.typ === 'chat' && /^🎲 /.test(n.text)), 'und geht nicht hinaus');
 
+  // --- Rollen: Anna per Rechtsklick zur SL machen ---------------------------
+  await js(`document.querySelector('[data-app-zurueck], [data-start]')?.click(); true`);
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(800);
+  await js(`document.querySelector('[data-richtung="raum"]')?.click(); true`);
+  await warte(500);
+  await js(`(() => { const el = document.querySelector('[data-person="Anna"]');
+    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 })); return true; })()`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-sl-machen]'))")), 'Rechtsklick auf Anna bietet „Zur SL machen"');
+  if (process.env.BILD_ROLLEN) fs.writeFileSync(process.env.BILD_ROLLEN, (await huelle.webContents.capturePage()).toPNG());
+  await js(`document.querySelector('[data-sl-machen]').click(); true`);
+  pruefe(
+    await bis(() => anna.alle.some((n) => n.typ === 'personen' && n.personen.some((p) => p.name === 'Anna' && p.sl === true))),
+    'Anna ist SL, und alle erfahren es'
+  );
+  const vorSl = anna.alle.length;
+  await djs(`document.querySelector('[data-teilen-wurf="dm"]').click(); true`);
+  await djs("[...document.querySelectorAll('button')].find(b => /^(Roll|Rollen)$/.test(b.textContent.trim())).click(); true");
+  pruefe(
+    await bis(() => anna.alle.slice(vorSl).some((n) => n.typ === 'chat' && /^🎲 /.test(n.text) && n.an === anna.ich.id), 6000),
+    'ein Wurf „nur an SL" geht jetzt an Anna, die andere SL'
+  );
+  await js(`(() => { const el = document.querySelector('[data-person="Spielleitung"]');
+    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 })); return true; })()`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-sl-abgeben]'))")), 'bei sich selbst: „SL-Rolle abgeben"');
+  await js(`document.querySelector('[data-sl-abgeben]').click(); true`);
+  pruefe(
+    await bis(async () => (await js('window.shell.raum.zustand()')).zustand.ich.sl !== true),
+    'mit einer zweiten SL im Raum geht das'
+  );
+
   // --- Raum schliessen -------------------------------------------------------
   await js('window.shell.raum.verlassen()');
   pruefe(await bis(() => anna.getrennt && ben.getrennt), 'der Raum ist zu, die Gaeste sind getrennt');
@@ -276,6 +322,31 @@ app.whenReady().then(async () => {
   anna.zu();
   ben.zu();
   eve.zu();
+
+  // --- Gespeicherter Raum: fortsetzen -----------------------------------------
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(800);
+  await js(`document.querySelector('[data-richtung="raum"]')?.click(); true`);
+  pruefe(
+    await bis(async () => js("Boolean(document.querySelector('[data-gespeichert=\"Freitagsrunde\"]'))")),
+    'unter „Meine Raeume" steht die Freitagsrunde'
+  );
+  await js(`document.querySelector('[data-fortsetzen="Freitagsrunde"]').click(); true`);
+  await warte(300);
+  if (process.env.BILD_RAEUME) fs.writeFileSync(process.env.BILD_RAEUME, (await huelle.webContents.capturePage()).toPNG());
+  pruefe((await js("document.querySelector('[data-raumname]').value")) === 'Freitagsrunde', '„Fortsetzen" traegt den Namen ein');
+  pruefe((await js("document.querySelector('[data-raum-passwort]').value")) === '', 'das Passwort muss neu eingegeben werden');
+  pruefe(!(await js("Boolean(document.querySelector('[data-raum-sl]'))")), 'beim Fortsetzen entscheiden die gemerkten Rollen, kein Haken');
+  await setze('[data-raum-passwort]', 'pw2');
+  await js(`document.querySelector('[data-raum-eroeffnen]').click(); true`);
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-raum=\"drin\"]'))")), 'der Raum ist wieder offen');
+  pruefe(
+    (await js('window.shell.raum.zustand()')).zustand.ich.sl !== true,
+    'und der Gastgeber ist, wie gemerkt, keine SL mehr'
+  );
+  pruefe(raumDateien().length === 1, 'es bleibt ein gespeicherter Raum, kein zweiter');
+  await js('window.shell.raum.verlassen()');
+  await warte(300);
 
   // --- Raum ueber das Internet: fester Port, Passwort noetig ------------------
   await js(`document.querySelector('[data-teilen-knopf]').click(); true`);

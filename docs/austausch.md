@@ -22,9 +22,16 @@ klappt die Gruppen mit Treffern auf. Beim Darüberfahren zeigt eine
 Vorschau den Anfang des Eintrags.
 
 **Würfe:** Der Würfel kann jeden Wurf in den Raum schicken, einstellbar
-„Nicht teilen", „An alle" oder „Nur an DM" (an den Gastgeber). Wer selbst
-Gastgeber ist, würfelt mit „Nur an DM" verdeckt: nichts geht hinaus. Ein
-Wurf ist eine gewöhnliche Chatzeile mit 🎲 davor.
+„Nicht teilen", „An alle" oder „Nur an DM" (an jede SL im Raum; gibt es
+keine, an den Gastgeber). Wer selbst die einzige SL ist, würfelt mit „Nur
+an DM" verdeckt: nichts geht hinaus. Ein Wurf ist eine gewöhnliche
+Chatzeile mit 🎲 davor.
+
+**Rollen und gespeicherte Räume:** Wer eröffnet, leitet (Haken „Ich leite
+(SL)“). Per Rechtsklick auf einen Namen macht eine SL andere zur SL oder
+gibt die Rolle ab. Der Raum wird mit Rollen gespeichert (ohne Passwort) und
+lässt sich unter „Meine Räume“ fortsetzen. Details in
+[`charakterbogen.md`](charakterbogen.md#rollen-im-raum).
 
 **Neues im Raum** zeigt ein rotes Abzeichen mit der Zahl am Knopf
 „Teilen", solange der Dialog zu ist: Nachrichten anderer, Würfe und neu

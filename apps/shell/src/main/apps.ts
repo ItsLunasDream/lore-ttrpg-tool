@@ -158,7 +158,7 @@ export interface MontierteApp {
 export interface RaumLage {
   readonly rolle: 'aus' | 'gastgeber' | 'gast';
   readonly ich: { readonly id: string; readonly name: string } | null;
-  readonly personen: readonly { readonly id: string; readonly name: string }[];
+  readonly personen: readonly { readonly id: string; readonly name: string; readonly sl?: boolean }[];
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -568,7 +568,7 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
       ? {
           lage: () => {
             const lage = haken.raum!.anfang('dice').lage;
-            return { rolle: lage.rolle, ichId: lage.ich?.id ?? null };
+            return { rolle: lage.rolle, ichId: lage.ich?.id ?? null, slIds: lage.personen.filter((p) => p.sl).map((p) => p.id) };
           },
           chatte: (text, an) => haken.raum!.chatte(text, an)
         }
