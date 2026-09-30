@@ -68,8 +68,38 @@ den Text prüfen). Was genau zurückkommt, zeigt der Knopf vorher an.
 
 Übernimmt `docs/inventar.md`: eigene Gegenstände (Name, Beschreibung,
 Anzahl, Gewicht, Wert), dazu Magic Items, SRD-Ausrüstung und Loot als Kopie
-mit Herkunft; Münzen als fünf Zähler (KM, SM, EM, GM, PM); Summen für
+mit Herkunft; Geld in eigenen Feldern (siehe unten); Summen für
 Gewicht und Wert; Traglast aus STÄ.
+
+### Geld
+
+Jedes Inventar hat fünf eigene Felder für Geld, oben über der
+Gegenstandsliste, auch jedes Gruppeninventar:
+
+| Feld | Kurz | Wert in GM |
+| --- | --- | --- |
+| Platin | PM | 10 |
+| Gold | GM | 1 |
+| Elektrum | EM | 0,5 |
+| Silber | SM | 0,1 |
+| Kupfer | KM | 0,01 |
+
+- Ganze Zahlen ab 0. Eingabe mit Rechnung wie bei den TP: `+37` oder `-5`
+  im Goldfeld.
+- Daneben die Summe in GM („insgesamt 412,3 GM“). Sie zählt zum Gesamtwert
+  des Inventars.
+- Geld ist nie ein Gegenstand der Liste. Loot-Zeilen wie „37 GM“ landen
+  direkt in den Feldern.
+- **Umrechnen** nur auf Knopfdruck („in möglichst wenige Münzen“ oder
+  „alles in Gold“), nie von selbst: wer 300 Kupfer in der Tasche hat, soll
+  sie auch behalten.
+- **Geben** mit Betrag je Münzart, auch ins und aus dem Gruppeninventar;
+  im Raum ein Schritt beim Gastgeber wie bei Gegenständen.
+- **Aufteilen**: im Gruppeninventar ein Knopf „Gleichmäßig aufteilen“ auf
+  gewählte Figuren. Was sich nicht glatt teilen lässt, bleibt in der Gruppe
+  und wird angezeigt.
+- Gewicht von Münzen (im SRD 50 Münzen je Pfund, beim Bauen prüfen) zählt
+  nur, wenn man es einschaltet.
 
 Neu am Bogen:
 
@@ -145,7 +175,7 @@ mittendrin abreißen kann.
   Gruppeninventar). Im Raum ist das ein Schritt beim Gastgeber: aus dem einen
   Inventar heraus, ins andere hinein, in einem Zug. Mit Anzahl („3 von 10
   Pfeilen“). Die SL kann auch zwischen zwei fremden Bögen verschieben.
-- **Münzen geben** genauso, als Betrag.
+- **Geld geben** genauso, als Betrag je Münzart (siehe „Geld“).
 - **Aus dem Gruppeninventar nehmen**: Spieler:innen dürfen selbst nehmen
   und hineinlegen. Die SL kann das je Gruppeninventar abschalten; dann
   verteilt nur sie. Jede Entnahme steht mit Name und Zeit im Verlauf des
