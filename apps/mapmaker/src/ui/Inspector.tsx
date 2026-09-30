@@ -22,6 +22,7 @@ import { makeId } from '@/model/ids';
 import { canAnchor } from '@/model/labelAnchor';
 import { guidesOf } from '@/model/guides';
 import { getProp, propName } from '@/assets/library';
+import { seedFuerVariante, variantFor } from '@/assets/varianten';
 import { importFont, importedFonts } from '@/assets/fontStore';
 import { worldAABB } from '@/engine/hitTest';
 import type { DrawSettings, RouteSettings } from '@/model/toolSettings';
@@ -735,6 +736,17 @@ export function ObjectInspector() {
     }
     if (map.size > 0) exec(new PatchObjects(map, t('sel.propLight'), key));
   };
+  /** Alle ausgewählten Props derselben Art eine Variante weiter oder zurück. */
+  const wechsleVariante = (schritt: number) => {
+    if (first.kind !== 'prop') return;
+    const ziel = variantFor(first.propId, first.seed) + schritt;
+    const map = new Map<string, Record<string, unknown>>();
+    for (const o of objects) {
+      if (o.kind !== 'prop' || o.propId !== first.propId) continue;
+      map.set(o.id, { seed: seedFuerVariante(o.propId, o.seed, ziel) });
+    }
+    if (map.size > 0) exec(new PatchObjects(map, t('sel.variant')));
+  };
   const shiftBy = (axis: 'x' | 'y', target: number) => {
     const delta = target - first[axis];
     const map = new Map<string, Record<string, unknown>>();
@@ -870,6 +882,31 @@ export function ObjectInspector() {
               <button onClick={() => patchAll({ flipY: !first.flipY }, t('sel.mirror'))}>↕</button>
             </div>
           </Row>
+          {/*
+            Variante wählen: bei Gebäuden der Grundriss, bei Steinen und
+            Bäumen die Form. Wirkt auf alle ausgewählten Props derselben Art.
+          */}
+          {(getProp(first.propId)?.variants ?? 1) > 1 ? (
+            <Row label={t('sel.variant')}>
+              <div className="row-inline">
+                <button
+                  aria-label={t('sel.variantPrev')}
+                  onClick={() => wechsleVariante(-1)}
+                >
+                  ◀
+                </button>
+                <span className="variante">
+                  {variantFor(first.propId, first.seed) + 1} / {getProp(first.propId)?.variants}
+                </span>
+                <button
+                  aria-label={t('sel.variantNext')}
+                  onClick={() => wechsleVariante(1)}
+                >
+                  ▶
+                </button>
+              </div>
+            </Row>
+          ) : null}
           {/* Licht als Teil des Props (model/propLights.ts): hier und nur hier bearbeitet. */}
           <Toggle
             label={t('sel.propLight')}

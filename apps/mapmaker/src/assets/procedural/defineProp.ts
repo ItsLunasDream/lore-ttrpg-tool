@@ -9,7 +9,13 @@ import type { Graphics } from 'pixi.js';
 import type { Rng } from '@/model/rng';
 import type { PropDef } from '../propTypes';
 
-export type Draw = (g: Graphics, rng: Rng) => void;
+/**
+ * Zeichnet eine Variante. `variant` ist der Index (0 bis `variants - 1`);
+ * die meisten Props brauchen ihn nicht und nehmen nur den Zufall. Gebäude
+ * wählen damit ihren Grundriss, damit jede Form sicher vorkommt — über den
+ * Zufall allein fehlte bei acht Varianten mitunter eine ganze Bauart.
+ */
+export type Draw = (g: Graphics, rng: Rng, variant: number) => void;
 
 export function def(
   id: string,

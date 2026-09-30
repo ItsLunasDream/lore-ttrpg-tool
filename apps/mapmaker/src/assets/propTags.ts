@@ -24,6 +24,15 @@ import { getLanguage } from '@/i18n';
  * „kaputt" soll auch finden, wer „damaged" tippt.
  */
 export const TAG_EN: Record<string, string[]> = {
+  gebaeude: ['building', 'structure'],
+  haendler: ['merchant', 'trader'],
+  huette: ['hut', 'cabin'],
+  kapelle: ['chapel'],
+  kate: ['cottage'],
+  kirche: ['church'],
+  magier: ['wizard', 'mage'],
+  mauer: ['wall', 'rampart'],
+  windmuehle: ['windmill'],
   abtei: ['abbey'],
   acker: ['farmland', 'field'],
   alchemie: ['alchemy'],

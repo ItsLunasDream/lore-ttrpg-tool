@@ -340,6 +340,7 @@ export const strings = {
   'cat.dungeon': ['Dungeon', 'Dungeon'],
   'cat.struktur': ['Struktur', 'Structure'],
   'cat.deko': ['Dekoration', 'Decoration'],
+  'cat.gebaeude': ['Gebäude', 'Buildings'],
   'cat.welt': ['Weltkarte', 'World map'],
   'cat.import': ['Importiert', 'Imported'],
 
@@ -368,6 +369,17 @@ export const strings = {
 
   // Prop-Namen. Importierte Assets behalten ihren Dateinamen.
   // Weltkarten-Signaturen
+  'prop.b_house': ['Wohnhaus', 'House'],
+  'prop.b_tavern': ['Taverne', 'Tavern'],
+  'prop.b_castle': ['Burg', 'Castle'],
+  'prop.b_farm': ['Bauernhof', 'Farmstead'],
+  'prop.b_tower': ['Turm', 'Tower'],
+  'prop.b_stall': ['Marktstand', 'Market stall'],
+  'prop.b_chapel': ['Kapelle', 'Chapel'],
+  'prop.b_smithy': ['Schmiede', 'Smithy'],
+  'prop.b_windmill': ['Windmühle', 'Windmill'],
+  'prop.b_barn': ['Scheune', 'Barn'],
+  'prop.b_hut': ['Hütte', 'Hut'],
   'prop.w_mountain': ['Gebirge', 'Mountains'],
   'prop.w_hills': ['Hügel', 'Hills'],
   'prop.w_forest': ['Waldstück', 'Woodland'],
@@ -605,6 +617,9 @@ export const strings = {
   'sel.opacity': ['Deckkraft', 'Opacity'],
   'sel.size': ['Größe', 'Size'],
   'sel.color': ['Farbe', 'Color'],
+  'sel.variant': ['Variante', 'Variant'],
+  'sel.variantPrev': ['Vorige Variante', 'Previous variant'],
+  'sel.variantNext': ['Nächste Variante', 'Next variant'],
   'sel.mirror': ['Spiegeln', 'Mirror'],
   'sel.locked': ['Gesperrt', 'Locked'],
 

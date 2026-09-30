@@ -56,7 +56,8 @@ export interface DevHarness {
    * man muss sie sehen, nebeneinander, groß genug und beschriftet. Die Palette
    * taugt dafür nicht: dort sind sie 46 Pixel groß.
    */
-  propSheet(filter?: string, cell?: number): string;
+  /** `varianten`: jede Variante einzeln statt nur der ersten. */
+  propSheet(filter?: string, cell?: number, varianten?: boolean): string;
   /**
    * Die Befehlsschicht, fertig geladen.
    *
@@ -154,12 +155,15 @@ export function installDevHarness(): void {
       this.pump(1);
     },
 
-    propSheet(filter = '', cell = 150) {
+    propSheet(filter = '', cell = 150, varianten = false) {
       const r = getRenderer();
       if (!r) return '';
       const ids = filter ? filter.split(',') : [];
-      const defs = allProps().filter(
+      const gewaehlt = allProps().filter(
         (d) => d.draw && (ids.length === 0 || ids.includes(d.id) || ids.includes(d.category)),
+      );
+      const defs = gewaehlt.flatMap((d) =>
+        varianten ? Array.from({ length: d.variants }, (_, v) => ({ ...d, v })) : [{ ...d, v: 0 }],
       );
       const spalten = Math.max(1, Math.ceil(Math.sqrt(defs.length * 1.6)));
       const zeilen = Math.ceil(defs.length / spalten);
@@ -175,7 +179,7 @@ export function installDevHarness(): void {
 
       defs.forEach((d, i) => {
         const g = new Graphics();
-        d.draw?.(g, new Rng(hashSeed(1, d.id.length, d.name.length)));
+        d.draw?.(g, new Rng(hashSeed(1, d.id.length, d.name.length, d.v)), d.v);
         // Etwas Luft: ein Prop, das genau am Rahmen endet, wirkt beschnitten.
         const extent = Math.max(d.size.w, d.size.h) * 1.15;
         const x = (i % spalten) * cell;
@@ -195,7 +199,7 @@ export function installDevHarness(): void {
         }
         g.destroy();
         ctx.fillStyle = '#ddd';
-        ctx.fillText(d.id, x + cell / 2, y + cell + 13);
+        ctx.fillText(varianten ? `${d.id} ${d.v}` : d.id, x + cell / 2, y + cell + 13);
       });
 
       return c.toDataURL('image/png');

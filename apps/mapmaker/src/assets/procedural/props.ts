@@ -30,6 +30,7 @@ import {
 import { natureProps, remainsProps, waterProps } from './propsNature';
 import { dungeonProps, lootProps, settlementProps } from './propsDungeon';
 import { fantasyProps, variantProps } from './propsFantasy';
+import { buildingProps } from './propsBuildings';
 import { worldProps } from './propsWorld';
 import { extraProps } from './propsExtra';
 
@@ -721,4 +722,5 @@ export const BUILTIN_PROPS: PropDef[] = [
   ...fantasyProps,
   ...worldProps,
   ...extraProps,
+  ...buildingProps,
 ];
