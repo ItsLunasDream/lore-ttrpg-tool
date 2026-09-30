@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { fromHex, toHex } from '@/model/color';
+import { alsKnopf } from '@suite/tastatur';
 
 export function Section({
   title,
@@ -17,7 +18,7 @@ export function Section({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="section">
-      <header onClick={() => setOpen((o) => !o)}>
+      <header onClick={() => setOpen((o) => !o)} {...alsKnopf(() => setOpen((o) => !o))} aria-expanded={open}>
         <span>
           {open ? '▾' : '▸'} {title}
         </span>

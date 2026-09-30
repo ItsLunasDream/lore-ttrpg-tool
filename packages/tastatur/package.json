@@ -1,0 +1,19 @@
+{
+  "name": "@suite/tastatur",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "description": "Bedienung ohne Maus: Pfeiltasten in Listen und Kacheln, Enter/Leertaste auf klickbaren Flaechen — plattformfreies, geteiltes Paket",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -31,6 +31,7 @@
     "@suite/i18n": "*",
     "@suite/ki": "*",
     "@suite/motion": "*",
+    "@suite/tastatur": "*",
     "@suite/srd": "*"
   }
 }

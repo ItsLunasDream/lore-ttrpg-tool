@@ -1122,3 +1122,9 @@ details[open] > *:not(summary) {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* Sichtbarer Fokus für die Bedienung per Tastatur (packages/tastatur). */
+:focus-visible {
+  outline: 2px solid var(--f-betont, #4da3ff);
+  outline-offset: 2px;
+}

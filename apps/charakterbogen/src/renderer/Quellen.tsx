@@ -147,9 +147,9 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
             onChange={(e) => setSuche(e.target.value)}
           />
           {reiter === 'eigene' && eigene && eigene.length === 0 ? <p className="leise">{t('quelle.eigene.leer')}</p> : null}
-          <ul className="quellen__liste">
+          <ul className="quellen__liste" data-pfeile="liste">
             {liste.map((e) => (
-              <li key={`${e.quelle}:${e.kennung}`}>
+              <li data-pfeil key={`${e.quelle}:${e.kennung}`}>
                 <div>
                   <strong>{e.name}</strong> <span className="leise">{e.art}</span>
                   <div className="leise quellen__zahlen">

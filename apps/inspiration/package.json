@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@suite/motion": "*",
+    "@suite/tastatur": "*",
     "@suite/ki": "*"
   },
   "author": {

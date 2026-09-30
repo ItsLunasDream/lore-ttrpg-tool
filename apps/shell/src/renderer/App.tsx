@@ -687,12 +687,28 @@ export function App() {
         ereignis.preventDefault();
         oeffneSuche();
       }
+      // F6: aus der Hülle ins offene Werkzeug (und von dort mit F6 zurück).
+      if (ereignis.key === 'F6' && !ereignis.ctrlKey && !ereignis.altKey && !ereignis.metaKey && !ereignis.shiftKey) {
+        ereignis.preventDefault();
+        window.shell.fokus.zumWerkzeug();
+      }
     };
     window.addEventListener('keydown', beiTaste);
     return () => window.removeEventListener('keydown', beiTaste);
   }, [oeffneSuche]);
 
   useEffect(() => window.shell.suche.beiTastenkuerzel(oeffneSuche), [oeffneSuche]);
+
+  // F6 im Werkzeug: der Fokus landet auf dem aktiven Eintrag der Schiene.
+  useEffect(
+    () =>
+      window.shell.fokus.beiHuelle(() => {
+        const ziel =
+          document.querySelector<HTMLElement>('.schiene__eintrag--an') ?? document.querySelector<HTMLElement>('.schiene__heim');
+        ziel?.focus();
+      }),
+    []
+  );
   useEffect(() => window.shell.einstellungen.beiGroesseVonAussen(setGroesse), []);
 
   const ladeSymboleNeu = useCallback(async () => {
@@ -1065,7 +1081,7 @@ function Startmenue({
           return (
             <section className="menue__gruppe" key={rolle}>
               <h2 className="menue__gruppenname">{t(ROLLE_KEY[rolle])}</h2>
-              <div className="kacheln">
+              <div className="kacheln" data-pfeile="raster">
                 {gruppe.map((app) => {
                   const waehlbar = istWaehlbar(app.status);
                   nummer += 1;
@@ -1205,6 +1221,7 @@ function Buehne({
     <div className="buehne">
       <nav
         className="schiene"
+        data-pfeile="liste"
         style={{ width: CHROME.schieneBreite }}
         aria-label="LORE"
         ref={schiene}

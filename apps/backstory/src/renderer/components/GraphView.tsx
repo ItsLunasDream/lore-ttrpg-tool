@@ -10,6 +10,7 @@ import { Zeitstrahl } from './Zeitstrahl';
 import { Handlungsstraenge } from './Handlungsstraenge';
 import type { Strang } from '../../shared/straenge';
 import type { Note } from '../../shared/types';
+import { alsKnopf } from '@suite/tastatur';
 
 interface Props {
   index: NoteIndex;
@@ -379,6 +380,8 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
       <svg
         ref={svgRef}
         className="graph__canvas"
+        // Knoten mit den Pfeilen nach ihrer Lage auf dem Schirm erreichen.
+        data-pfeile="raster"
         viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
         preserveAspectRatio="xMidYMid meet"
         onWheel={(event) => zoomAt(event.deltaY > 0 ? 1.12 : 0.89, toSvgPoint(event))}
@@ -506,6 +509,18 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
               onMouseDown={(event) => {
                 event.preventDefault();
                 dragRef.current = { id: node.id, at: null, von: toSvgPoint(event) };
+              }}
+              // Tastatur: Enter öffnet, der Fokus zeigt die Kurzinfo wie das Überfahren.
+              {...alsKnopf(() => onOpenNote(node.id))}
+              data-pfeil
+              aria-label={note.title}
+              onFocus={(event) => {
+                setHovered(node.id);
+                zeigeKarte(note, (event.currentTarget as SVGGElement).getBoundingClientRect());
+              }}
+              onBlur={() => {
+                setHovered(null);
+                zeigeKarte(null, null);
               }}
             >
               <circle r={radius} fill={typeColor(note.type)} />

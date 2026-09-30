@@ -905,11 +905,11 @@ export function App() {
               <div className="holen">
                 <p className="holen__hinweis">{t('holen.hinweis')}</p>
                 {kampagnenFiguren.length === 0 && <p className="holen__leer">{t('holen.leer')}</p>}
-                <ul className="holen__liste">
+                <ul className="holen__liste" data-pfeile="liste">
                   {kampagnenFiguren.map((figur) => {
                     const dabei = entwurf.figuren.some((eintrag) => eintrag.name === figur.titel);
                     return (
-                      <li key={figur.titel}>
+                      <li data-pfeil key={figur.titel}>
                         <button
                           type="button"
                           className="holen__eintrag"

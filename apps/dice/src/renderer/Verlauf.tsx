@@ -37,9 +37,9 @@ export function Verlauf({ eintraege, aktiv, onZurueckholen, onLeeren }: Props) {
       {eintraege.length === 0 ? (
         <p className="verlauf__leer">{t('verlauf.leer')}</p>
       ) : (
-        <ol className="verlauf__liste">
+        <ol className="verlauf__liste" data-pfeile="liste">
           {eintraege.map((eintrag) => (
-            <li key={eintrag.id}>
+            <li data-pfeil key={eintrag.id}>
               <button
                 type="button"
                 className={eintrag.id === aktiv ? 'ist-an' : ''}

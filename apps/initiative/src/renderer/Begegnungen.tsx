@@ -89,13 +89,13 @@ export function Begegnungen({ begegnungen, onOeffnen, onLoeschen, onSchliessen }
           {gefunden.length === 0 ? (
             <p className="begegnungen__leer">{t('sammlung.nichts')}</p>
           ) : alsKacheln ? (
-            <ul className="kacheln">
+            <ul className="kacheln" data-pfeile="raster">
               {gefunden.map((begegnung) => {
                 // Warum diese Begegnung gefunden wurde: wer nach „Ghul" sucht
                 // und „Waldlager" angezeigt bekommt, will den Grund sehen.
                 const treffer = treffendeTeilnehmer(begegnung, suche);
                 return (
-                  <li key={begegnung.id}>
+                  <li data-pfeil key={begegnung.id}>
                     <button
                       type="button"
                       className="kachel"
@@ -128,9 +128,9 @@ export function Begegnungen({ begegnungen, onOeffnen, onLoeschen, onSchliessen }
               })}
             </ul>
           ) : (
-            <ul className="begegnungen__liste">
+            <ul className="begegnungen__liste" data-pfeile="liste">
               {gefunden.map((begegnung) => (
-                <li key={begegnung.id}>
+                <li data-pfeil key={begegnung.id}>
                   <button type="button" onClick={() => onOeffnen(begegnung.id)}>
                     <span className="begegnungen__name">{begegnung.name}</span>
                     <span className="begegnungen__zahl">{begegnung.teilnehmer.length}</span>

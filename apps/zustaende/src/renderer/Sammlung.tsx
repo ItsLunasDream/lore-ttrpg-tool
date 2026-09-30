@@ -153,10 +153,10 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
       {gefunden.length === 0 ? (
         <p className="hinweis">{t('sammlung.nichts')}</p>
       ) : alsKacheln ? (
-        <ul className="kacheln">
+        <ul className="kacheln" data-pfeile="raster">
           {gruppen.map((gruppe) =>
             gruppe.art === 'einzeln' ? (
-              <li key={gruppe.eintrag.id}>{kachel(gruppe.eintrag)}</li>
+              <li data-pfeil key={gruppe.eintrag.id}>{kachel(gruppe.eintrag)}</li>
             ) : (
               /*
                 Ein Paket steht da wie ein einzelner Zustand, solange es zu

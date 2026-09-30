@@ -404,6 +404,13 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
    */
   sicht.webContents.on('before-input-event', (event, eingabe) => {
     if (eingabe.type !== 'keyDown') return;
+    // F6: zurück in die Hülle (Schiene). Tab kommt aus einer eingebetteten
+    // Ansicht nicht heraus; ohne diese Taste säße man per Tastatur fest.
+    if (eingabe.key === 'F6' && !eingabe.control && !eingabe.alt && !eingabe.meta && !eingabe.shift) {
+      event.preventDefault();
+      huellenFokus?.();
+      return;
+    }
     if (!(eingabe.control || eingabe.meta)) return;
     // Strg+Alt und Plus, Minus, 0: die Groesse der ganzen Oberflaeche.
     // Strg allein bleibt den Werkzeugen (Zoom im Story Creator).
@@ -434,6 +441,13 @@ export function setzeGroessentaste(hoerer: (stufe: 'groesser' | 'kleiner' | 'zur
  * `sichereAb` nichts ueber sie wissen muss.
  */
 let huellenSuche: (() => void) | null = null;
+
+/** Was F6 in einem Werkzeug tut: den Fokus an die Hülle geben. */
+let huellenFokus: (() => void) | null = null;
+
+export function setzeFokustaste(hoerer: () => void): void {
+  huellenFokus = hoerer;
+}
 
 export function setzeSuchtaste(hoerer: () => void): void {
   huellenSuche = hoerer;

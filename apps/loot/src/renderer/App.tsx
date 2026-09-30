@@ -685,9 +685,9 @@ export function App() {
       ) : gefunden.length === 0 ? (
         <p className="hinweis">{t('liste.nichts')}</p>
       ) : (
-        <ul className="kacheln">
+        <ul className="kacheln" data-pfeile="raster">
           {gefunden.map((k) => (
-            <li key={k.id}>
+            <li data-pfeil key={k.id}>
               <button type="button" className="tabellenkachel" data-id={k.id} onClick={() => void oeffne(k.id)}>
                 <span className="tabellenkachel__name">
                   {k.name}

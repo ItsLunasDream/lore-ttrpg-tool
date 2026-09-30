@@ -27,6 +27,7 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@suite/motion": "*",
+    "@suite/tastatur": "*",
     "@suite/umgebungen": "*",
     "@suite/eintraege": "*",
     "@suite/i18n": "*",

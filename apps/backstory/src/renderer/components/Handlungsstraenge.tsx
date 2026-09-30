@@ -9,6 +9,7 @@ import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
 import { ordneStraenge, STRANG_FARBEN, type Anschluss, type Strang } from '../../shared/straenge';
 import { useT } from '../i18n';
+import { alsKnopf } from '@suite/tastatur';
 
 interface Props {
   index: NoteIndex;
@@ -71,9 +72,15 @@ export function Handlungsstraenge({ index, straenge, speichern, activeNoteId, on
         {straenge.length === 0 ? (
           <p className="zeitstrahl__leer">{t('plots.empty')}</p>
         ) : (
-          <svg width={breite} height={hoehe} className="straenge__svg" role="img" aria-label={t('plots.title')}>
+          <svg width={breite} height={hoehe} className="straenge__svg" role="group" aria-label={t('plots.title')}>
             {straenge.map((s, i) => (
-              <g key={s.id} className={`straenge__zeile${s.id === gewaehlt ? ' is-active' : ''}`} onClick={() => setGewaehlt(s.id)}>
+              <g
+                key={s.id}
+                className={`straenge__zeile${s.id === gewaehlt ? ' is-active' : ''}`}
+                onClick={() => setGewaehlt(s.id)}
+                {...alsKnopf(() => setGewaehlt(s.id))}
+                aria-label={s.name || t('plots.unnamed')}
+              >
                 <rect x={0} y={y(i) - ZEILE / 2 + 6} width={breite} height={ZEILE - 12} rx={8} className="straenge__band" />
                 <text x={12} y={y(i) + 5} className="straenge__name" fill={STRANG_FARBEN[s.farbe]}>
                   {s.name || t('plots.unnamed')}
@@ -94,6 +101,11 @@ export function Handlungsstraenge({ index, straenge, speichern, activeNoteId, on
                   transform={`translate(${x(k.spalte)} ${y(k.zeile)})`}
                   data-strang-knoten={k.notiz}
                   onClick={() => onOpenNote(k.notiz)}
+                  {...alsKnopf(() => onOpenNote(k.notiz))}
+                  aria-label={note?.title ?? '?'}
+                  // Mit der Tastatur zeigt der Fokus die Kurzinfo wie das Überfahren.
+                  onFocus={(e) => note && onHover(note, (e.currentTarget as SVGGElement).getBoundingClientRect())}
+                  onBlur={() => onHover(null, null)}
                   onMouseEnter={(e) => note && onHover(note, (e.currentTarget as SVGGElement).getBoundingClientRect())}
                   onMouseLeave={() => onHover(null, null)}
                 >

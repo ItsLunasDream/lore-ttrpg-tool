@@ -411,9 +411,9 @@ export function App() {
         ) : gefunden.length === 0 ? (
           <p className="leer">{t('liste.nichts')}</p>
         ) : (
-          <ul className="kacheln">
+          <ul className="kacheln" data-pfeile="raster">
             {gefunden.map((k) => (
-              <li key={k.id}>
+              <li data-pfeil key={k.id}>
                 <button type="button" className="kachel" data-bogen={k.id} onClick={() => void oeffne(k.id)}>
                   <span className="kachel__name">{k.name}</span>
                   <span className="kachel__kurz">{k.art === 'gruppe' ? t('gruppe') : k.kurz || '—'}</span>

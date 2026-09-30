@@ -93,9 +93,9 @@ export function LiveListe({
         ) : null}
       </h2>
       {sortiert.length === 0 ? <p className="leer">{t('live.leer')}</p> : null}
-      <ul className="kacheln">
+      <ul className="kacheln" data-pfeile="raster">
         {sortiert.map((e) => (
-          <li key={e.id}>
+          <li data-pfeil key={e.id}>
             {e.sicht === 'voll' ? (
               <button type="button" className="kachel kachel--live" data-live={e.id} onClick={() => oeffne(e.id)}>
                 <LiveKopf e={e} ich={live.ich} />

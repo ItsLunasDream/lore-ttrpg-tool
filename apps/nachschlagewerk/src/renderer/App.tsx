@@ -282,7 +282,7 @@ export function App() {
       </header>
 
       <div className="spalten">
-        <nav className="liste" aria-label={t('titel')}>
+        <nav className="liste" data-pfeile="liste" aria-label={t('titel')}>
           <input
             className="liste__suche"
             type="search"
@@ -1035,6 +1035,12 @@ function Verlinkt({
             data-notiz={stueck.notiz.id}
             title={stueck.notiz.text}
             onClick={(e) => oeffne(stueck.notiz, e.currentTarget.getBoundingClientRect(), false)}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              oeffne(stueck.notiz, e.currentTarget.getBoundingClientRect(), false);
+            }}
           >
             {stueck.text}
           </mark>

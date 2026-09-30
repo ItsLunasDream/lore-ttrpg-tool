@@ -60,7 +60,7 @@ import {
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
-  setzeSuchtaste,
+  setzeSuchtaste, setzeFokustaste,
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
@@ -1683,6 +1683,17 @@ function registriereKanaele(): void {
   const oeffneSuche = () => huelle?.webContents.send('suche:oeffnen');
   setzeSuchtaste(oeffneSuche);
   ipcMain.on('suche:taste', oeffneSuche);
+
+  // F6 wechselt zwischen Hülle und Werkzeug (Bedienung ohne Maus): aus dem
+  // Werkzeug in die Schiene, aus der Hülle zurück ins Werkzeug.
+  setzeFokustaste(() => {
+    huelle?.webContents.focus();
+    huelle?.webContents.send('fokus:huelle');
+  });
+  ipcMain.on('fokus:werkzeug', () => {
+    const montiert = aktiveApp ? offen.get(aktiveApp) : undefined;
+    montiert?.sicht.webContents.focus();
+  });
 
   ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
     wenigerBewegung = Boolean(reduziert);
