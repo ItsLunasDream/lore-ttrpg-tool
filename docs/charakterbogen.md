@@ -6,7 +6,7 @@ live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
-**Stand:** Schritte 1 bis 6 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner; Rollen im Raum, Tischschlüssel, gespeicherte Räume; Bögen live im Raum mit Freigabe und SL-Markierung). Schritt 6 (Geben im Raum, Gruppeninventar mit dem Raum) ist gebaut. Ab Schritt 7 (Quellen, Initiative) ist es Konzept. Es nimmt `docs/inventar.md`
+**Stand:** Alle sieben Schritte sind gebaut: Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar; Rollen im Raum, Tischschlüssel, gespeicherte Räume; Bögen live im Raum mit Freigabe und SL-Markierung; Geben im Raum; Quellen fürs Inventar und Anbindung an den Initiative Tracker. Dazu Waffenangriffe. Offene Punkte stehen bei den einzelnen Abschnitten und unter „Später“. Es nimmt `docs/inventar.md`
 auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
 Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 überdauern den Raum. Offene Fragen stehen am Ende.
@@ -336,6 +336,52 @@ was man zum Mitlesen braucht.
 - Ablage: eine Datei je Raum im Datenordner der Hülle
   (`userData/raeume/<id>.json`), in der Sicherung der Sammlung enthalten.
 
+## Quellen fürs Inventar (Schritt 7)
+
+Gebaut: Im Inventar (Figur und Gruppe) öffnet „+ Aus Quelle …“ vier Reiter.
+
+- **SRD-Ausrüstung:** 38 Waffen (als Waffe markiert, also gleich als
+  Angriff nutzbar, sobald ausgerüstet), 13 Rüstungen (RK, Stärke,
+  Heimlichkeit in der Beschreibung) und die Abenteurerausrüstung mit Gewicht
+  und Preis. Gepaart wie bei den Waffen; die Rüstungstabelle steht in beiden
+  Sprachen in derselben Reihenfolge, die Abenteurerausrüstung wird über die
+  gepaarten Einträge des Kapitels gefunden.
+- **SRD magisch:** alle magischen Gegenstände des SRD mit Text; Gewicht und
+  Preis nennt das SRD dafür nicht, die Felder bleiben leer.
+- **Eigene (Homebrew):** alles, was im Magic Item Creator gespeichert ist,
+  mit Art, Seltenheit, Einstimmung, Wirkungen, Fluch und Wert. Die Hülle
+  liest das für den Bogen mit (die Werkzeuge kennen einander nicht).
+- **Loot-Tabelle:** eine Tabelle des Loot Generators wählen (eigene, SRD,
+  und die aus dem Magic Item Creator), würfeln, das Ergebnis mit einem
+  Klick ins Inventar. Gewürfelt wird in der Hülle mit derselben Logik wie im
+  Loot Generator.
+- Jeder übernommene Gegenstand merkt sich seine Herkunft (`quelle`: Art und
+  Kennung). Auffrischen aus der Quelle, wenn sich dort etwas ändert, ist
+  noch nicht gebaut.
+
+## Initiative Tracker (Schritt 7)
+
+Gebaut:
+
+- **„In die Initiative“** am Bogen einer Figur schickt Name, TP, RK und
+  Initiativebonus in den Tracker und holt ihn nach vorn. Dort steht sie als
+  Spielerfigur (Initiative zum Eintragen, der Bonus als Feinwert für
+  Gleichstände). Ein zweites Mal frischt sie auf statt sie zu verdoppeln;
+  dafür merkt sich der Tracker die Kennung des Bogens (`bogen`).
+- Im Raum hat die SL oben in „Im Raum“ den Knopf **„Alle Figuren in die
+  Initiative“** für alle Figuren, die sie ganz sieht.
+- **TP in beide Richtungen:** Schaden oder Heilung im Tracker gehen an den
+  Bogen (auf der Platte, oder im Raum als Schritt, sofern man den Bogen
+  ändern darf). Ändert sich der Bogen (gespeichert oder im Raum), frischt
+  der Tracker die Figur auf, wenn er offen ist; er wird dafür nicht
+  geweckt. Gesendet werden feste Werte, keine Differenzen, und der Tracker
+  merkt sich, was der Bogen schon weiß: nichts läuft im Kreis.
+- Tippt man am Bogen gerade, wenn neue TP aus dem Tracker kommen, werden
+  nur die TP übernommen.
+- Grenzen: Zustände, Todesrettungswürfe und Initiative gehen nicht zurück
+  an den Bogen. Im geteilten Kampf schreibt jede Person nur in Bögen, die
+  sie ändern darf.
+
 ## Waffenangriffe
 
 Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
@@ -369,15 +415,14 @@ Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
 
 ## Andere Werkzeuge
 
-- **Initiative Tracker**: Spielerfiguren aus den Bögen übernehmen (Name,
-  RK, TP, Initiativebonus). Schaden im geteilten Kampf schreibt in den Bogen
-  und umgekehrt. Heute ordnet der Tracker Figuren einer Person zu; das
-  würde zur Zuordnung zu einem Bogen.
+- **Initiative Tracker**: gebaut, siehe „Initiative Tracker (Schritt 7)“.
 - **SL-Rolle für alle Werkzeuge**: Der Würfel schickt „Nur an SL“ an alle
   SL (gebaut). Werkzeuge bekommen die Rollen über die Personenliste
   (`sl` an der Person). Im geteilten Kampf ist das noch offen.
 - **Encounter Creator**: Gruppengröße und Stufen aus den Bögen im Raum.
-- **Loot Generator**: „Ins Inventar“ zeigt auch die Gruppeninventare.
+- **Loot Generator**: gebaut andersherum: der Bogen würfelt über „Aus Quelle
+  … → Loot-Tabelle“. Ein Knopf „Ins Inventar“ im Loot Generator selbst
+  fehlt noch.
 - **Story Creator**: Bogen als Notiz exportieren (Werte als Steckbrief).
 
 ## Ablage

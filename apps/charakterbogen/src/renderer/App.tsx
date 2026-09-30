@@ -18,7 +18,7 @@ import { InventarBlock } from './InventarBlock';
 import { AngriffeBlock } from './AngriffeBlock';
 import { angriffeAusInventar } from '../shared/waffen';
 import { LiveLeiste, LiveListe, SlHinweis, SlMarke, SlMarkenKontext, markenAus } from './LiveTeile';
-import { alsKachel, type Kachel } from '../shared/ablage';
+import { alsKachel, figurAus, type Kachel } from '../shared/ablage';
 import { schritteAus, type Anfrage, type Schritt } from '../shared/live';
 import type { LiveZustand } from '../main/live';
 import {
@@ -313,6 +313,22 @@ export function App() {
     setKacheln((alt) => alt.map((k) => boegen.find((b) => b.id === k.id)).map((b, n) => (b ? alsKachel(b) : alt[n])));
   }, []);
 
+  // Der Initiative Tracker hat TP eines Bogens auf der Platte geaendert.
+  // Wird gerade getippt, kommen nur die TP herein, der Rest bleibt, wie er ist.
+  useEffect(
+    () =>
+      api.beiExtern((b) => {
+        const jetzt = offenRef.current;
+        if (jetzt && jetzt.id === b.id && schmutzig.current && jetzt.werte && b.werte) {
+          offenRef.current = { ...jetzt, werte: { ...jetzt.werte, tp: b.werte.tp } };
+          setOffen(offenRef.current);
+          return;
+        }
+        uebernimm([b]);
+      }),
+    [uebernimm]
+  );
+
   const schliesse = useCallback(async () => {
     verlasseLive();
     await speichereJetzt();
@@ -404,7 +420,19 @@ export function App() {
         {meldung ? <p className="meldung">{meldung}</p> : null}
         {fehler ? <p className="stoerung">{fehler}</p> : null}
         {live.rolle !== 'aus' ? (
-          <LiveListe live={live} eigene={kacheln} oeffne={(id) => void oeffneLive(id)} bringe={(id) => void bringe(id)} />
+          <LiveListe
+            live={live}
+            eigene={kacheln}
+            oeffne={(id) => void oeffneLive(id)}
+            bringe={(id) => void bringe(id)}
+            alleInTracker={() => {
+              const figuren = live.eintraege.flatMap((e) => {
+                const f = e.bogen ? figurAus(e.bogen, e.id) : null;
+                return f ? [f] : [];
+              });
+              if (figuren.length) void api.tracker(figuren);
+            }}
+          />
         ) : null}
         {kacheln.length === 0 ? (
           <p className="leer">{t('liste.leer')}</p>
@@ -456,6 +484,21 @@ export function App() {
           {!liveEintrag ? (stand === 'laeuft' ? t('speichern.laeuft') : stand === 'fertig' ? t('speichern.fertig') : '') : ''}
         </span>
         <span className="leiste__rest" />
+        {offen.art === 'figur' && (!liveEintrag || liveEintrag.darfAendern) ? (
+          <button
+            type="button"
+            data-in-tracker
+            title={t('tracker.titel')}
+            onClick={async () => {
+              if (!liveEintrag) await speichereJetzt();
+              else sendeGesammelt();
+              const f = figurAus(offen, liveEintrag ? liveEintrag.id : offen.id);
+              if (f) void api.tracker([f]);
+            }}
+          >
+            {t('tracker')}
+          </button>
+        ) : null}
         {!liveEintrag && live.rolle !== 'aus' ? (
           <button type="button" data-bringe-offen onClick={() => void bringe(offen.id)}>
             {t('live.bringe')}

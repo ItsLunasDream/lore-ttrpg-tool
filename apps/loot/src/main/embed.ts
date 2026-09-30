@@ -99,6 +99,11 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
   }));
 }
 
+/** Die eigenen Tabellen, fuer andere Werkzeuge ueber die Huelle (Charakterbogen: Beute wuerfeln). */
+export async function leseTabellen(datenordner: string): Promise<Gespeichert[]> {
+  return leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
+}
+
 export async function mountLoot(options: LootEmbedOptions): Promise<LootEmbed> {
   const ordner = path.join(options.datenordner, ORDNER_NAME);
   // `mkdir` meldet den ersten neu angelegten Pfad — nur dann ist es der

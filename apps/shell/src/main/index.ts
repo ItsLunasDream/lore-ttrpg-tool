@@ -433,6 +433,30 @@ async function oeffneBegegnungImTracker(uebergabe: Uebergabe): Promise<boolean> 
   return true;
 }
 
+/** Figuren aus dem Charakterbogen, die auf einen noch nicht geladenen Tracker warten. */
+let wartendeFiguren: readonly unknown[] | null = null;
+
+/**
+ * Figuren aus dem Charakterbogen an den Initiative Tracker. Mit
+ * `hinzufuegen` (Knopf am Bogen) wird er nach vorn geholt; sonst nur
+ * aufgefrischt, und nur wenn er schon laeuft: eine TP-Aenderung am Bogen
+ * soll den Tracker nicht aufwecken.
+ */
+function figurenAnTracker(figuren: readonly unknown[], hinzufuegen: boolean): void {
+  const montiert = offen.get('initiative');
+  if (!hinzufuegen) {
+    if (montiert?.figuren && montiert.istGeladen()) montiert.figuren(figuren, false);
+    return;
+  }
+  if (!huelle) return;
+  if (montiert?.figuren && montiert.istGeladen()) {
+    montiert.figuren(figuren, true);
+  } else {
+    wartendeFiguren = [...(wartendeFiguren ?? []), ...figuren];
+  }
+  huelle.webContents.send('app:oeffne', 'initiative');
+}
+
 async function oeffneKarteImEditor(
   name: string,
   notizen: readonly { title: string; text: string }[] = []
@@ -525,7 +549,12 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
       schluessel: entschluessle(gemerkteEinstellungen.claudeSchluessel)
     }),
     oeffneKarte: oeffneKarteImEditor,
-    inDenTracker: oeffneBegegnungImTracker
+    inDenTracker: oeffneBegegnungImTracker,
+    figurenAnTracker,
+    bogenTp: (kennung, hp, temp) =>
+      void montiereImHintergrund('charakterbogen')
+        .then(() => offen.get('charakterbogen')?.setzeTp?.(kennung, hp, temp))
+        .catch(() => undefined)
   };
 }
 
@@ -1515,6 +1544,12 @@ function registriereKanaele(): void {
     if (wartendeKarte && montiert.neueKarte) {
       montiert.neueKarte(wartendeKarte.name, wartendeKarte.notizen);
       wartendeKarte = null;
+    }
+
+    // Figuren aus dem Charakterbogen, die auf den Tracker warten.
+    if (wartendeFiguren && montiert.figuren) {
+      montiert.figuren(wartendeFiguren, true);
+      wartendeFiguren = null;
     }
 
     // Dasselbe fuer eine Begegnung, die auf den Tracker wartet.

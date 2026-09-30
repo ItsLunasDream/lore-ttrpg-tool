@@ -176,11 +176,15 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   weapons in the inventory show up as attacks by themselves.
 - **Inventory**: items with weight and value, money in PP/GP/EP/SP/CP,
   party inventories, give and split between sheets; weights in lb and kg.
+  Items also come from the SRD (equipment, magic items), from the Magic
+  Item Creator (homebrew) and as a roll on a loot table.
 - **In the room**: bring your sheet in; the host keeps the shared state.
   Each sheet shows others nothing, an overview or everything. GMs can
   change any sheet; their changes are marked for the owner unless the GM
   switches to "change quietly". Several GMs are possible, the role can be
   handed on (right-click a name under Share → Room).
+- **Initiative**: “To initiative” sends the character to the tracker; HP
+  changes go both ways.
 - Saves itself as Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -354,7 +358,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 6 built) |
+| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 7 built) |
 
 ## License
 

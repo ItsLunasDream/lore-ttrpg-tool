@@ -12,7 +12,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
-import { alsKachel, alsMarkdown, freieKennung, klassenText, leseBogen, zuId, type Kachel } from '../shared/ablage';
+import { alsKachel, alsMarkdown, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
@@ -28,6 +28,14 @@ export interface BogenEmbedOptions {
   readonly devServerUrl?: string;
   readonly language?: string;
   readonly onLanguageChange?: (language: string) => void;
+  /** Figuren an den Initiative Tracker (ueber die Huelle). `hinzufuegen`: auch neue anlegen und den Tracker zeigen. */
+  readonly tracker?: (figuren: readonly Figur[], hinzufuegen: boolean) => void;
+  /** Quellen fuers Inventar aus anderen Werkzeugen, ueber die Huelle. */
+  readonly quellen?: {
+    magicitems(sprache: 'de' | 'en'): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]>;
+    lootTabellen(sprache: 'de' | 'en'): Promise<{ id: string; name: string }[]>;
+    lootWuerfle(tabellenId: string, sprache: 'de' | 'en'): Promise<string | null>;
+  };
   /** Der Raum der Huelle, wenn es einen gibt: Boegen live teilen. */
   readonly raum?: {
     sende(inhalt: string, an: string | null): boolean;
@@ -51,6 +59,8 @@ export interface BogenEmbed {
   raumNachricht(webContents: WebContents, von: { id: string; name: string }, inhalt: string): void;
   /** Die Lage im Raum hat sich geaendert. */
   raumZustand(webContents: WebContents, lage: RaumLage): void;
+  /** Der Initiative Tracker meldet neue TP einer Figur. */
+  setzeTp(kennung: string, hp: number, temp: number): Promise<void>;
 }
 
 const CSP = [
@@ -169,6 +179,10 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
       }
     },
     merkeGruppe: (id) => options.raum?.merkeGruppe?.(id),
+    bogenGesehen: (e) => {
+      const f = e.bogen ? figurAus(e.bogen, e.id) : null;
+      if (f) options.tracker?.([f], false);
+    },
     sprache: () => sprache
   });
   if (options.raum) leitung.setzeLage(options.raum.lage());
@@ -206,6 +220,41 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
     return an.map((id) => raum.chatte!(zeile, id)).every(Boolean) ? 'ok' : 'fehler';
   });
 
+  /*
+   * Quellen fuers Inventar. Eigene magische Gegenstaende und Loot kommen
+   * ueber die Huelle; fehlt sie (Tests), bleiben die Listen leer.
+   */
+  handle('quellen:magicitems', async () => {
+    try {
+      return (await options.quellen?.magicitems(sprache)) ?? [];
+    } catch {
+      return [];
+    }
+  });
+  handle('quellen:lootTabellen', async () => {
+    try {
+      return (await options.quellen?.lootTabellen(sprache)) ?? [];
+    } catch {
+      return [];
+    }
+  });
+  handle('quellen:lootWuerfle', async (_e: never, id: string) => {
+    try {
+      return (await options.quellen?.lootWuerfle(String(id), sprache)) ?? null;
+    } catch {
+      return null;
+    }
+  });
+
+  /** Figuren in den Initiative Tracker (neu oder aufgefrischt), vom Knopf am Bogen. */
+  handle('tracker', (ereignis: never, figuren: Figur[]) => {
+    merkeOberflaeche(ereignis);
+    const sauber = (Array.isArray(figuren) ? figuren : []).slice(0, 50);
+    if (!options.tracker || sauber.length === 0) return false;
+    options.tracker(sauber, true);
+    return true;
+  });
+
   handle('liste', async (): Promise<Kachel[]> => (await leseAlle(ordner)).map(alsKachel));
 
   handle('lesen', async (_e: never, id: string): Promise<Bogen | null> => {
@@ -231,6 +280,8 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
           geaendert: new Date().toISOString()
         };
         await schreibeSicher(path.join(ordner, `${id}.md`), alsMarkdown(bogen, sprache));
+        const f = figurAus(bogen, bogen.id);
+        if (f) options.tracker?.([f], false);
         return { ok: true, bogen, text: '' };
       } catch (fehler) {
         return { ok: false, bogen: null, text: String(fehler instanceof Error ? fehler.message : fehler) };
@@ -352,12 +403,46 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
     raumZustand: (webContents, lage) => {
       oberflaeche ??= webContents;
       leitung.setzeLage(lage);
+    },
+    /*
+     * Neue TP aus dem Tracker. Ein Bogen im Raum bekommt einen Schritt (nur,
+     * wenn man ihn aendern darf); ein eigener auf der Platte wird
+     * geschrieben, und die Oberflaeche zieht ihn nach.
+     */
+    setzeTp: async (kennung, hp, temp) => {
+      if (kennung.includes('/')) {
+        const e = leitung.zustand().eintraege.find((x) => x.id === kennung);
+        const w = e?.bogen?.werte;
+        if (!e || !e.darfAendern || !w || (w.tp.aktuell === hp && w.tp.temp === temp)) return;
+        leitung.anfrage({
+          art: 'schritte',
+          id: kennung,
+          nr: 0,
+          schritte: [
+            { typ: 'feld', pfad: ['werte', 'tp', 'aktuell'], wert: hp },
+            { typ: 'feld', pfad: ['werte', 'tp', 'temp'], wert: temp }
+          ]
+        });
+        return;
+      }
+      const neu = await inReihe(async () => {
+        let b: Bogen;
+        try {
+          b = await lies(kennung);
+        } catch {
+          return null;
+        }
+        if (!b.werte || (b.werte.tp.aktuell === hp && b.werte.tp.temp === temp)) return null;
+        const tp = { ...b.werte.tp, aktuell: Math.min(hp, b.werte.tp.max), temp };
+        return schreib({ ...b, werte: { ...b.werte, tp } });
+      });
+      if (neu && oberflaeche && !oberflaeche.isDestroyed()) oberflaeche.send(kanal('extern'), neu);
     }
   };
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

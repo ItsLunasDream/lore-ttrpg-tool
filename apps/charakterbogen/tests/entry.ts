@@ -7,3 +7,4 @@ export * from '../src/shared/inventar';
 export * from '../src/shared/uebergabe';
 export * from '../src/shared/live';
 export * from '../src/shared/waffen';
+export * from '../src/shared/quellen';

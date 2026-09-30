@@ -24,6 +24,7 @@ import {
 import { leseBetrag } from '../shared/bogen';
 import { traglastLb } from '../shared/regeln';
 import { WAFFEN } from '../shared/waffen';
+import { Quellen } from './Quellen';
 
 interface Props {
   readonly bogen: Bogen;
@@ -58,6 +59,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
   const [geben, setGeben] = useState<{ id: string; anzahl: number; an: string } | null>(null);
   const [geldGeben, setGeldGeben] = useState<{ betrag: Partial<Muenzen>; an: string } | null>(null);
   const [aufteilen, setAufteilen] = useState<Set<string> | null>(null);
+  const [quellenOffen, setQuellenOffen] = useState(false);
   const ziele = andere.filter((k) => k.id !== bogen.id);
   const figuren = ziele.filter((k) => k.art === 'figur');
 
@@ -395,6 +397,10 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
       >
         {t('gegenstand.dazu')}
       </button>
+      <button type="button" className="knopf--klein" data-aus-quelle onClick={() => setQuellenOffen((x) => !x)}>
+        {t('quelle.oeffnen')}
+      </button>
+      {quellenOffen ? <Quellen aendere={aendere} setMeldung={setMeldung} schliessen={() => setQuellenOffen(false)} /> : null}
 
       <p className="summen" data-summen>
         <span>

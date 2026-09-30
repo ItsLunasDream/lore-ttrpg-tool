@@ -188,12 +188,16 @@ Obsidian.
   Ausgerüstete Waffen im Inventar stehen von selbst unter Angriffe.
 - **Inventar**: Gegenstände mit Gewicht und Wert, Geld in PM/GM/EM/SM/KM,
   Gruppeninventare, Geben und Aufteilen zwischen Bögen; Gewichte in kg und lb.
+  Gegenstände kommen auch aus dem SRD (Ausrüstung, magische Gegenstände),
+  aus dem Magic Item Creator (Homebrew) und als Wurf auf eine Loot-Tabelle.
 - **Im Raum**: den eigenen Bogen hineinbringen; der Gastgeber führt den
   gemeinsamen Stand. Je Bogen sehen die anderen nichts, eine Übersicht oder
   alles. Die SL kann jeden Bogen ändern; das wird bei der Person, der er
   gehört, markiert, außer die SL schaltet auf „Still ändern“. Es kann
   mehrere SL geben, die Rolle lässt sich weitergeben (Rechtsklick auf einen
   Namen unter Teilen → Raum).
+- **Initiative**: „In die Initiative“ schickt die Figur in den Tracker;
+  TP-Änderungen gehen in beide Richtungen.
 - Speichert von selbst als Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -373,7 +377,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
-| `charakterbogen.md` | Charakterbogen mit Inventar, Rollen und Bögen live im Raum (Schritte 1 bis 6 gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar, Rollen und Bögen live im Raum (Schritte 1 bis 7 gebaut) |
 
 ## Lizenz
 

@@ -49,6 +49,8 @@ export interface InitiativeEmbedOptions {
    * gelesen. Der Tracker schlaegt sie neben denen des SRD vor.
    */
   readonly eigeneZustaende?: () => Promise<readonly { name: string; text: string }[]>;
+  /** TP einer Figur aus dem Charakterbogen haben sich im Kampf geaendert: zurueck an den Bogen. */
+  readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
 }
 
 export interface InitiativeEmbed {
@@ -75,6 +77,11 @@ export interface InitiativeEmbed {
    * Ungespeichertes da, wird von aussen nichts weggeworfen.
    */
   uebernimmBegegnung(webContents: WebContents, uebergabe: Uebergabe): Promise<boolean>;
+  /**
+   * Figuren aus dem Charakterbogen. `hinzufuegen`: neue anfuegen; sonst nur
+   * vorhandene auffrischen (etwa nach einer Aenderung am Bogen).
+   */
+  figuren(webContents: WebContents, figuren: readonly unknown[], hinzufuegen: boolean): boolean;
   /** Eine Nachricht aus dem Raum (geteilte Initiative). */
   raumNachricht(webContents: WebContents, von: { id: string; name: string }, inhalt: string): void;
   /** Die Lage im Raum hat sich geaendert. */
@@ -148,6 +155,11 @@ export async function mountInitiative(
   );
   ipcMain.removeHandler(kanal('raum:anfang'));
   ipcMain.handle(kanal('raum:anfang'), () => options.raum?.anfang() ?? { lage: KEIN_RAUM, nachrichten: [] });
+  ipcMain.removeAllListeners(kanal('bogen:tp'));
+  ipcMain.on(kanal('bogen:tp'), (_e, kennung: unknown, hp: unknown, temp: unknown) => {
+    if (typeof kennung !== 'string' || !kennung) return;
+    options.bogenTp?.(kennung.slice(0, 120), Math.max(0, Math.round(Number(hp) || 0)), Math.max(0, Math.round(Number(temp) || 0)));
+  });
   ipcMain.removeHandler(kanal('zustaende:eigene'));
   ipcMain.handle(kanal('zustaende:eigene'), async () => (await options.eigeneZustaende?.().catch(() => [])) ?? []);
 
@@ -157,6 +169,11 @@ export async function mountInitiative(
     },
     raumZustand: (webContents, lage) => {
       if (!webContents.isDestroyed()) webContents.send(kanal('raum:zustand'), lage);
+    },
+    figuren: (webContents, figuren, hinzufuegen) => {
+      if (webContents.isDestroyed()) return false;
+      webContents.send(kanal('figuren'), figuren, hinzufuegen);
+      return true;
     },
     uebernimmBegegnung: async (webContents, uebergabe) => {
       if (webContents.isDestroyed()) return false;

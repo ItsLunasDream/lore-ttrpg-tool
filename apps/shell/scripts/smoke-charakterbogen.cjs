@@ -20,6 +20,14 @@ fs.writeFileSync(
   JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'charakterbogen'] })
 );
 
+// Ein eigener Gegenstand aus dem Magic Item Creator (Homebrew).
+const mi = path.join(userData, 'magicitems', 'gegenstaende');
+fs.mkdirSync(mi, { recursive: true });
+fs.writeFileSync(
+  path.join(mi, 'sturmklinge.md'),
+  '---\nname: Sturmklinge\nart: waffe\nseltenheit: rare\neinstimmung: ja\nwert: 4000\ngeaendert: 2026-01-01\n---\n## Wirkungen\n\n- Blitze knistern an der Schneide.\n'
+);
+
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 
@@ -34,6 +42,15 @@ setTimeout(() => {
   console.log('\nABBRUCH: Zeitwaechter');
   app.exit(2);
 }, 120000);
+
+async function bis(bedingung, ms = 4000) {
+  const ende = Date.now() + ms;
+  while (!(await bedingung())) {
+    if (Date.now() > ende) return false;
+    await warte(50);
+  }
+  return true;
+}
 
 /** Setzt einen Wert so, dass React ihn mitbekommt. */
 const tippe = (auswahl, wert) => `(() => {
@@ -244,6 +261,45 @@ app.whenReady().then(async () => {
   pruefe(/Seil an Mira/.test(await js(`document.querySelector('.verlauf')?.textContent ?? ''`)), 'der Verlauf nennt die Uebergabe');
   const mira = fs.readFileSync(path.join(ordner, dateien().find((d) => d.startsWith('neue-figur'))), 'utf8');
   pruefe(/- Seil/.test(mira) && /25 GM, 7 SM|"gm": 25/.test(mira), 'bei Mira liegen Seil und Geld in der Datei');
+
+  // --- Quellen fuers Inventar (Schritt 7) ---------------------------------------
+  const waehleQ = (auswahl, wert) =>
+    js(`(() => { const s = document.querySelector(${JSON.stringify(auswahl)}); if (!s) return false;
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(wert)});
+      s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  const namen = () => js(`[...document.querySelectorAll('[data-gegenstand-name]')].map((e) => e.value).join('|')`);
+  await js(`document.querySelector('[data-aus-quelle]').click(); true`);
+  await warte(200);
+  await js(tippe('[data-quelle-suche]', 'ritterrüstung'));
+  await warte(200);
+  await js(`document.querySelector('[data-quelle-dazu]').click(); true`);
+  await warte(200);
+  pruefe(/Ritterrüstung/.test(await namen()), 'SRD-Ausruestung: die Ritterruestung liegt im Gruppeninventar');
+  await js(`document.querySelector('[data-quelle-reiter="magie"]').click(); true`);
+  await js(tippe('[data-quelle-suche]', 'nimmervoll'));
+  await warte(200);
+  await js(`document.querySelector('[data-quelle-dazu="bag-of-holding"]').click(); true`);
+  await warte(200);
+  pruefe(/Nimmervoller Beutel/.test(await namen()), 'SRD-Magie: der Nimmervolle Beutel liegt dort');
+  await js(`document.querySelector('[data-quelle-reiter="eigene"]').click(); true`);
+  pruefe(
+    await bis(async () => js(`Boolean(document.querySelector('[data-quelle-dazu="sturmklinge"]'))`)),
+    'Homebrew: die Sturmklinge aus dem Magic Item Creator steht zur Wahl'
+  );
+  await js(`document.querySelector('[data-quelle-dazu="sturmklinge"]').click(); true`);
+  await warte(200);
+  pruefe(/Sturmklinge/.test(await namen()), 'und kommt ins Inventar');
+  await js(`document.querySelector('[data-quelle-reiter="loot"]').click(); true`);
+  pruefe(await bis(async () => js(`document.querySelectorAll('[data-loot-tabelle] option').length > 0`)), 'Loot: die Tabellen des Loot Generators stehen zur Wahl');
+  await js(`document.querySelector('[data-loot-wuerfeln]').click(); true`);
+  pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-loot-dazu]'))`)), 'ein Wurf auf die Tabelle ergibt etwas');
+  const vorher = (await namen()).split('|').length;
+  await js(`document.querySelector('[data-loot-dazu]').click(); true`);
+  await warte(200);
+  pruefe((await namen()).split('|').length === vorher + 1, 'und landet als Gegenstand im Inventar');
+  await warte(1200);
+  const gruppe = fs.readFileSync(path.join(ordner, dateien().find((d) => !d.startsWith('neue-figur'))), 'utf8');
+  pruefe(/"art": "magicitem",\s*"kennung": "sturmklinge"/.test(gruppe), 'die Herkunft steht in der Datei');
 
   pruefe(konsole.length === 0, `keine Fehler in der Konsole (${konsole.join(' | ')})`);
   console.log(fehler.length ? `\n${fehler.length} fehlgeschlagen` : '\nCharakterbogen bestanden.');

@@ -64,12 +64,15 @@ export function LiveListe({
   live,
   eigene,
   oeffne,
-  bringe
+  bringe,
+  alleInTracker
 }: {
   live: LiveZustand;
   eigene: readonly Kachel[];
   oeffne: (id: string) => void;
   bringe: (bogenId: string) => void;
+  /** Nur fuer die SL: alle Figuren, die man ganz sieht, in den Initiative Tracker. */
+  alleInTracker: () => void;
 }) {
   const [wahl, setWahl] = useState('');
   const drin = new Set(live.eintraege.filter((e) => e.besitzer.id === live.ich).map((e) => e.bogen?.id ?? e.id.split('/').pop()));
@@ -82,6 +85,11 @@ export function LiveListe({
       <h2>
         {t('live.titel')}
         {live.ichSl ? <span className="sl-marke sl-marke--rolle">{t('sl.kurz')}</span> : null}
+        {live.ichSl && sortiert.some((e) => e.sicht === 'voll' && e.uebersicht.art === 'figur') ? (
+          <button type="button" className="knopf--klein" data-alle-tracker onClick={alleInTracker}>
+            {t('tracker.alle')}
+          </button>
+        ) : null}
       </h2>
       {sortiert.length === 0 ? <p className="leer">{t('live.leer')}</p> : null}
       <ul className="kacheln">

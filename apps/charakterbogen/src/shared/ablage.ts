@@ -188,3 +188,20 @@ export function leseBogen(inhalt: string, id: string): Bogen {
   const name = /^name:\s*(.+)$/m.exec(inhalt)?.[1]?.trim().replace(/^"(.*)"$/, '$1') ?? id;
   return bereinige({ name }, id);
 }
+
+/** Was der Initiative Tracker von einer Figur braucht. `kennung`: Bogen-Kennung, im Raum die Kennung dort. */
+export interface Figur {
+  readonly kennung: string;
+  readonly name: string;
+  readonly tp: number;
+  readonly tpMax: number;
+  readonly tempTp: number;
+  readonly rk: number;
+  readonly iniMod: number;
+}
+
+export function figurAus(b: Bogen, kennung: string): Figur | null {
+  const w = b.werte;
+  if (b.art !== 'figur' || !w) return null;
+  return { kennung, name: b.name, tp: w.tp.aktuell, tpMax: w.tp.max, tempTp: w.tp.temp, rk: w.rk, iniMod: initiativeBonus(w) };
+}

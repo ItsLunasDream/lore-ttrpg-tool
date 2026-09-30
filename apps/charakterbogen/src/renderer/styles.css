@@ -882,3 +882,54 @@ textarea {
 .sl-hinweis--verlauf summary {
   cursor: pointer;
 }
+
+/* --- Quellen fuers Inventar ----------------------------------------------- */
+
+.quellen {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-tief);
+}
+
+.quellen__reiter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.quellen__reiter .ist-an {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.quellen__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.quellen__liste li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rand);
+}
+
+.quellen__zahlen {
+  font-size: 0.85em;
+}
+
+.quellen__wurf {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}

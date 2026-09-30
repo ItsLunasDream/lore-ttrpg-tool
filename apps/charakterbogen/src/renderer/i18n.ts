@@ -91,6 +91,28 @@ const TEXTE = {
   'angriff.notiz': ['Notiz', 'Note'],
   'angriff.dazu': ['+ Angriff', '+ Attack'],
   'angriff.weg': ['Angriff entfernen', 'Remove attack'],
+  tracker: ['In die Initiative', 'To initiative'],
+  'tracker.titel': [
+    'Die Figur mit Name, TP, RK und Initiativebonus in den Initiative Tracker. Ist sie schon dort, wird sie aufgefrischt. TP-Änderungen im Kampf kommen zurück in den Bogen.',
+    'Send the character with name, HP, AC and initiative bonus to the Initiative Tracker. If it is already there, it is refreshed. HP changes in combat come back to the sheet.'
+  ],
+  'tracker.alle': ['Alle Figuren in die Initiative', 'All characters to initiative'],
+  'quelle.oeffnen': ['+ Aus Quelle …', '+ From a source …'],
+  'quelle.srd': ['SRD-Ausrüstung', 'SRD equipment'],
+  'quelle.magie': ['SRD magisch', 'SRD magic items'],
+  'quelle.eigene': ['Eigene (Magic Item Creator)', 'Own (Magic Item Creator)'],
+  'quelle.loot': ['Loot-Tabelle', 'Loot table'],
+  'quelle.suche': ['Suchen …', 'Search …'],
+  'quelle.nehmen': ['Nehmen', 'Add'],
+  'quelle.dazu': ['„{name}“ liegt im Inventar.', '“{name}” is in the inventory.'],
+  'quelle.eigene.leer': [
+    'Noch keine eigenen Gegenstände. Im Magic Item Creator gebaute und gespeicherte stehen hier.',
+    'No own items yet. Items built and saved in the Magic Item Creator show up here.'
+  ],
+  'quelle.loot.leer': ['Keine Loot-Tabellen gefunden.', 'No loot tables found.'],
+  'quelle.loot.wuerfeln': ['Würfeln', 'Roll'],
+  'quelle.loot.nichts': ['Der Wurf ergab nichts.', 'The roll gave nothing.'],
+  'quelle.loot.dazu': ['Ins Inventar', 'Into the inventory'],
   'gegenstand.keineWaffe': ['keine Waffe', 'not a weapon'],
   'gegenstand.waffe.angriff': ['Ausgerüstet: steht unter Angriffe.', 'Equipped: listed under attacks.'],
   'gegenstand.waffe.ausruesten': ['Ausrüsten, dann steht sie unter Angriffe.', 'Equip it to list it under attacks.'],
