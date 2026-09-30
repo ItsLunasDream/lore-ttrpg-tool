@@ -14,8 +14,7 @@ import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
 import { alsKachel, alsMarkdown, freieKennung, klassenText, leseBogen, zuId, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
-import { uebergib, geldText, type Uebergabe } from '../shared/uebergabe';
-import { legeDazu, teileAuf } from '../shared/inventar';
+import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
 import type { Anfrage } from '../shared/live';
 import { Liveleitung, type LiveZustand, type RaumLage } from './live';
@@ -33,6 +32,8 @@ export interface BogenEmbedOptions {
   readonly raum?: {
     sende(inhalt: string, an: string | null): boolean;
     lage(): RaumLage;
+    /** Das Gruppeninventar mit dem gespeicherten Raum merken. */
+    merkeGruppe?(id: string): void;
   };
 }
 
@@ -157,7 +158,16 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
           return;
         }
         await schreibeSicher(datei, alsMarkdown(bereinige(b, zuId(b.id)), sprache));
-      })
+      }),
+    lies: async (id) => {
+      try {
+        return await lies(id);
+      } catch {
+        return null;
+      }
+    },
+    merkeGruppe: (id) => options.raum?.merkeGruppe?.(id),
+    sprache: () => sprache
   });
   if (options.raum) leitung.setzeLage(options.raum.lage());
   const merkeOberflaeche = (ereignis: never) => {
@@ -236,38 +246,11 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
         try {
           const ziele = [...new Set(anIds)].filter((id) => zuId(id) !== zuId(vonId));
           if (ziele.length === 0) return { ok: false, boegen: [], text: '' };
-          const von = await lies(vonId);
-          const { jeder, rest } = teileAuf(von.muenzen, ziele.length);
-          const text = geldText(jeder, sprache);
-          if (!text) return { ok: false, boegen: [], text: '' };
-          const zeit = new Date().toISOString();
-          const geschrieben: Bogen[] = [];
-          for (const id of ziele) {
-            const b = await lies(id);
-            geschrieben.push(
-              await schreib({
-                ...b,
-                muenzen: legeDazu(b.muenzen, jeder),
-                verlauf: [{ zeit, text: sprache === 'de' ? `${text} von ${von.name} (aufgeteilt)` : `${text} from ${von.name} (split)` }, ...b.verlauf]
-              })
-            );
-          }
-          geschrieben.unshift(
-            await schreib({
-              ...von,
-              muenzen: rest,
-              verlauf: [
-                {
-                  zeit,
-                  text:
-                    sprache === 'de'
-                      ? `Aufgeteilt: je ${text} an ${geschrieben.map((b) => b.name).join(', ')}`
-                      : `Split: ${text} each to ${geschrieben.map((b) => b.name).join(', ')}`
-                },
-                ...von.verlauf
-              ]
-            })
-          );
+          const ergebnis = teileGeld(await lies(vonId), await Promise.all(ziele.map((id) => lies(id))), sprache);
+          if (!ergebnis) return { ok: false, boegen: [], text: '' };
+          const geschrieben: Bogen[] = [await schreib(ergebnis.von)];
+          for (const b of ergebnis.ziele) geschrieben.push(await schreib(b));
+          const text = ergebnis.text;
           return { ok: true, boegen: geschrieben, text };
         } catch (fehler) {
           return { ok: false, boegen: [], text: String(fehler instanceof Error ? fehler.message : fehler) };

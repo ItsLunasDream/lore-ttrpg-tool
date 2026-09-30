@@ -159,6 +159,10 @@ export interface RaumLage {
   readonly rolle: 'aus' | 'gastgeber' | 'gast';
   readonly ich: { readonly id: string; readonly name: string } | null;
   readonly personen: readonly { readonly id: string; readonly name: string; readonly sl?: boolean }[];
+  /** Nur beim Gastgeber eines gespeicherten Raums: seine Einstellungen. */
+  readonly einstellungen?: { readonly gruppeNehmen: boolean; readonly slMarkieren: boolean };
+  /** Nur beim Gastgeber eines gespeicherten Raums: die Kennung des Gruppeninventars. */
+  readonly gruppeninventar?: string | null;
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -226,6 +230,8 @@ export interface MontageHaken {
     sende(werkzeug: string, inhalt: string, an: string | null): boolean;
     /** Eine gewoehnliche Chatzeile, etwa ein Wurf aus dem Wuerfel. */
     chatte(text: string, an: string | null): boolean;
+    /** Das Gruppeninventar mit dem gespeicherten Raum merken (Charakterbogen). */
+    merkeGruppe?(id: string): void;
     anfang(werkzeug: string): {
       lage: RaumLage;
       nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[];
@@ -1516,7 +1522,8 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     raum: haken.raum
       ? {
           sende: (inhalt, an) => haken.raum?.sende('charakterbogen', inhalt, an) ?? false,
-          lage: () => haken.raum?.anfang('charakterbogen').lage ?? { rolle: 'aus', ich: null, personen: [] }
+          lage: () => haken.raum?.anfang('charakterbogen').lage ?? { rolle: 'aus', ich: null, personen: [] },
+          merkeGruppe: (bogenId) => haken.raum?.merkeGruppe?.(bogenId)
         }
       : undefined
   });

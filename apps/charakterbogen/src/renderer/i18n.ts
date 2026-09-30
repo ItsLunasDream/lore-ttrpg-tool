@@ -231,6 +231,7 @@ const TEXTE = {
   'live.abgelehnt.recht': ['Das darfst du an diesem Bogen nicht ändern.', 'You may not change this sheet.'],
   'live.abgelehnt.voll': ['Du hast schon zwölf Bögen im Raum.', 'You already have twelve sheets in the room.'],
   'live.abgelehnt.unbekannt': ['Diesen Bogen gibt es im Raum nicht mehr.', 'This sheet is no longer in the room.'],
+  'live.abgelehnt.geht-nicht': ['Das geht nicht: nicht genug davon, oder der Gegenstand ist schon weg.', 'That does not work: not enough of it, or the item is already gone.'],
   'live.abgelehnt.ungueltig': ['Der Gastgeber konnte die Änderung nicht lesen.', 'The host could not read the change.'],
   'sl.kurz': ['SL', 'GM'],
   'sl.marke.titel': ['Geändert von {von} um {zeit}. Vorher: {alt}', 'Changed by {von} at {zeit}. Before: {alt}'],

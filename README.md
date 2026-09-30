@@ -351,7 +351,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 5 built) |
+| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 6 built) |
 
 ## License
 

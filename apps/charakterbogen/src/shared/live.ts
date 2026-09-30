@@ -13,6 +13,7 @@
  */
 import { bereinige, leseBetrag, wendeBetragAn, MAX_VERLAUF, type Bogen } from './bogen';
 import { klassenText, zuId } from './ablage';
+import { teileGeld, uebergib, type Uebergabe } from './uebergabe';
 
 export type Freigabe = 'nichts' | 'uebersicht' | 'alles';
 export const FREIGABEN: readonly Freigabe[] = ['nichts', 'uebersicht', 'alles'];
@@ -78,14 +79,27 @@ export type Anfrage =
   | { readonly art: 'schritte'; readonly id: string; readonly nr: number; readonly schritte: readonly Schritt[]; readonly still?: boolean }
   | { readonly art: 'zurueck'; readonly id: string }
   | { readonly art: 'freigabe'; readonly id: string; readonly freigabe: Freigabe }
-  | { readonly art: 'bestaetige'; readonly id: string };
+  | { readonly art: 'bestaetige'; readonly id: string }
+  /** Gegenstand oder Geld von einem Bogen im Raum zu einem anderen. */
+  | { readonly art: 'gib'; readonly von: string; readonly nach: string; readonly was: Uebergabe }
+  /** Das Geld eines Bogens (meist des Gruppeninventars) gleichmaessig verteilen. */
+  | { readonly art: 'aufteilen'; readonly von: string; readonly an: readonly string[] };
+
+/** Was der Gastgeber fuer den Raum eingestellt hat (gespeichert mit dem Raum). */
+export interface TischEinstellungen {
+  /** Spieler:innen duerfen Gruppeninventare aendern, daraus nehmen und hineinlegen. */
+  readonly gruppeNehmen: boolean;
+  /** Aenderungen der SL an fremden Boegen markieren (sonst immer still). */
+  readonly slMarkieren: boolean;
+}
+export const VORGABE_EINSTELLUNGEN: TischEinstellungen = { gruppeNehmen: true, slMarkieren: true };
 
 /** Was der Gastgeber schickt. */
 export type Meldung =
   | { readonly art: 'stand'; readonly eintraege: readonly LiveEintrag[] }
   | { readonly art: 'bogen'; readonly eintrag: LiveEintrag }
   | { readonly art: 'weg'; readonly id: string }
-  | { readonly art: 'abgelehnt'; readonly id: string | null; readonly grund: 'recht' | 'unbekannt' | 'ungueltig' | 'voll' };
+  | { readonly art: 'abgelehnt'; readonly id: string | null; readonly grund: 'recht' | 'unbekannt' | 'ungueltig' | 'voll' | 'geht-nicht' };
 
 export interface Ausgang {
   readonly an: string;
@@ -227,7 +241,41 @@ export class LiveTisch {
   private eintraege = new Map<string, Intern>();
   private personen: Person[] = [];
 
-  constructor(private readonly jetzt: () => string = () => new Date().toISOString()) {}
+  private einstellungen: TischEinstellungen = VORGABE_EINSTELLUNGEN;
+
+  constructor(
+    private readonly jetzt: () => string = () => new Date().toISOString(),
+    private readonly sprache: () => 'de' | 'en' = () => 'de'
+  ) {}
+
+  /** Die Einstellungen des Raums. Aendern sich die Rechte, bekommen alle den Stand neu. */
+  setzeEinstellungen(neu: Partial<TischEinstellungen>): Ausgang[] {
+    const vorher = this.einstellungen;
+    this.einstellungen = {
+      gruppeNehmen: typeof neu.gruppeNehmen === 'boolean' ? neu.gruppeNehmen : vorher.gruppeNehmen,
+      slMarkieren: typeof neu.slMarkieren === 'boolean' ? neu.slMarkieren : vorher.slMarkieren
+    };
+    return this.einstellungen.gruppeNehmen !== vorher.gruppeNehmen ? this.standFuerAlle() : [];
+  }
+
+  /**
+   * Wer diesen Bogen aendern darf: wem er gehoert, jede SL, und bei einem
+   * Gruppeninventar alle, solange der Raum es erlaubt.
+   */
+  private darf(e: Intern, p: Person): boolean {
+    return e.besitzer.id === p.id || p.sl === true || (e.bogen.art === 'gruppe' && this.einstellungen.gruppeNehmen);
+  }
+
+  /** Ein Eintrag im Verlauf des Bogens. */
+  private vermerke(e: Intern, text: string, zeit: string): void {
+    e.bogen = { ...e.bogen, verlauf: [{ zeit, text }, ...e.bogen.verlauf].slice(0, MAX_VERLAUF) };
+  }
+
+  /** Nach einer Aenderung: Fassung hoch, wer zuletzt. */
+  private geaendert(e: Intern, bogen: Bogen, wer: string, zeit: string): void {
+    e.bogen = { ...bogen, fassung: e.bogen.fassung + 1, geaendert: zeit };
+    e.zuletzt = { name: wer, zeit };
+  }
 
   /** Die Personenliste hat sich geaendert. Wer geht, nimmt seine Boegen mit. */
   setzePersonen(personen: readonly Person[]): Ausgang[] {
@@ -279,7 +327,16 @@ export class LiveTisch {
         const bogen = bereinige(roh, bogenId);
         const e: Intern = alt
           ? { ...alt, bogen }
-          : { id, bogen, besitzer: { id: von.id, name: von.name }, freigabe: VORGABE_FREIGABE, sl: [], quittung: {}, zuletzt: null };
+          : {
+              id,
+              bogen,
+              besitzer: { id: von.id, name: von.name },
+              // Ein Gruppeninventar ist fuer alle da.
+              freigabe: bogen.art === 'gruppe' ? 'alles' : VORGABE_FREIGABE,
+              sl: [],
+              quittung: {},
+              zuletzt: null
+            };
         this.eintraege.set(id, e);
         return this.verteile(e);
       }
@@ -313,7 +370,7 @@ export class LiveTisch {
         const e = this.eintraege.get(String(a.id));
         if (!e) return ablehnen(String(a.id), 'unbekannt');
         const istBesitzer = e.besitzer.id === vonId;
-        if (!istBesitzer && !von.sl) return ablehnen(e.id, 'recht');
+        if (!this.darf(e, von)) return ablehnen(e.id, 'recht');
         if (!Array.isArray(a.schritte) || a.schritte.length > MAX_SCHRITTE) return ablehnen(e.id, 'ungueltig');
         let bogen = e.bogen;
         const felder: string[] = [];
@@ -333,10 +390,12 @@ export class LiveTisch {
         e.quittung[vonId] = Math.max(e.quittung[vonId] ?? 0, nr);
         if (felder.length > 0) {
           const zeit = this.jetzt();
-          e.bogen = { ...bogen, fassung: e.bogen.fassung + 1, geaendert: zeit };
-          e.zuletzt = { name: von.name, zeit };
-          if (!istBesitzer) {
-            const still = a.still === true;
+          this.geaendert(e, bogen, von.name, zeit);
+          if (!istBesitzer && e.bogen.art === 'gruppe') {
+            // Am Gruppeninventar markiert niemand etwas; der Verlauf sagt, wer.
+            this.vermerke(e, `${von.name}: ${felder.join(', ')}`, zeit);
+          } else if (!istBesitzer) {
+            const still = a.still === true || !this.einstellungen.slMarkieren;
             e.sl = [{ zeit, von: von.name, felder, alt, still, offen: !still }, ...e.sl].slice(0, MAX_SL_AENDERUNGEN);
             e.bogen = {
               ...e.bogen,
@@ -348,6 +407,34 @@ export class LiveTisch {
           }
         }
         return this.verteile(e);
+      }
+      case 'gib': {
+        const q = this.eintraege.get(String(a.von));
+        const z = this.eintraege.get(String(a.nach));
+        if (!q || !z) return ablehnen(String(a.von), 'unbekannt');
+        if (!this.darf(q, von)) return ablehnen(q.id, 'recht');
+        if (q.id === z.id || !a.was || typeof a.was !== 'object') return ablehnen(q.id, 'ungueltig');
+        // Die Kennungen im Raum sind eindeutig, die der Boegen nicht (zwei „thorin").
+        const ergebnis = uebergib({ ...q.bogen, id: q.id }, { ...z.bogen, id: z.id }, a.was, this.sprache(), this.jetzt());
+        if (!ergebnis) return ablehnen(q.id, 'geht-nicht');
+        const zeit = this.jetzt();
+        this.geaendert(q, { ...ergebnis.von, id: q.bogen.id }, von.name, zeit);
+        this.geaendert(z, { ...ergebnis.nach, id: z.bogen.id }, von.name, zeit);
+        return [...this.verteile(q), ...this.verteile(z)];
+      }
+      case 'aufteilen': {
+        const q = this.eintraege.get(String(a.von));
+        if (!q) return ablehnen(String(a.von), 'unbekannt');
+        if (!this.darf(q, von)) return ablehnen(q.id, 'recht');
+        const ziele = [...new Set(Array.isArray(a.an) ? a.an : [])]
+          .map((id) => this.eintraege.get(String(id)))
+          .filter((x): x is Intern => Boolean(x) && x!.id !== q.id);
+        const ergebnis = teileGeld(q.bogen, ziele.map((x) => x.bogen), this.sprache(), this.jetzt());
+        if (!ergebnis) return ablehnen(q.id, 'geht-nicht');
+        const zeit = this.jetzt();
+        this.geaendert(q, ergebnis.von, von.name, zeit);
+        ziele.forEach((x, n) => this.geaendert(x, ergebnis.ziele[n], von.name, zeit));
+        return [q, ...ziele].flatMap((x) => this.verteile(x));
       }
       default:
         return ablehnen(null, 'ungueltig');
@@ -366,7 +453,7 @@ export class LiveTisch {
       besitzer: e.besitzer,
       freigabe: e.freigabe,
       sicht: voll ? 'voll' : 'uebersicht',
-      darfAendern: istBesitzer || sl,
+      darfAendern: this.darf(e, p),
       ...(voll ? { bogen: e.bogen } : {}),
       uebersicht: uebersichtVon(e.bogen),
       slAenderungen,

@@ -74,12 +74,15 @@ export function App() {
   /** Der Stand, zu dem die Schritte schon unterwegs sind. */
   const gesendetRef = useRef<Bogen | null>(null);
   const nrRef = useRef(0);
+  /** Die letzte Schrittnummer je Bogen im Raum: der Gastgeber quittiert je Bogen. */
+  const nrJe = useRef(new Map<string, number>());
   const sendeTakt = useRef<number | null>(null);
   const [still, setStill] = useState(false);
   const stillRef = useRef(false);
   stillRef.current = still;
   /** Nach „In den Raum bringen": diesen Bogen oeffnen, sobald er da ist. */
   const wartetAuf = useRef<string | null>(null);
+  const letzteAblehnung = useRef<string | null>(null);
 
   // Speichern: immer der neueste Stand, nie zwei Aufrufe gleichzeitig.
   const offenRef = useRef<Bogen | null>(null);
@@ -191,7 +194,7 @@ export function App() {
       setFehler('');
       liveIdRef.current = id;
       setLiveId(id);
-      nrRef.current = Math.max(nrRef.current, e.quittung);
+      nrRef.current = Math.max(nrJe.current.get(id) ?? 0, e.quittung);
       gesendetRef.current = e.bogen;
       offenRef.current = e.bogen;
       schmutzig.current = false;
@@ -205,6 +208,7 @@ export function App() {
   const verlasseLive = useCallback(() => {
     if (!liveIdRef.current) return;
     sendeGesammelt();
+    nrJe.current.set(liveIdRef.current, nrRef.current);
     liveIdRef.current = null;
     gesendetRef.current = null;
     setLiveId(null);
@@ -218,7 +222,8 @@ export function App() {
   // Ein neuer Stand vom Gastgeber: den offenen Bogen nachziehen, sobald alle
   // eigenen Schritte drin sind (sonst sprängen getippte Zeichen zurück).
   useEffect(() => {
-    if (live.abgelehnt) setFehler(t(`live.abgelehnt.${live.abgelehnt}` as Parameters<typeof t>[0]));
+    if (live.abgelehnt && live.abgelehnt !== letzteAblehnung.current) setFehler(t(`live.abgelehnt.${live.abgelehnt}` as Parameters<typeof t>[0]));
+    letzteAblehnung.current = live.abgelehnt;
     const warte = wartetAuf.current;
     if (warte && live.eintraege.some((e) => e.id === warte)) {
       wartetAuf.current = null;
@@ -422,6 +427,19 @@ export function App() {
   const liveEintrag = liveId ? live.eintraege.find((e) => e.id === liveId) ?? null : null;
   const meiner = liveEintrag ? liveEintrag.besitzer.id === live.ich : true;
   const darf = liveEintrag ? liveEintrag.darfAendern : true;
+  // Ziele fuers Geben im Raum: alle anderen Boegen dort, mit Besitzer im Namen.
+  const liveZiele: Kachel[] = liveEintrag
+    ? live.eintraege
+        .filter((e) => e.id !== liveEintrag.id)
+        .map((e) => ({
+          id: e.id,
+          name: e.uebersicht.art === 'gruppe' || e.besitzer.id === live.ich ? e.uebersicht.name : `${e.uebersicht.name} (${e.besitzer.name})`,
+          art: e.uebersicht.art,
+          kurz: e.uebersicht.kurz,
+          tp: '',
+          geaendert: ''
+        }))
+    : [];
   // Marken nur fuer die Person, der der Bogen gehoert; die SL hat ihren Verlauf.
   const marken = liveEintrag && meiner ? markenAus(liveEintrag.slAenderungen) : new Map();
 
@@ -499,8 +517,22 @@ export function App() {
             </h2>
             <InventarBlock
               bogen={offen}
-              // Geben zwischen Boegen im Raum kommt ueber den Gastgeber (Schritt 6), nicht ueber die Platte.
-              andere={liveEintrag ? [] : kacheln}
+              // Im Raum: die anderen Boegen dort; Geben geht ueber den Gastgeber, nicht ueber die Platte.
+              andere={liveEintrag ? liveZiele : kacheln}
+              raum={
+                liveEintrag
+                  ? {
+                      gib: (nach, was) => {
+                        sendeGesammelt();
+                        anfrage({ art: 'gib', von: liveEintrag.id, nach, was });
+                      },
+                      teile: (an) => {
+                        sendeGesammelt();
+                        anfrage({ art: 'aufteilen', von: liveEintrag.id, an });
+                      }
+                    }
+                  : undefined
+              }
               aendere={aendere}
               speichereJetzt={speichereJetzt}
               uebernimm={uebernimm}

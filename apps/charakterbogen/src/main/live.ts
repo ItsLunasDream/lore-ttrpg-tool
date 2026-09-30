@@ -11,7 +11,7 @@
  * Eigene Boegen werden bei jeder Meldung auf die Platte geschrieben (kurz
  * gesammelt): wer den Raum verlaesst, behaelt den letzten Stand.
  */
-import { LiveTisch, leseMeldung, type Anfrage, type Ausgang, type LiveEintrag, type Meldung } from '../shared/live';
+import { LiveTisch, leseMeldung, type Anfrage, type Ausgang, type LiveEintrag, type Meldung, type TischEinstellungen } from '../shared/live';
 import type { Bogen } from '../shared/bogen';
 
 /** Die Kennung des Gastgebers im Raum (wie in der Huelle). */
@@ -24,6 +24,10 @@ export interface RaumLage {
   readonly rolle: 'aus' | 'gastgeber' | 'gast';
   readonly ich: { readonly id: string; readonly name: string } | null;
   readonly personen: readonly { readonly id: string; readonly name: string; readonly sl?: boolean }[];
+  /** Nur beim Gastgeber: die Einstellungen des gespeicherten Raums. */
+  readonly einstellungen?: Partial<TischEinstellungen>;
+  /** Nur beim Gastgeber: das Gruppeninventar des gespeicherten Raums (Kennung des Bogens). */
+  readonly gruppeninventar?: string | null;
 }
 
 export interface LiveZustand {
@@ -41,6 +45,11 @@ export interface LiveWege {
   melde(zustand: LiveZustand): void;
   /** Einen eigenen Bogen auf die Platte schreiben. */
   speichereEigenen(bogen: Bogen): Promise<void>;
+  /** Einen eigenen Bogen lesen (das Gruppeninventar des Raums). */
+  lies(id: string): Promise<Bogen | null>;
+  /** Der Gastgeber hat ein Gruppeninventar hereingebracht: mit dem Raum merken. */
+  merkeGruppe(id: string): void;
+  sprache(): 'de' | 'en';
 }
 
 export class Liveleitung {
@@ -48,6 +57,7 @@ export class Liveleitung {
   private tisch: LiveTisch | null = null;
   private eintraege = new Map<string, LiveEintrag>();
   private abgelehnt: string | null = null;
+  private gruppeVersucht = false;
   private zuSpeichern = new Map<string, Bogen>();
   private speicherTakt: ReturnType<typeof setTimeout> | null = null;
 
@@ -72,9 +82,22 @@ export class Liveleitung {
     if (neuerRaum) {
       this.eintraege.clear();
       this.abgelehnt = null;
-      this.tisch = lage.rolle === 'gastgeber' ? new LiveTisch() : null;
+      this.tisch = lage.rolle === 'gastgeber' ? new LiveTisch(undefined, () => this.wege.sprache()) : null;
     }
-    if (this.tisch) this.leite(this.tisch.setzePersonen(lage.personen));
+    if (this.tisch) {
+      this.leite(this.tisch.setzeEinstellungen(lage.einstellungen ?? {}));
+      this.leite(this.tisch.setzePersonen(lage.personen));
+    }
+    // Ein fortgesetzter Raum bringt sein Gruppeninventar gleich wieder mit,
+    // einmal je Raum (die Kennung kommt erst kurz nach dem Eroeffnen an).
+    if (neuerRaum) this.gruppeVersucht = false;
+    const gruppe = lage.gruppeninventar;
+    if (!this.gruppeVersucht && this.tisch && gruppe) {
+      this.gruppeVersucht = true;
+      void this.wege.lies(gruppe).then((b) => {
+        if (b && this.tisch && b.art === 'gruppe') this.anfrage({ art: 'bringe', bogen: b });
+      });
+    }
     // Ein Gast fragt beim Eintreten nach dem Stand.
     if (neuerRaum && lage.rolle === 'gast') this.wege.sende(JSON.stringify({ art: 'hallo' } satisfies Anfrage), GASTGEBER);
     this.wege.melde(this.zustand());
@@ -106,6 +129,9 @@ export class Liveleitung {
     if (!ich || this.lage.rolle === 'aus') return false;
     this.abgelehnt = null;
     if (this.tisch) {
+      if (a.art === 'bringe' && (a.bogen as Partial<Bogen> | null)?.art === 'gruppe' && typeof (a.bogen as Bogen).id === 'string') {
+        this.wege.merkeGruppe((a.bogen as Bogen).id);
+      }
       this.leite(this.tisch.anfrage(ich, a));
       return true;
     }

@@ -25,8 +25,16 @@ fs.writeFileSync(
   JSON.stringify({ language: 'de', tischName: 'Lea', einfuehrungGesehen: ['suite', 'charakterbogen'] })
 );
 // Ein eigener Bogen des Gastgebers, wie ihn die Ablage schreibt (nur der JSON-Block zaehlt).
-const thorin = { id: 'thorin', name: 'Thorin', werte: { tp: { max: 30, aktuell: 30, temp: 0 }, rk: 16 } };
-fs.writeFileSync(path.join(boegen, 'thorin.md'), `---\nname: Thorin\n---\n\n\`\`\`json bogen\n${JSON.stringify(thorin)}\n\`\`\`\n`);
+const thorin = { id: 'thorin', name: 'Thorin', muenzen: { pm: 0, gm: 10, em: 0, sm: 0, km: 0 }, werte: { tp: { max: 30, aktuell: 30, temp: 0 }, rk: 16 } };
+const beute = {
+  id: 'beute',
+  name: 'Beute',
+  art: 'gruppe',
+  gegenstaende: [{ id: 'pfeile', name: 'Pfeile', anzahl: 20, gewicht: 0.05, wert: 0.05 }]
+};
+const alsDatei = (b) => `---\nname: ${b.name}\n---\n\n\`\`\`json bogen\n${JSON.stringify(b)}\n\`\`\`\n`;
+fs.writeFileSync(path.join(boegen, 'thorin.md'), alsDatei(thorin));
+fs.writeFileSync(path.join(boegen, 'beute.md'), alsDatei(beute));
 
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -179,6 +187,50 @@ app.whenReady().then(async () => {
   pruefe(letzter(anna, thorinId)?.darfAendern === false, 'aendern darf sie ihn trotzdem nicht');
   if (process.env.BILD) fs.writeFileSync(process.env.BILD, (await sicht.webContents.capturePage()).toPNG());
 
+  // --- Schritt 6: Geben im Raum -------------------------------------------------
+  // Geld von Thorin an Anna, ueber die Oberflaeche.
+  await js(`document.querySelector('[data-geld-geben]').click(); true`);
+  await bis(async () => js(`Boolean(document.querySelector('[data-geld-dialog]'))`));
+  await js(tippe('[data-geld-betrag="gm"]', '3'));
+  await js(waehle('[data-geld-dialog] [data-ziel]', annaId));
+  await warte(100);
+  await js(`document.querySelector('[data-geld-ok]').click(); true`);
+  pruefe(await bis(() => letzter(anna, annaId)?.bogen?.muenzen.gm === 3), 'Thorin gibt Anna 3 GM, ueber den Gastgeber');
+  pruefe(
+    await bis(async () => (await js(`document.querySelector('[data-muenze="gm"] input, [data-muenze="gm"]')?.value ?? ''`)) === '7'),
+    'bei Thorin sind es noch 7'
+  );
+
+  // Das Gruppeninventar kommt in den Raum und wird mit dem Raum gemerkt.
+  await js(`document.querySelector('button').click(); true`);
+  await bis(async () => js(`Boolean(document.querySelector('[data-bringe-wahl]'))`));
+  await js(waehle('[data-bringe-wahl]', 'beute'));
+  await warte(100);
+  await js(`document.querySelector('[data-bringe]').click(); true`);
+  const beuteId = 'gastgeber/beute';
+  pruefe(await bis(() => letzter(anna, beuteId)?.sicht === 'voll'), 'Anna sieht das Gruppeninventar ganz');
+  pruefe(letzter(anna, beuteId)?.darfAendern === true, 'und darf daran');
+  const raumDatei = () => {
+    const d = path.join(userData, 'raeume');
+    const n = fs.readdirSync(d).find((x) => x.endsWith('.json'));
+    return JSON.parse(fs.readFileSync(path.join(d, n), 'utf8'));
+  };
+  pruefe(await bis(() => raumDatei().gruppeninventar === 'beute'), 'der gespeicherte Raum kennt sein Gruppeninventar');
+  bitte(anna, { art: 'gib', von: beuteId, nach: annaId, was: { art: 'gegenstand', gegenstandId: 'pfeile', anzahl: 5 } });
+  pruefe(await bis(() => letzter(anna, annaId)?.bogen?.gegenstaende.some((g) => g.name === 'Pfeile' && g.anzahl === 5)), 'Anna nimmt 5 Pfeile');
+  pruefe(letzter(anna, beuteId)?.bogen?.gegenstaende[0].anzahl === 15, 'im Gruppeninventar bleiben 15');
+  pruefe(/Pfeile an Anna Elf/.test(letzter(anna, beuteId)?.bogen?.verlauf[0]?.text ?? ''), 'mit Eintrag im Verlauf');
+  pruefe(
+    await bis(() => /"anzahl": 15/.test(fs.readFileSync(path.join(boegen, 'beute.md'), 'utf8')), 4000),
+    'der Gastgeber hat das Gruppeninventar auf der Platte'
+  );
+  await hjs(`window.shell.raum.einstellungen({ gruppeNehmen: false })`);
+  pruefe(await bis(() => letzter(anna, beuteId)?.darfAendern === false), 'ohne „nehmen erlaubt" darf Anna nicht mehr ans Gruppeninventar');
+  const vorAbgelehnt = vomBogen(anna).filter((m) => m.art === 'abgelehnt').length;
+  bitte(anna, { art: 'gib', von: beuteId, nach: annaId, was: { art: 'gegenstand', gegenstandId: 'pfeile', anzahl: 1 } });
+  pruefe(await bis(() => vomBogen(anna).filter((m) => m.art === 'abgelehnt').length > vorAbgelehnt), 'und nichts nehmen');
+  pruefe(raumDatei().einstellungen.gruppeNehmen === false, 'die Einstellung steht im gespeicherten Raum');
+
   // --- Anna geht ------------------------------------------------------------------
   anna.zu();
   await js(`document.querySelector('button').click(); true`);
@@ -190,6 +242,15 @@ app.whenReady().then(async () => {
 
   await hjs('window.shell.raum.verlassen()');
   pruefe(await bis(async () => !(await js(`Boolean(document.querySelector('[data-live-liste]'))`))), 'ohne Raum verschwindet „Im Raum"');
+
+  // Fortsetzen: das Gruppeninventar ist gleich wieder da.
+  const weiter = await hjs(`window.shell.raum.eroeffnen('Runde', 'pw2', { raumId: ${JSON.stringify(raumDatei().id)} })`);
+  pruefe(weiter.ok, 'der Raum laesst sich fortsetzen');
+  pruefe(
+    await bis(async () => js(`Boolean(document.querySelector('[data-live="${beuteId}"]'))`)),
+    'und bringt sein Gruppeninventar von selbst mit'
+  );
+  await hjs('window.shell.raum.verlassen()');
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   console.log(fehler.length === 0 ? '\nBoegen im Raum bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);

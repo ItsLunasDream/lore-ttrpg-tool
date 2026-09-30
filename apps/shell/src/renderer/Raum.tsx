@@ -47,6 +47,14 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [umbenennenId, setUmbenennenId] = useState<string | null>(null);
   const [umbenennenText, setUmbenennenText] = useState('');
   const [menue, setMenue] = useState<{ id: string; x: number; y: number } | null>(null);
+  // Beim Gastgeber: die Einstellungen des gespeicherten Raums.
+  const [raumEinst, setRaumEinst] = useState<{ gruppeNehmen: boolean; slMarkieren: boolean } | null>(null);
+  useEffect(() => {
+    if (zustand.rolle === 'gastgeber') void window.shell.raum.einstellungen({}).then(setRaumEinst);
+    else setRaumEinst(null);
+  }, [zustand.rolle, zustand.raum]);
+  const setzeEinst = (aenderung: { gruppeNehmen?: boolean; slMarkieren?: boolean }) =>
+    void window.shell.raum.einstellungen(aenderung).then(setRaumEinst);
   const [eigenerFehler, setEigenerFehler] = useState('');
   const [oeffentlich, setOeffentlich] = useState<string | null | 'fragt' | 'fehlt'>(null);
   const [kopiert, setKopiert] = useState('');
@@ -603,6 +611,28 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           </div>,
           document.body
         )}
+      {raumEinst ? (
+        <div className="raum__reihe" data-raum-einstellungen>
+          <label className="raum__schalter">
+            <input
+              type="checkbox"
+              data-gruppe-nehmen
+              checked={raumEinst.gruppeNehmen}
+              onChange={(e) => setzeEinst({ gruppeNehmen: e.target.checked })}
+            />
+            {t('room.settingsTakeFromGroup')}
+          </label>
+          <label className="raum__schalter">
+            <input
+              type="checkbox"
+              data-sl-markieren
+              checked={raumEinst.slMarkieren}
+              onChange={(e) => setzeEinst({ slMarkieren: e.target.checked })}
+            />
+            {t('room.settingsMarkGm')}
+          </label>
+        </div>
+      ) : null}
       <div className="raum__chat" ref={liste} data-chat>
         {zustand.chat.length === 0 ? (
           <p className="einst__satz">{t('room.emptyChat')}</p>

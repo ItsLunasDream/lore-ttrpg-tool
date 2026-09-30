@@ -6,7 +6,7 @@
  * Beide Seiten bekommen einen Eintrag im Verlauf.
  */
 import { MAX_VERLAUF, type Bogen, type Muenzen } from './bogen';
-import { legeDazu, neueKennung, zieheAb, MUENZARTEN, MUENZ_NAMEN } from './inventar';
+import { legeDazu, neueKennung, teileAuf, zieheAb, MUENZARTEN, MUENZ_NAMEN } from './inventar';
 
 export type Uebergabe =
   | { readonly art: 'gegenstand'; readonly gegenstandId: string; readonly anzahl: number }
@@ -63,5 +63,32 @@ export function uebergib(
   return {
     von: vermerke({ ...von, gegenstaende: bleibt }, de ? `${text} an ${nach.name}` : `${text} to ${nach.name}`, zeit),
     nach: vermerke({ ...nach, gegenstaende: [...nach.gegenstaende, neu] }, de ? `${text} von ${von.name}` : `${text} from ${von.name}`, zeit)
+  };
+}
+
+/**
+ * Das Geld von `von` gleichmaessig auf `ziele` verteilen; was nicht aufgeht,
+ * bleibt. `null`, wenn es nichts zu verteilen gibt. Alle bekommen einen
+ * Eintrag im Verlauf.
+ */
+export function teileGeld(
+  von: Bogen,
+  ziele: readonly Bogen[],
+  sprache: 'de' | 'en',
+  zeit = new Date().toISOString()
+): { von: Bogen; ziele: Bogen[]; text: string } | null {
+  if (ziele.length === 0) return null;
+  const { jeder, rest } = teileAuf(von.muenzen, ziele.length);
+  const text = geldText(jeder, sprache);
+  if (!text) return null;
+  const de = sprache === 'de';
+  const neu = ziele.map((b) =>
+    vermerke({ ...b, muenzen: legeDazu(b.muenzen, jeder) }, de ? `${text} von ${von.name} (aufgeteilt)` : `${text} from ${von.name} (split)`, zeit)
+  );
+  const namen = neu.map((b) => b.name).join(', ');
+  return {
+    von: vermerke({ ...von, muenzen: rest }, de ? `Aufgeteilt: je ${text} an ${namen}` : `Split: ${text} each to ${namen}`, zeit),
+    ziele: neu,
+    text
   };
 }

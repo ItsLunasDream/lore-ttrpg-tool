@@ -7,6 +7,7 @@ import { api } from './api';
 import { getLanguage, t } from './i18n';
 import type { Kachel } from '../shared/ablage';
 import type { Bogen, Muenzen } from '../shared/bogen';
+import type { Uebergabe } from '../shared/uebergabe';
 import {
   MUENZARTEN,
   MUENZ_NAMEN,
@@ -33,13 +34,21 @@ interface Props {
   readonly uebernimm: (boegen: readonly Bogen[]) => void;
   readonly setMeldung: (text: string) => void;
   readonly setFehler: (text: string) => void;
+  /**
+   * Im Raum: Geben und Aufteilen gehen als Anfrage an den Gastgeber. Die
+   * Ziele (`andere`) sind dann die Boegen im Raum, mit ihrer Kennung dort.
+   */
+  readonly raum?: {
+    gib(nachId: string, was: Uebergabe): void;
+    teile(anIds: string[]): void;
+  };
 }
 
 function gold(n: number, sprache: 'de' | 'en'): string {
   return `${n.toLocaleString(sprache === 'de' ? 'de-DE' : 'en-US', { maximumFractionDigits: 2 })} ${sprache === 'de' ? 'GM' : 'GP'}`;
 }
 
-export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernimm, setMeldung, setFehler }: Props) {
+export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernimm, setMeldung, setFehler, raum }: Props) {
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
   const i = sprache === 'de' ? 0 : 1;
   const figur = bogen.art === 'figur';
@@ -61,6 +70,14 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
       uebernimm(antwort.boegen);
       setMeldung(erfolg);
     } else setFehler(antwort.text || t('geben.geht.nicht'));
+  };
+
+  /** Geben: auf der Platte oder beim Gastgeber im Raum. */
+  const gib = (nachId: string, was: Uebergabe, erfolg: string) => {
+    if (raum) {
+      raum.gib(nachId, was);
+      setMeldung(erfolg);
+    } else void fuehreAus(() => api.sammlung.uebergib(bogen.id, nachId, was), erfolg);
   };
 
   const traglast = figur && bogen.werte ? traglastLb(bogen.werte.attribute.sta) : null;
@@ -130,7 +147,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
               const g = geldGeben;
               setGeldGeben(null);
               const an = ziele.find((k) => k.id === g.an)?.name ?? '';
-              void fuehreAus(() => api.sammlung.uebergib(bogen.id, g.an, { art: 'geld', betrag: g.betrag }), t('geben.fertig', { an }));
+              gib(g.an, { art: 'geld', betrag: g.betrag }, t('geben.fertig', { an }));
             }}
           >
             {t('geben')}
@@ -169,7 +186,10 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
             onClick={() => {
               const an = [...aufteilen];
               setAufteilen(null);
-              void fuehreAus(() => api.sammlung.aufteilen(bogen.id, an), t('aufteilen.fertig', { n: an.length }));
+              if (raum) {
+                raum.teile(an);
+                setMeldung(t('aufteilen.fertig', { n: an.length }));
+              } else void fuehreAus(() => api.sammlung.aufteilen(bogen.id, an), t('aufteilen.fertig', { n: an.length }));
             }}
           >
             {t('aufteilen')}
@@ -279,10 +299,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                             setGeben(null);
                             setOffen(null);
                             const an = ziele.find((k) => k.id === x.an)?.name ?? '';
-                            void fuehreAus(
-                              () => api.sammlung.uebergib(bogen.id, x.an, { art: 'gegenstand', gegenstandId: g.id, anzahl: x.anzahl }),
-                              t('geben.fertig', { an })
-                            );
+                            gib(x.an, { art: 'gegenstand', gegenstandId: g.id, anzahl: x.anzahl }, t('geben.fertig', { an }));
                           }}
                         >
                           {t('geben')}

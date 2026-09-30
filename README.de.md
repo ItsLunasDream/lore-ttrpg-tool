@@ -370,7 +370,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
-| `charakterbogen.md` | Charakterbogen mit Inventar, Rollen und Bögen live im Raum (Schritte 1 bis 5 gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar, Rollen und Bögen live im Raum (Schritte 1 bis 6 gebaut) |
 
 ## Lizenz
 

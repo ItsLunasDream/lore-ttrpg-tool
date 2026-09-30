@@ -6,7 +6,7 @@ live mitläuft: Spieler sehen und pflegen ihre Figur, die Spielleitung (SL)
 hat Zugriff auf alle Bögen, Gegenstände wandern zwischen Figuren, und es gibt
 ein gemeinsames Gruppeninventar.
 
-**Stand:** Schritte 1 bis 5 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner; Rollen im Raum, Tischschlüssel, gespeicherte Räume; Bögen live im Raum mit Freigabe und SL-Markierung). Ab Schritt 6 (Geben im Raum) ist es Konzept. Es nimmt `docs/inventar.md`
+**Stand:** Schritte 1 bis 6 sind gebaut (Bogen, Zauberliste, Inventar mit Geld und Gruppeninventar, Geben zwischen Bögen auf demselben Rechner; Rollen im Raum, Tischschlüssel, gespeicherte Räume; Bögen live im Raum mit Freigabe und SL-Markierung). Schritt 6 (Geben im Raum, Gruppeninventar mit dem Raum) ist gebaut. Ab Schritt 7 (Quellen, Initiative) ist es Konzept. Es nimmt `docs/inventar.md`
 auf und ersetzt dessen Teil „Im Raum“. Entschieden sind: nur 5.5e,
 Zauberliste, Spieler:innen dürfen aus dem Gruppeninventar nehmen, Rollen
 überdauern den Raum. Offene Fragen stehen am Ende.
@@ -259,6 +259,30 @@ mittendrin abreißen kann.
 - **Einen Bogen oder Gegenstand als Kopie teilen**: wie heute über
   Teilen → Paket; landet beim Empfänger als eigener, nicht verknüpfter Bogen.
 
+**Gebaut (Schritt 6):**
+
+- Anfragen `gib` (Gegenstand mit Anzahl oder Geld, von einem Bogen im Raum
+  zu einem anderen) und `aufteilen` (Geld gleichmäßig verteilen, der Rest
+  bleibt). Beides ist beim Gastgeber ein Schritt, beide Seiten bekommen
+  einen Eintrag im Verlauf.
+- Geben darf, wem der gebende Bogen gehört, und jede SL (auch zwischen zwei
+  fremden Bögen). Ziel kann jeder Bogen im Raum sein.
+- **Gruppeninventar im Raum:** Freigabe „alles“ von Anfang an. Solange die
+  Raumeinstellung „Spieler:innen dürfen aus dem Gruppeninventar nehmen“ an
+  ist (Vorgabe), dürfen alle es ändern, daraus nehmen und hineinlegen; jede
+  Änderung steht mit Namen im Verlauf, SL-Marken gibt es dort nicht. Ist
+  sie aus, verteilt nur die SL; hineinlegen aus dem eigenen Bogen geht
+  weiter.
+- Bringt der Gastgeber ein Gruppeninventar herein, merkt sich der
+  gespeicherte Raum dessen Kennung. Beim Fortsetzen kommt es von selbst
+  wieder in den Raum. Die Datei liegt beim Gastgeber in seinen Bögen, wird
+  also nicht in die Raumdatei kopiert.
+- Die Raumeinstellungen („aus dem Gruppeninventar nehmen“, „Änderungen der
+  SL markieren“) stehen beim Gastgeber im Reiter Raum. Ohne Markieren ist
+  jede SL-Änderung still.
+- Nicht gebaut: Rechtsklick „Geben an …“ direkt an einem Gegenstand; es
+  bleibt beim Knopf „Geben an“ im aufgeklappten Gegenstand wie bisher.
+
 ### Übertragung
 
 Über den bestehenden Raum, Nachrichtentyp `werkzeug` mit
@@ -303,11 +327,12 @@ was man zum Mitlesen braucht.
   löschen (mit Rückfrage), als Datei exportieren, einlesen (gebaut).
 - **Gastgeber wechseln**: Export als Datei (`*.lore-raum.json`), die neue
   Person liest sie ein und eröffnet den Raum bei sich. Die Rollen kommen mit;
-  der Schlüssel der alten Gastgeberin steht darin wie jeder andere, sie wird
-  also als Gast wiedererkannt. Das Gruppeninventar folgt mit Schritt 6.
+  der Schlüssel der Person, die bisher Gastgeber war, steht darin wie jeder
+  andere; sie wird also als Gast wiedererkannt. Das Gruppeninventar reist nicht mit: es ist
+  ein Bogen und geht über Teilen oder „Weitergeben“ an die neue Person.
 - Die Einstellungen des Raums (aus dem Gruppeninventar nehmen, SL-Änderungen
-  markieren) stehen schon in der Datei, Vorgabe jeweils ja. Eine Oberfläche
-  dafür kommt mit Schritt 5 und 6, wenn sie etwas bewirken.
+  markieren) stehen in der Datei, Vorgabe jeweils ja, und sind beim
+  Gastgeber im Reiter Raum schaltbar.
 - Ablage: eine Datei je Raum im Datenordner der Hülle
   (`userData/raeume/<id>.json`), in der Sicherung der Sammlung enthalten.
 

@@ -466,9 +466,21 @@ let raumDienst: Raumdienst | null = null;
  */
 const geteilteStaende = new Map<string, { von: { id: string; name: string }; inhalt: string }>();
 
+/** Beim Gastgeber eines gespeicherten Raums: was die Werkzeuge davon wissen muessen. */
+let raumZusatz: Pick<RaumLage, 'einstellungen' | 'gruppeninventar'> = {};
+/** Setzt die Einrichtung des Raums (siehe unten); bis dahin geschieht nichts. */
+let merkeGruppeImRaum: (id: string) => void = () => undefined;
+
 function raumLage(): RaumLage {
   const z = raumDienst?.zustand();
-  return z ? { rolle: z.rolle, ich: z.ich, personen: z.personen } : { rolle: 'aus', ich: null, personen: [] };
+  if (!z) return { rolle: 'aus', ich: null, personen: [] };
+  return { rolle: z.rolle, ich: z.ich, personen: z.personen, ...(z.rolle === 'gastgeber' ? raumZusatz : {}) };
+}
+
+/** Die Lage an alle offenen Werkzeuge. */
+function meldeRaumLage(): void {
+  const lage = raumLage();
+  for (const montiert of offen.values()) montiert.raumZustand?.(lage);
 }
 
 /**
@@ -499,6 +511,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     raum: {
       sende: (werkzeug, inhalt, an) => raumDienst?.sendeWerkzeug(werkzeug, inhalt, an) ?? false,
       chatte: (text, an) => raumDienst?.chatte(text, an) ?? false,
+      merkeGruppe: (id) => merkeGruppeImRaum(id),
       anfang: (werkzeug) => ({
         lage: raumLage(),
         nachrichten: werkzeug === 'initiative' ? [...geteilteStaende.values()] : []
@@ -1032,8 +1045,13 @@ function registriereKanaele(): void {
     // Erst im Speicher aendern, dann schreiben: zwei Aenderungen kurz
     // hintereinander ueberschreiben sich so nicht gegenseitig.
     offenerRaum = { ...offenerRaum, ...aenderung };
+    raumZusatz = { einstellungen: offenerRaum.einstellungen, gruppeninventar: offenerRaum.gruppeninventar };
     await raumAblage.speichere(offenerRaum);
     meldeRaumliste();
+  };
+
+  merkeGruppeImRaum = (id) => {
+    if (offenerRaum && offenerRaum.gruppeninventar !== id) void sichereOffenenRaum({ gruppeninventar: id }).catch(() => undefined);
   };
 
   const raum = new Raumdienst((ereignis: Raumereignis) => {
@@ -1076,12 +1094,14 @@ function registriereKanaele(): void {
         meldePakete();
       }
       raumRolle = ereignis.zustand.rolle;
-      if (raumRolle !== 'gastgeber') offenerRaum = null;
+      if (raumRolle !== 'gastgeber') {
+        offenerRaum = null;
+        raumZusatz = {};
+      }
       // Wer gegangen ist, hat auch nichts mehr geteilt.
       const da = new Set(ereignis.zustand.personen.map((p) => p.id));
       for (const id of [...geteilteStaende.keys()]) if (!da.has(id)) geteilteStaende.delete(id);
-      const lage = { rolle: ereignis.zustand.rolle, ich: ereignis.zustand.ich, personen: ereignis.zustand.personen };
-      for (const montiert of offen.values()) montiert.raumZustand?.(lage);
+      meldeRaumLage();
     }
     if (ereignis.art === 'paket') {
       raumPakete.push({
@@ -1136,7 +1156,9 @@ function registriereKanaele(): void {
           einstellungen: gespeichert?.einstellungen ?? VORGABE_RAUMEINSTELLUNGEN,
           geaendert: ''
         });
+        raumZusatz = { einstellungen: offenerRaum.einstellungen, gruppeninventar: offenerRaum.gruppeninventar };
         meldeRaumliste();
+        meldeRaumLage();
         return { ok: true, port: offen, raumId: offenerRaum.id };
       } catch (fehler) {
         return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
@@ -1163,6 +1185,7 @@ function registriereKanaele(): void {
   handle('raum:einstellungen', async (_event, aenderung: Partial<GespeicherterRaum['einstellungen']>) => {
     if (!offenerRaum) return null;
     await sichereOffenenRaum({ einstellungen: { ...offenerRaum.einstellungen, ...(aenderung ?? {}) } });
+    meldeRaumLage();
     return offenerRaum?.einstellungen ?? null;
   });
   // Export als Datei fuer den Gastgeberwechsel; das Passwort steht nicht darin.
