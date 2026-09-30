@@ -373,6 +373,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           )}
         </div>
         {internet && <p className="einst__satz raum__warnung">{t('room.internetHint')}</p>}
+        {internet && <HostingAnleitung t={t} />}
         {eigenerFehler && (
           <p className="einst__satz austausch__fehler" data-raum-eroeffnen-fehler>
             {eigenerFehler}
@@ -754,9 +755,24 @@ function Adressen({
             {t('room.forwardHint', { port: String(port), lan: lan[0] })}
           </p>
           {zustand.ipv6.length === 0 && <p className="einst__satz raum__warnung">{t('room.noIpv6')}</p>}
+          <HostingAnleitung t={t} />
         </>
       )}
     </div>
+  );
+}
+
+/** Kurzanleitung zum Hosten uebers Internet (Rueckmeldung); ausfuehrlich in docs/raum-online.md. */
+function HostingAnleitung({ t }: { t: (key: MessageKey, params?: MessageParams) => string }) {
+  return (
+    <details className="raum__anleitung" data-raum-anleitung>
+      <summary>{t('room.guide')}</summary>
+      <ol>
+        {(['room.guide.1', 'room.guide.2', 'room.guide.3', 'room.guide.4', 'room.guide.5', 'room.guide.6'] as const).map((k) => (
+          <li key={k}>{t(k)}</li>
+        ))}
+      </ol>
+    </details>
   );
 }
 

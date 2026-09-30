@@ -2221,3 +2221,22 @@ body {
 .dialog--teilen .dialog__inhalt {
   flex: 1;
 }
+
+.raum__anleitung {
+  font-size: 13px;
+  color: var(--text-leise, #939aab);
+  margin: 4px 0 8px;
+}
+
+.raum__anleitung summary {
+  cursor: pointer;
+  color: var(--betont);
+}
+
+.raum__anleitung ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.45;
+}
