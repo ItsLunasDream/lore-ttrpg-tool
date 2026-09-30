@@ -379,7 +379,28 @@ const TEXTE = {
   'story.oeffnen': ['Notiz im Story Creator öffnen', 'Open the note in Story Creator'],
   'story.angelegt': ['Notiz angelegt: {text}', 'Note created: {text}'],
   'story.fehlt': ['Die Notiz gibt es nicht mehr. Die Verknüpfung wurde gelöst.', 'That note no longer exists. The link was removed.'],
-  'story.loesen': ['Verknüpfung lösen', 'Unlink'],
+  'story.loesen': ['Verknüpfung zum Story Creator lösen', 'Unlink Story Creator'],
+  'story.loesen.titel': [
+    'Die Notiz bleibt im Story Creator; der Bogen vergisst nur die Verbindung.',
+    'The note stays in Story Creator; the sheet only forgets the link.'
+  ],
+  'rast.langSicher': [
+    'Lange Rast jetzt machen? TP, Trefferwürfel, Zauberplätze und Fähigkeiten kommen zurück, eine Erschöpfungsstufe fällt weg.',
+    'Take a long rest now? HP, Hit Point Dice, spell slots and features come back, and one level of exhaustion goes away.'
+  ],
+  'angriff.wuerfeln.kurz': ['Würfeln', 'Roll'],
+  bild: ['Bild', 'Picture'],
+  'bild.waehlen': ['Bild auswählen', 'Choose a picture'],
+  'bild.aendern': ['Anderes Bild wählen', 'Choose another picture'],
+  'bild.weg': ['Bild entfernen', 'Remove picture'],
+  'bild.fehler': ['Dieses Bild ließ sich nicht lesen.', 'This picture could not be read.'],
+  'bild.rahmen': ['Rahmen', 'Frame'],
+  'bild.rahmen.kreis': ['Kreis', 'Circle'],
+  'bild.rahmen.oval': ['Oval', 'Oval'],
+  'bild.rahmen.eckig': ['Eckig', 'Square'],
+  'bild.rahmen.bogen': ['Bogen', 'Arch'],
+  'bild.rahmen.schild': ['Wappen', 'Crest'],
+  'bild.rahmen.rauten': ['Raute', 'Diamond'],
   'story.sync': ['Synchron', 'Synced'],
   'story.sync.titel': [
     'Die Notiz stetig mit dem Bogen abgleichen. Der Bogen schreibt nur seinen eigenen Abschnitt; was du sonst in der Notiz schreibst, bleibt.',

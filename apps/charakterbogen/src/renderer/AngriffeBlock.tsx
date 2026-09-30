@@ -121,7 +121,7 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
             />
           )}
           <button type="button" className="knopf--klein" data-wuerfeln={schluessel} title={t('angriff.wuerfeln')} onClick={() => wuerfle(a, schluessel)}>
-            🎲
+            🎲 {t('angriff.wuerfeln.kurz')}
           </button>
           {n !== null ? (
             <button

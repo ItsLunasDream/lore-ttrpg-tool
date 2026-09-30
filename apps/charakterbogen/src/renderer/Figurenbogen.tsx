@@ -14,6 +14,7 @@ import { getLanguage, t } from './i18n';
 import { ZauberBlock } from './ZauberBlock';
 import { AngriffeBlock } from './AngriffeBlock';
 import { SlMarke } from './LiveTeile';
+import { Portraet } from './Portraet';
 import { Pips, Segment, Suchwahl, Uebungspunkt, type Wahlpunkt } from './Bedienung';
 import type { Schritt } from '../shared/live';
 import {
@@ -26,6 +27,7 @@ import {
   uebungIn,
   wendeBetragAn,
   type Angriff,
+  type Bogen,
   type Ressource,
   type Werte
 } from '../shared/bogen';
@@ -38,7 +40,8 @@ import {
   mitVorzeichen,
   modifikator,
   uebungsbonus,
-  type Attribut
+  type Attribut,
+  type Uebung
 } from '../shared/regeln';
 
 export interface FigurProps {
@@ -48,6 +51,9 @@ export interface FigurProps {
   readonly imRaum: boolean;
   readonly aendere: (wie: (w: Werte) => Werte, schritt?: Schritt) => void;
   readonly setMeldung: (text: string) => void;
+  /** Das Bild haengt am Bogen, nicht an den Werten. */
+  readonly bild?: Bogen['bild'];
+  readonly setzeBild?: (b: Bogen['bild'] | undefined) => void;
 }
 
 function zahlAus(text: string, ersatz: number): number {
@@ -55,13 +61,13 @@ function zahlAus(text: string, ersatz: number): number {
   return Number.isFinite(n) ? Math.round(n) : ersatz;
 }
 
-export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRaum }: FigurProps) {
+export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRaum, bild, setzeBild }: FigurProps) {
   const stufe = gesamtstufe(w);
   const pb = uebungsbonus(stufe);
 
   return (
     <>
-      <Kopf w={w} aendere={aendere} />
+      <Kopf w={w} aendere={aendere} bild={bild} setzeBild={setzeBild} />
 
       <section className="blatt__leiste">
         <div className="attribute">
@@ -212,11 +218,12 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
 
 // --- Kopf ------------------------------------------------------------------
 
-function Kopf({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }) {
+function Kopf({ w, aendere, bild, setzeBild }: { w: Werte; aendere: FigurProps['aendere']; bild?: Bogen['bild']; setzeBild?: FigurProps['setzeBild'] }) {
   const setzeKlasse = (n: number, teil: Partial<Werte['klassen'][number]>) =>
     aendere((x) => ({ ...x, klassen: x.klassen.map((kk, m) => (m === n ? { ...kk, ...teil } : kk)) }));
   return (
     <section className="blatt__kopf">
+      {setzeBild ? <Portraet bild={bild} setze={setzeBild} /> : null}
       <div className="klassen">
         {w.klassen.map((k, n) => (
           <div className="klassen__zeile" key={n}>
@@ -403,7 +410,12 @@ function Fertigkeiten({ w, pb, aendere }: { w: Werte; pb: number; aendere: Figur
                 onClick={() =>
                   aendere((x) => {
                     // Vom aktuellen Stand aus, nicht vom gezeichneten: zwei schnelle Klicks zaehlen beide.
-                    const neu = UEBUNGEN[(UEBUNGEN.indexOf(x.fertigkeiten[f.id] ?? 0) + 1) % UEBUNGEN.length];
+                    // Mit Alleskoenner ist „ungeuebt" schon halb: die Stufe ½ wird uebersprungen,
+                    // sonst brauchte es einen Klick, der scheinbar nichts tut (Rueckmeldung).
+                    const folge: readonly Uebung[] = x.alleskoenner ? [0, 1, 2] : UEBUNGEN;
+                    const jetzt = x.fertigkeiten[f.id] ?? 0;
+                    const stelle = folge.indexOf(jetzt);
+                    const neu = folge[(stelle < 0 ? 0 : stelle + 1) % folge.length];
                     const rest = { ...x.fertigkeiten };
                     if (neu === 0) delete rest[f.id];
                     else rest[f.id] = neu;
@@ -501,8 +513,15 @@ function Trefferpunkte({ w, aendere, setMeldung }: TeilProps) {
           <span className="linie__label">{t('tp.temp')}</span>
         </label>
       </div>
-      <div className="tp__balken" aria-hidden="true">
-        <span style={{ width: `${Math.round(anteil * 100)}%` }} className={anteil <= 0.25 ? 'kritisch' : anteil <= 0.5 ? 'angeschlagen' : ''} />
+      {/* Temporaere TP als eigenes Stueck hinter den echten (Rueckmeldung); der Balken reicht dann ueber das Maximum. */}
+      <div className="tp__balken" aria-hidden="true" data-tp-balken>
+        <span
+          style={{ width: `${Math.round((w.tp.aktuell / Math.max(1, w.tp.max + w.tp.temp)) * 100)}%` }}
+          className={anteil <= 0.25 ? 'kritisch' : anteil <= 0.5 ? 'angeschlagen' : ''}
+        />
+        {w.tp.temp > 0 ? (
+          <span className="tp__temp" data-tp-temp-balken style={{ width: `${Math.round((w.tp.temp / Math.max(1, w.tp.max + w.tp.temp)) * 100)}%` }} />
+        ) : null}
       </div>
       <input
         className="tp__betrag"
@@ -626,6 +645,7 @@ function Rasten({ w, aendere, setMeldung }: TeilProps) {
           disabled={w.tp.aktuell === 0}
           title={w.tp.aktuell === 0 ? t('rast.langOhneTp') : t('rast.langHinweis')}
           onClick={() => {
+            if (!window.confirm(t('rast.langSicher'))) return;
             aendere(langeRast);
             setMeldung(t('rast.langFertig', { tp: w.tp.max }));
           }}

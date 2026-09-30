@@ -446,6 +446,17 @@ async function lade(
 ): Promise<void> {
   if (quelle.devServerUrl) await sicht.webContents.loadURL(quelle.devServerUrl);
   else await sicht.webContents.loadFile(quelle.indexFile!);
+  /*
+   * „Geladen" heisst noch nicht, dass die Oberflaeche zuhoert: React meldet
+   * seine Empfaenger erst in Effekten nach dem ersten Zeichnen an. Was die
+   * Huelle direkt danach zustellte (Figuren, Begegnung, Kartenname, Treffer
+   * der Suche), ging sonst verloren (Rueckmeldung „In die Initiative").
+   * Zwei Takte der Ereignisschleife reichen dafuer; Timer laufen auch in
+   * einer unsichtbaren Ansicht.
+   */
+  await sicht.webContents
+    .executeJavaScript('new Promise((r) => setTimeout(() => setTimeout(r, 60), 0))')
+    .catch(() => undefined);
 }
 
 /**

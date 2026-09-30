@@ -405,16 +405,39 @@ export function App() {
    * laeuft ein Kampf oder steht etwas Ungespeichertes da, wird gefragt.
    * Sonst geht es ohne Rueckfrage, wie ueberall.
    */
+  /*
+   * Was von aussen kommt, bevor der gespeicherte Kampf von der Platte gelesen
+   * ist, wartet hier. Sonst ueberschrieb der geladene Kampf gleich danach,
+   * was eben angekommen war (Rueckmeldung: „In die Initiative" ging verloren,
+   * wenn der Tracker noch nicht offen war).
+   */
+  const [vorLaden, setVorLaden] = useState<{ uebergaben: Uebergabe[]; figuren: { roh: unknown; hinzufuegen: boolean }[] }>({
+    uebergaben: [],
+    figuren: []
+  });
+  const geladenRef = useRef(false);
+  geladenRef.current = geladen;
+
+  const nimmUebergabe = useCallback(
+    (uebergabe: Uebergabe) => {
+      if (nichtsZuVerlieren(warnung)) {
+        uebernimm(uebergabe);
+        return;
+      }
+      setWartendeUebergabe(uebergabe);
+    },
+    [uebernimm, warnung]
+  );
   useEffect(
     () =>
       api.beiUebergabe((uebergabe) => {
-        if (nichtsZuVerlieren(warnung)) {
-          uebernimm(uebergabe);
+        if (!geladenRef.current) {
+          setVorLaden((v) => ({ ...v, uebergaben: [...v.uebergaben, uebergabe] }));
           return;
         }
-        setWartendeUebergabe(uebergabe);
+        nimmUebergabe(uebergabe);
       }),
-    [uebernimm, warnung]
+    [nimmUebergabe]
   );
 
   /*
@@ -424,16 +447,33 @@ export function App() {
    * Kreis laeuft.
    */
   const bekanntTp = useRef(new Map<string, { hp: number; temp: number }>());
+  const nimmFiguren = useCallback(
+    (roh: unknown, hinzufuegen: boolean) => {
+      const figuren = leseFiguren(roh as never);
+      for (const f of figuren) bekanntTp.current.set(f.kennung, { hp: f.tp, temp: f.tempTp });
+      setzeUndSichere((k) => uebernimmFiguren(k, figuren, hinzufuegen));
+      if (hinzufuegen && figuren.length) melde(t('msg.figuren', { n: figuren.length }));
+    },
+    [setzeUndSichere, melde]
+  );
   useEffect(
     () =>
       api.beiFiguren((roh, hinzufuegen) => {
-        const figuren = leseFiguren(roh);
-        for (const f of figuren) bekanntTp.current.set(f.kennung, { hp: f.tp, temp: f.tempTp });
-        setzeUndSichere((k) => uebernimmFiguren(k, figuren, hinzufuegen));
-        if (hinzufuegen && figuren.length) melde(t('msg.figuren', { n: figuren.length }));
+        if (!geladenRef.current) {
+          setVorLaden((v) => ({ ...v, figuren: [...v.figuren, { roh, hinzufuegen }] }));
+          return;
+        }
+        nimmFiguren(roh, hinzufuegen);
       }),
-    [setzeUndSichere, melde]
+    [nimmFiguren]
   );
+  // Nach dem Laden: was vorher kam, jetzt uebernehmen.
+  useEffect(() => {
+    if (!geladen || (vorLaden.figuren.length === 0 && vorLaden.uebergaben.length === 0)) return;
+    for (const f of vorLaden.figuren) nimmFiguren(f.roh, f.hinzufuegen);
+    for (const u of vorLaden.uebergaben) nimmUebergabe(u);
+    setVorLaden({ uebergaben: [], figuren: [] });
+  }, [geladen, vorLaden, nimmFiguren, nimmUebergabe]);
   useEffect(() => {
     for (const a of tpAenderungen(kampf, bekanntTp.current)) api.bogenTp(a.kennung, a.hp, a.temp);
   }, [kampf]);

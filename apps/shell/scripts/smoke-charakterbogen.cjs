@@ -115,6 +115,8 @@ app.whenReady().then(async () => {
   pruefe((await js(`document.querySelector('[data-mod="ges"]').textContent`)) === '+3', 'GES 16 ergibt +3');
   pruefe((await js(`document.querySelector('[data-pb]').dataset.pb`)) === '3', 'Stufe 5 ergibt Uebungsbonus +3');
 
+  // Rueckfragen (lange Rast) im Test immer bejahen.
+  await js(`window.confirm = () => true; true`);
   // Heimlichkeit dreimal: halbe Uebung, Uebung, dann Expertise.
   const klickeHeimlichkeit = () => js(`document.querySelector('[data-fertigkeit="heimlichkeit"]').click(); true`);
   await klickeHeimlichkeit();
@@ -143,6 +145,14 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-feld="alleskoenner"]').click(); true`);
   await warte(150);
   pruefe((await akro()) === '+4', 'mit Alleskoenner: +4');
+  // Mit Alleskoenner: ein Klick geht von halb gleich auf voll (Rueckmeldung).
+  await js(`document.querySelector('[data-fertigkeit="akrobatik"]').click(); true`);
+  await warte(150);
+  pruefe((await akro()) === '+6', 'Alleskoenner: ein Klick auf eine ungeuebte Fertigkeit gibt volle Uebung');
+  await js(`document.querySelector('[data-fertigkeit="akrobatik"]').click(); true`);
+  await js(`document.querySelector('[data-fertigkeit="akrobatik"]').click(); true`);
+  await warte(150);
+  pruefe((await akro()) === '+4', 'und zwei weitere Klicks fuehren ueber Expertise zurueck');
   pruefe((await js(`document.querySelector('[data-feld="initiative"]').placeholder`)) === '+4', 'und die Initiative auch');
   await js(`document.querySelector('[data-feld="alleskoenner"]').click(); true`);
   // Erschoepfung als Punkte, Inspiration als Knopf.
@@ -171,6 +181,21 @@ app.whenReady().then(async () => {
     'die mitgelieferte Schrift ist geladen'
   );
   await js(`document.querySelector('[data-design-knopf]').click(); true`);
+
+  // Ein Bild mit Rahmen (1x1-PNG, ueber das Dateifeld).
+  await js(`(async () => {
+    const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+    const feld = document.querySelector('[data-bild-datei]');
+    const liste = new DataTransfer();
+    liste.items.add(new File([png], 'mira.png', { type: 'image/png' }));
+    feld.files = liste.files;
+    feld.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-portraet] img'))`)), 'ein Bild steht im Kopf');
+  await js(`document.querySelector('[data-bild-rahmen] [data-wert="schild"]').click(); true`);
+  await warte(100);
+  pruefe(await js(`Boolean(document.querySelector('.portraet__rahmen--schild'))`), 'der Rahmen laesst sich wechseln');
 
   // Eigene Zustaende aus dem Status Effect Creator stehen zur Wahl.
   await js(`document.querySelector('[data-zustand-dazu] button').click(); true`);
@@ -242,6 +267,8 @@ app.whenReady().then(async () => {
   await js(tippe('[data-feld="tp-max"]', '30'));
   await js(tippe('[data-feld="tp-aktuell"]', '30'));
   await js(tippe('[data-feld="tp-temp"]', '5'));
+  await warte(100);
+  pruefe(await js(`Boolean(document.querySelector('[data-tp-temp-balken]'))`), 'temporaere TP stehen als eigenes Stueck im Balken');
   await warte(200);
   const enter = `document.querySelector('[data-feld="tp-betrag"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`;
   await js(tippe('[data-feld="tp-betrag"]', '-12'));

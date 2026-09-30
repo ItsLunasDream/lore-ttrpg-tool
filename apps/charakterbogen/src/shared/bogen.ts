@@ -112,6 +112,12 @@ export interface Werte {
   anfaelligkeiten: string;
 }
 
+/** Rahmenformen fuer das Bild. */
+export const RAHMEN = ['kreis', 'oval', 'eckig', 'bogen', 'schild', 'rauten'] as const;
+export type Rahmen = (typeof RAHMEN)[number];
+/** Groesste erlaubte Bilddaten (die Oberflaeche verkleinert vorher). */
+export const BILD_HOECHSTENS = 600_000;
+
 /** Wie der Bogen aussieht; je Bogen. Kennungen aus `shared/design.ts`. */
 export interface Design {
   farbe: string;
@@ -143,6 +149,8 @@ export interface Bogen {
   notizen: string;
   /** Aussehen dieses Bogens; fehlt es, gilt die Vorgabe. */
   design?: Design;
+  /** Ein Bild der Figur (verkleinert, als data:-Adresse) mit Rahmen. */
+  bild?: { daten: string; rahmen: Rahmen };
   /** Verknuepfte Notiz im Story Creator (`<Kampagne>/<Notiz>`). */
   storyNotiz?: { kennung: string; titel: string; sync?: boolean };
   /** Zaehlt bei jeder gespeicherten Aenderung hoch. */
@@ -385,6 +393,11 @@ export function bereinige(roh: unknown, id: string): Bogen {
   const d = (r.design && typeof r.design === 'object' ? r.design : null) as Record<string, unknown> | null;
   const kennwort = (x: unknown) => (typeof x === 'string' && /^[a-z0-9-]{1,30}$/.test(x) ? x : '');
   const design: Design | null = d ? { farbe: kennwort(d.farbe), papier: kennwort(d.papier), schrift: kennwort(d.schrift) } : null;
+  const bl = (r.bild && typeof r.bild === 'object' ? r.bild : null) as Record<string, unknown> | null;
+  const bild =
+    bl && typeof bl.daten === 'string' && bl.daten.length <= BILD_HOECHSTENS && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(bl.daten)
+      ? { daten: bl.daten, rahmen: (RAHMEN as readonly string[]).includes(String(bl.rahmen)) ? (bl.rahmen as Rahmen) : 'kreis' }
+      : null;
   const sn = (r.storyNotiz && typeof r.storyNotiz === 'object' ? r.storyNotiz : null) as Record<string, unknown> | null;
   const story =
     sn && typeof sn.kennung === 'string' && sn.kennung
@@ -407,6 +420,7 @@ export function bereinige(roh: unknown, id: string): Bogen {
     }),
     notizen: text(r.notizen, 100_000),
     ...(design ? { design } : {}),
+    ...(bild ? { bild } : {}),
     ...(story ? { storyNotiz: story } : {}),
     fassung: zahl(r.fassung, 0, 0),
     geaendert: text(r.geaendert, 40)

@@ -511,8 +511,8 @@ export function App() {
               <button
                 type="button"
                 className="knopf--leise"
-                aria-label={t('story.loesen')}
-                title={t('story.loesen')}
+                data-story-loesen
+                title={t('story.loesen.titel')}
                 onClick={() =>
                   aendere((b) => {
                     const { storyNotiz: _weg, ...rest } = b;
@@ -520,7 +520,7 @@ export function App() {
                   })
                 }
               >
-                ×
+                {t('story.loesen')}
               </button>
             </span>
           ) : (
@@ -627,6 +627,14 @@ export function App() {
               setMeldung={setMeldung}
               ausInventar={angriffeAusInventar(offen)}
               imRaum={live.rolle !== 'aus'}
+              bild={offen.bild}
+              setzeBild={(bild) =>
+                aendere((b) => {
+                  if (bild) return { ...b, bild };
+                  const { bild: _weg, ...rest } = b;
+                  return rest;
+                })
+              }
             />
           ) : null}
 

@@ -1839,3 +1839,160 @@ textarea {
   border-color: var(--gut);
   color: var(--gut);
 }
+
+/* --- Rueckmeldungen: Hauptknopf im Blatt, Punkte, Abstand, temporaere TP --- */
+
+/* `.blatt button` setzte den Grund auch fuer den Hauptknopf: im hellen
+   Papier stand „Ins Inventar" weiss auf weiss (Rueckmeldung). */
+.blatt .knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: var(--b-kasten);
+}
+
+.blatt .knopf--haupt:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--betont) 85%, var(--b-text));
+}
+
+/* Ueber einem gesetzten Punkt sieht man, dass ein Klick ihn loescht;
+   ueber einem leeren, dass er gesetzt wird (Rueckmeldung Erschoepfung). */
+.pip:hover:not(:disabled):not(.ist-an) {
+  background: var(--betont-leise);
+  border-color: var(--betont);
+  transform: scale(1.15);
+}
+
+.pip.ist-an:hover:not(:disabled) {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--betont);
+  transform: scale(1.15);
+}
+
+.pip--gefahr.ist-an:hover:not(:disabled) {
+  border-color: var(--gefahr);
+}
+
+.erschoepfung {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dotted color-mix(in srgb, var(--rand) 55%, transparent);
+}
+
+.tp__balken {
+  display: flex;
+}
+
+.tp__balken .tp__temp {
+  background: repeating-linear-gradient(45deg, #5b8def, #5b8def 4px, #7aa7ff 4px, #7aa7ff 8px);
+}
+
+/* --- Bild der Figur ------------------------------------------------------- */
+
+.blatt__kopf {
+  grid-template-columns: auto minmax(260px, 1.1fr) 2fr;
+}
+
+@media (max-width: 860px) {
+  .blatt__kopf {
+    grid-template-columns: auto 1fr;
+  }
+  .blatt__kopf .kopfraster {
+    grid-column: 1 / -1;
+  }
+}
+
+.portraet {
+  grid-row: span 2;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.portraet__rahmen {
+  width: 116px;
+  height: 116px;
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid var(--betont) !important;
+  background: var(--grund) !important;
+  box-shadow:
+    0 0 0 3px var(--grund-hoch),
+    0 0 0 5px var(--rand);
+  display: grid;
+  place-items: center;
+}
+
+.portraet__rahmen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portraet__leer {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.portraet__rahmen--kreis {
+  border-radius: 50%;
+}
+
+.portraet__rahmen--oval {
+  width: 100px;
+  height: 128px;
+  border-radius: 50%;
+}
+
+.portraet__rahmen--eckig {
+  border-radius: 6px;
+}
+
+.portraet__rahmen--bogen {
+  width: 104px;
+  height: 128px;
+  border-radius: 52px 52px 6px 6px;
+}
+
+.portraet__rahmen--schild,
+.portraet__rahmen--rauten {
+  border: none !important;
+  box-shadow: none;
+  background: var(--betont) !important;
+}
+
+.portraet__rahmen--schild {
+  clip-path: polygon(50% 0, 100% 10%, 100% 58%, 50% 100%, 0 58%, 0 10%);
+}
+
+.portraet__rahmen--rauten {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.portraet__rahmen--schild img,
+.portraet__rahmen--rauten img {
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  clip-path: inherit;
+}
+
+.portraet__wahl {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.rahmenprobe {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  vertical-align: middle;
+}
+
+.rahmenprobe--kreis { border-radius: 50%; }
+.rahmenprobe--oval { width: 10px; height: 14px; border-radius: 50%; }
+.rahmenprobe--eckig { border-radius: 2px; }
+.rahmenprobe--bogen { width: 10px; height: 14px; border-radius: 5px 5px 1px 1px; }
+.rahmenprobe--schild { background: currentColor; clip-path: polygon(50% 0, 100% 12%, 100% 58%, 50% 100%, 0 58%, 0 12%); border: none; }
+.rahmenprobe--rauten { background: currentColor; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); border: none; }
