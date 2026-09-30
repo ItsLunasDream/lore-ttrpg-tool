@@ -9,14 +9,21 @@
  * Plattformfrei und ohne Editor, damit sich die Rechnung pruefen laesst.
  */
 
-/** Die Ebene je Block: 1 bis 6 fuer eine Ueberschrift, null fuer alles andere. */
+/**
+ * Die Ebene je Block: 1 bis 6 fuer eine Ueberschrift, 0 fuer eine
+ * Trennlinie, null fuer alles andere.
+ *
+ * Die Trennlinie beendet jeden Abschnitt (Rueckmeldung): was darunter
+ * steht, gehoert zu keiner Ueberschrift darueber und bleibt beim Einklappen
+ * sichtbar — etwa ein Bild nach einem Abschnitt.
+ */
 export type Stufen = readonly (number | null)[];
 
 /** Die laufenden Nummern der Ueberschriften, in Dokumentreihenfolge. */
 export function ueberschriften(stufen: Stufen): number[] {
   const nummern: number[] = [];
   stufen.forEach((stufe, index) => {
-    if (stufe !== null) nummern.push(index);
+    if (stufe !== null && stufe > 0) nummern.push(index);
   });
   return nummern;
 }
@@ -29,7 +36,7 @@ export function ueberschriften(stufen: Stufen): number[] {
  */
 export function abschnitt(stufen: Stufen, index: number): { von: number; bis: number } {
   const eigene = stufen[index];
-  if (eigene === null || eigene === undefined) return { von: index + 1, bis: index + 1 };
+  if (eigene === null || eigene === undefined || eigene === 0) return { von: index + 1, bis: index + 1 };
 
   let bis = index + 1;
   while (bis < stufen.length) {

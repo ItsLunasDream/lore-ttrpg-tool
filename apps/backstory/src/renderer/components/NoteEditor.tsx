@@ -4,6 +4,8 @@ import type { Note, Relation } from '../../shared/types';
 import { backlinksFor, unresolvedLinks, type NoteIndex } from '../noteIndex';
 import { hasLinkReservedChars, normalizeName } from '../../shared/wikilinks';
 import { countWords } from '../editor/markdown';
+import { erkenneSprachen } from '../../shared/spracherkennung';
+import { api } from '../api';
 import { BodyEditor } from './BodyEditor';
 import { RelationsPanel } from './RelationsPanel';
 import { BacklinksPanel } from './BacklinksPanel';
@@ -61,6 +63,22 @@ export function NoteEditor(props: Props) {
   const backlinks = useMemo(() => backlinksFor(index, note.id), [index, note.id]);
   const unresolved = useMemo(() => unresolvedLinks(index, note), [index, note]);
   const words = useMemo(() => countWords(note.body), [note.body]);
+  /*
+   * Welche Sprache(n) der Text hat, wie bei Word (Rueckmeldung). Gebuendelt,
+   * damit nicht jeder Tastendruck die Woerterbuecher umstellt. Die Pruefung
+   * folgt nur bei der Einstellung „automatisch“; der Hinweis steht immer da.
+   */
+  const [erkannt, setErkannt] = useState<string[]>([]);
+  useEffect(() => {
+    const takt = window.setTimeout(() => {
+      const { sprachen } = erkenneSprachen(`${note.title}\n${note.body}`);
+      setErkannt((alt) => (alt.join() === sprachen.join() ? alt : sprachen));
+    }, 700);
+    return () => window.clearTimeout(takt);
+  }, [note.title, note.body]);
+  useEffect(() => {
+    void api.woerterbuch.erkannt(erkannt).catch(() => undefined);
+  }, [erkannt]);
 
   // Teilt sich diese Notiz einen Namen mit einer anderen, treffen Links darauf
   // stillschweigend immer dieselbe. Darauf muss hingewiesen werden.
@@ -119,6 +137,11 @@ export function NoteEditor(props: Props) {
           {status}
         </span>
         <span className="note-editor__words">{t('editor.words', { count: words })}</span>
+        {erkannt.length ? (
+          <span className="note-editor__sprache" data-erkannte-sprache={erkannt.join('+')} title={t('editor.spracheHinweis')}>
+            {t('editor.sprache', { sprachen: erkannt.map((s) => t(s === 'de' ? 'editor.sprache.de' : 'editor.sprache.en')).join(' + ') })}
+          </span>
+        ) : null}
         <button type="button" onClick={onSave} disabled={!dirty || saving}>
           {t('editor.save')}
         </button>

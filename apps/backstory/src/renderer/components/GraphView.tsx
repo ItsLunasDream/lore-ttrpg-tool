@@ -279,7 +279,7 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
   return (
     <div className="graph">
       <header className="graph__bar">
-        <div className="graph__modes" role="tablist">
+        <div className="graph__ansichten" role="tablist">
           <button type="button" role="tab" data-ansicht="graph" aria-selected={ansicht === 'graph'} className={ansicht === 'graph' ? 'is-active' : undefined} onClick={() => setAnsicht('graph')}>
             {t('graph.title')}
           </button>

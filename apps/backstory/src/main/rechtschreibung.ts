@@ -49,6 +49,20 @@ export function setzePruefsprache(session: Session, language: Language, wahl: Re
 }
 
 /**
+ * Bei „auto“: die Sprachen, die im Text erkannt wurden (Rueckmeldung,
+ * auch gemischt). Chromium prueft dann gegen alle Woerterbuecher zugleich.
+ */
+export function setzeErkannteSprachen(session: Session, sprachen: readonly string[], language: Language, wahl: Rechtschreibwahl): void {
+  if (wahl !== 'auto') return;
+  const liste = sprachen.filter((s): s is 'de' | 'en' => s === 'de' || s === 'en');
+  try {
+    session.setSpellCheckerLanguages((liste.length ? liste : [language]).map((s) => pruefsprache(s)));
+  } catch (fehler) {
+    console.warn('[backstory] Rechtschreibsprachen liessen sich nicht setzen:', fehler);
+  }
+}
+
+/**
  * Haengt die Pruefung an eine Ansicht.
  *
  * Aufgerufen von beiden Wegen: der eigenstaendigen Anwendung und der Huelle.

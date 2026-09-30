@@ -188,7 +188,9 @@ const api = {
   woerterbuch: {
     liste: () => invoke<string[]>('spell:list'),
     hinzufuegen: (wort: string) => invoke<string[]>('spell:add', wort),
-    entfernen: (wort: string) => invoke<string[]>('spell:remove', wort)
+    entfernen: (wort: string) => invoke<string[]>('spell:remove', wort),
+    /** Die im Text erkannten Sprachen melden (Pruefung bei „auto“). */
+    erkannt: (sprachen: string[]) => invoke<void>('spell:erkannt', sprachen)
   },
   ai: {
     status: () =>

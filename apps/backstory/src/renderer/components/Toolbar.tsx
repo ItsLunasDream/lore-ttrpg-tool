@@ -38,6 +38,13 @@ const ACTIONS: Action[] = [
   { label: '</>', title: (t) => t('toolbar.code'), isActive: (e) => e.isActive('codeBlock'), run: (e) => e.chain().focus().toggleCodeBlock().run() },
   { label: '―', title: (t) => t('toolbar.rule'), run: (e) => e.chain().focus().setHorizontalRule().run() },
   {
+    // Eine Trennlinie beendet den Abschnitt: was danach kommt, verschwindet
+    // beim Einklappen der Ueberschrift darueber nicht (Rueckmeldung).
+    label: '⤓',
+    title: (t) => t('toolbar.abschnittEnde'),
+    run: (e) => e.chain().focus().setHorizontalRule().run()
+  },
+  {
     label: '▦',
     title: (t) => t('toolbar.table'),
     isActive: (e) => e.isActive('table'),

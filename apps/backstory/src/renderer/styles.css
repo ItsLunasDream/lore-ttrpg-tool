@@ -2192,3 +2192,23 @@ mark {
   opacity: 0.7;
   margin: 0 0 4px;
 }
+
+.note-editor__sprache {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.graph__ansichten {
+  display: flex;
+  gap: 4px;
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.graph__ansichten button.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}

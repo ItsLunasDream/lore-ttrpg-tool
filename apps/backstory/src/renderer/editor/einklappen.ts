@@ -25,7 +25,7 @@ export const einklappenPluginKey = new PluginKey<Set<number>>('einklappen');
 function stufenVon(view: EditorView): Stufen {
   const stufen: (number | null)[] = [];
   view.state.doc.forEach((node) => {
-    stufen.push(node.type.name === 'heading' ? (node.attrs.level as number) : null);
+    stufen.push(node.type.name === 'heading' ? (node.attrs.level as number) : node.type.name === 'horizontalRule' ? 0 : null);
   });
   return stufen;
 }
@@ -78,7 +78,7 @@ export function createEinklappExtension(handlers: EinklappHandlers) {
               const stufen: (number | null)[] = [];
               const stellen: number[] = [];
               state.doc.forEach((node, offset) => {
-                stufen.push(node.type.name === 'heading' ? (node.attrs.level as number) : null);
+                stufen.push(node.type.name === 'heading' ? (node.attrs.level as number) : node.type.name === 'horizontalRule' ? 0 : null);
                 stellen.push(offset);
               });
 
@@ -93,7 +93,8 @@ export function createEinklappExtension(handlers: EinklappHandlers) {
                   );
                 }
 
-                if (stufen[index] === null) return;
+                // Nur Ueberschriften bekommen einen Pfeil; die Trennlinie (0) beendet nur.
+                if (!stufen[index]) return;
                 nummer += 1;
                 if (!hatInhalt(stufen, index)) return;
 
