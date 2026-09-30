@@ -2074,3 +2074,121 @@ mark {
 .modal__hint--warnung {
   color: var(--accent);
 }
+
+/* --- Zeitstrahl (neben dem Graph) ------------------------------------------ */
+.graph__rest {
+  flex: 1;
+}
+
+.zeitstrahl {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 28px;
+  display: grid;
+  align-content: start;
+  gap: 28px;
+}
+
+.zeitstrahl__leer {
+  padding: 32px;
+  color: var(--text-muted, #939aab);
+}
+
+.zeitstrahl__linie {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  display: flex;
+  gap: 18px;
+  position: relative;
+  overflow-x: auto;
+}
+
+/* Die Linie, mittig durch die Marken: jede Zeile ist 220 px hoch, die Linie bei 110. */
+.zeitstrahl__linie::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 109px;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.25;
+  border-radius: 2px;
+}
+
+.zeitstrahl__punkt {
+  position: relative;
+  flex: 0 0 150px;
+  height: 220px;
+}
+
+.zeitstrahl__knoten {
+  position: absolute;
+  inset: 0;
+  width: 150px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+}
+
+.zeitstrahl__text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+/* Oben: der Text endet ueber der Linie; unten: er beginnt darunter. */
+.zeitstrahl__punkt .zeitstrahl__text {
+  bottom: 128px;
+}
+
+.zeitstrahl__punkt--unten .zeitstrahl__text {
+  bottom: auto;
+  top: 128px;
+}
+
+.zeitstrahl__marke {
+  position: absolute;
+  left: 50%;
+  top: 110px;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--farbe);
+  box-shadow: 0 0 0 3px var(--bg);
+  transition: transform 120ms ease;
+}
+
+.zeitstrahl__zeit {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.zeitstrahl__titel {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.zeitstrahl__knoten:hover .zeitstrahl__titel,
+.zeitstrahl__knoten:focus-visible .zeitstrahl__titel,
+.zeitstrahl__knoten.is-active .zeitstrahl__titel {
+  text-decoration: underline;
+}
+
+.zeitstrahl__knoten:hover .zeitstrahl__marke,
+.zeitstrahl__knoten.is-active .zeitstrahl__marke {
+  transform: scale(1.35);
+}
+
+.zeitstrahl__ohne h3 {
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 0 0 4px;
+}

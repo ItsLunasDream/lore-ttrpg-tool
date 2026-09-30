@@ -1025,6 +1025,7 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                   })
                 }
                 onClose={() => setShowGraph(false)}
+                campaignId={activeCampaignId}
                 onOpenNote={(noteId) => {
                   openNote(noteId);
                   setShowGraph(false);

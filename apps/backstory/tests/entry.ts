@@ -53,3 +53,4 @@ export { istAnbieterId } from '@suite/ki';
 
 export { kiAbgeschaltet } from '../src/renderer/components/AssistantThread';
 export { beispieltext } from '../src/shared/noteTypes';
+export { zeitSchluessel, vergleicheZeit } from '../src/shared/zeitstrahl';
