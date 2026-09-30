@@ -43,3 +43,4 @@ export { finde, passt, heuhaufen, treffendeTeilnehmer } from '../src/shared/such
 export { pruefeVerlust, nichtsZuVerlieren, alsVorlage, speicherZiel } from '../src/shared/neuebegegnung';
 export { alsTeilnehmer, alsTaktik } from '../src/shared/uebernahme';
 export { teileKampf, stufe, leseBotschaft, wendeAn, setzeBesitz } from '../src/shared/teilen';
+export { uebernimmFiguren, tpAenderungen, leseFiguren } from '../src/shared/boegen';

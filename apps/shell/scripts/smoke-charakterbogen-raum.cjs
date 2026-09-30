@@ -59,7 +59,7 @@ setTimeout(() => {
   app.exit(2);
 }, 150000);
 
-const tippe = (auswahl, wert) => `(() => {
+const tippe = (auswahl, wert) => `(async () => {
   const e = document.querySelector(${JSON.stringify(auswahl)});
   if (!e) return false;
   const setz = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -68,12 +68,26 @@ const tippe = (auswahl, wert) => `(() => {
   e.dispatchEvent(new Event('input', { bubbles: true }));
   return true;
 })()`;
-const waehle = (auswahl, wert) => `(() => {
+/** Waehlt einen Wert: in einer Auswahlliste, einem Segment oder einer Suchwahl. */
+const waehle = (auswahl, wert) => `(async () => {
   const e = document.querySelector(${JSON.stringify(auswahl)});
   if (!e) return false;
-  const setz = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-  setz.call(e, ${JSON.stringify(wert)});
-  e.dispatchEvent(new Event('change', { bubbles: true }));
+  if (e.tagName === 'SELECT') {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, ${JSON.stringify(wert)});
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+  // Segment oder Suchwahl: der Knopf mit dem Wert; eine Suchwahl erst aufklappen.
+  const suche = () => e.querySelector('[data-wert="' + CSS.escape(${JSON.stringify(wert)}) + '"]');
+  // React zeichnet nach einem Klick erst in einer Microtask neu.
+  if (!suche()) {
+    e.querySelector('button')?.click();
+    await new Promise((r) => setTimeout(r, 30));
+  }
+  const k = suche();
+  if (!k) return false;
+  k.click();
+  await new Promise((r) => setTimeout(r, 30));
   return true;
 })()`;
 

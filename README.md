@@ -163,10 +163,16 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 
 ## Character Sheet
 
-- A small sheet for D&D 5.5e (2024): abilities, saves, 18 skills with
-  proficiency and expertise, AC, initiative, HP, Hit Point Dice, conditions,
-  exhaustion, Heroic Inspiration, attacks, notes.
-- Works out modifiers, proficiency bonus, skills and passive Perception.
+- A D&D 5.5e (2024) sheet laid out like a classic one: abilities, saves,
+  18 skills (alphabetical) with half proficiency, proficiency and
+  expertise, Jack of All Trades, AC, initiative, HP, Hit Point Dice,
+  conditions (SRD and your own from the Status Effect Creator), exhaustion,
+  Heroic Inspiration, limited-use features, proficiencies and languages,
+  senses, defenses, features, appearance, backstory, attacks, notes.
+- Works out modifiers, proficiency bonus, skills and passive scores.
+- **Look per sheet**: accent colour, paper and font (seven free fonts are
+  bundled). Few drop-downs: segments, dots and searchable pickers instead.
+- **Story Creator**: create a note for the character and open it later.
 - **Damage / Healing**: `-7` or `7` subtracts, `+5` heals, dice work
   (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
 - **Spells**: save DC and attack, slots per level (Pact Magic too), list
@@ -176,11 +182,15 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   weapons in the inventory show up as attacks by themselves.
 - **Inventory**: items with weight and value, money in PP/GP/EP/SP/CP,
   party inventories, give and split between sheets; weights in lb and kg.
+  Items also come from the SRD (equipment, magic items), from the Magic
+  Item Creator (homebrew) and as a roll on a loot table.
 - **In the room**: bring your sheet in; the host keeps the shared state.
   Each sheet shows others nothing, an overview or everything. GMs can
   change any sheet; their changes are marked for the owner unless the GM
   switches to "change quietly". Several GMs are possible, the role can be
   handed on (right-click a name under Share → Room).
+- **Initiative**: “To initiative” sends the character to the tracker; HP
+  changes go both ways.
 - Saves itself as Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -354,7 +364,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 6 built) |
+| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 7 built) |
 
 ## License
 

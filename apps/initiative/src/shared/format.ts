@@ -124,7 +124,8 @@ function leseTeilnehmer(roh: unknown): Teilnehmer[] {
       bild: typeof e.bild === 'string' && e.bild ? e.bild : null,
       notiz: text(e.notiz),
       ...(zahl(e.rk) > 0 ? { rk: zahl(e.rk) } : {}),
-      ...(text(e.statblock) ? { statblock: text(e.statblock) } : {})
+      ...(text(e.statblock) ? { statblock: text(e.statblock) } : {}),
+      ...(text(e.bogen) ? { bogen: text(e.bogen).slice(0, 120) } : {})
     };
   });
 }

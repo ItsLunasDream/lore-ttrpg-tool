@@ -125,6 +125,7 @@ export const texte = {
   'knopf.schliessen': ['Schließen', 'Close'],
   'msg.gespeichert': ['Begegnung gespeichert', 'Encounter saved'],
   'msg.geladen': ['Begegnung geladen', 'Encounter loaded'],
+  'msg.figuren': ['{n} Figuren aus dem Charakterbogen übernommen', '{n} characters taken over from the character sheet'],
   'msg.uebernommen': [
     'Begegnung aus dem Encounter Creator übernommen',
     'Encounter taken over from the encounter creator'

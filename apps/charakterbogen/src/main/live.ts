@@ -50,6 +50,8 @@ export interface LiveWege {
   /** Der Gastgeber hat ein Gruppeninventar hereingebracht: mit dem Raum merken. */
   merkeGruppe(id: string): void;
   sprache(): 'de' | 'en';
+  /** Ein voller Bogen kam an (fuer den Initiative Tracker). */
+  bogenGesehen?(e: LiveEintrag): void;
 }
 
 export class Liveleitung {
@@ -181,6 +183,7 @@ export class Liveleitung {
   }
 
   private merkeEigenen(e: LiveEintrag): void {
+    if (e.bogen) this.wege.bogenGesehen?.(e);
     if (!e.bogen || e.besitzer.id !== this.lage.ich?.id) return;
     this.zuSpeichern.set(e.bogen.id, e.bogen);
     if (this.speicherTakt) return;

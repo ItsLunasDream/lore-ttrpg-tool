@@ -100,6 +100,8 @@ export interface Teilnehmer {
   readonly rk?: number;
   /** Der Statblock als Markdown, wenn er aus dem Encounter Creator kam. */
   readonly statblock?: string;
+  /** Kennung des Charakterbogens, wenn die Figur aus einem kam: TP gehen dorthin zurueck. */
+  readonly bogen?: string;
 }
 
 /** Der laufende Kampf. Sitzungszustand, kein Dokument. */

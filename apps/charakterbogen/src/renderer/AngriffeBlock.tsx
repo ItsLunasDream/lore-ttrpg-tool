@@ -10,6 +10,17 @@ import type { Angriff, Werte } from '../shared/bogen';
 import type { Schritt } from '../shared/live';
 import { mitVorzeichen } from '../shared/regeln';
 import { angriffswerte, WAFFEN, wuerfleAngriff, wurfZeile } from '../shared/waffen';
+import { Segment, Suchwahl, type Wahlpunkt } from './Bedienung';
+
+/** Die SRD-Waffen fuer die Suchwahl, nach Art gruppiert und alphabetisch. */
+export function waffenpunkte(i: 0 | 1): Wahlpunkt[] {
+  return (['einfach', 'kriegs'] as const).flatMap((k) =>
+    WAFFEN.filter((x) => x.kategorie === k)
+      .slice()
+      .sort((x, y) => x.name[i].localeCompare(y.name[i]))
+      .map((x) => ({ id: x.id, name: x.name[i], info: `${x.wuerfel} ${x.art[i]}`, gruppe: t(k === 'einfach' ? 'waffe.einfach' : 'waffe.kriegs') }))
+  );
+}
 
 type Ziel = 'nicht' | 'alle' | 'sl';
 
@@ -25,6 +36,7 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
   const i = sprache === 'de' ? 0 : 1;
   const [ziel, setZiel] = useState<Ziel>('alle');
+  const waffenPunkte = waffenpunkte(i);
   const [ergebnis, setErgebnis] = useState<{ schluessel: string; text: string; hinweis: string } | null>(null);
 
   const setze = (n: number, teil: Partial<Angriff>) =>
@@ -64,34 +76,23 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
               {t('angriff.ausInventar')}
             </span>
           ) : (
-            <select
-              aria-label={t('angriff.waffe')}
-              data-angriff-waffe
-              value={a.waffe ?? ''}
-              onChange={(e) =>
+            <Suchwahl
+              daten={{ 'data-angriff-waffe': '' }}
+              punkte={waffenPunkte}
+              wert={a.waffe ?? ''}
+              leer={t('angriff.frei')}
+              suche={t('waffe.suche')}
+              knopf={waffe ? waffe.name[i] : t('angriff.frei')}
+              aendern={(id) =>
                 n !== null &&
                 setze(
                   n,
-                  e.target.value
-                    ? { waffe: e.target.value, attribut: a.attribut ?? 'auto', geuebt: a.geuebt ?? true, magie: a.magie ?? 0 }
+                  id
+                    ? { waffe: id, attribut: a.attribut ?? 'auto', geuebt: a.geuebt ?? true, magie: a.magie ?? 0 }
                     : { waffe: undefined, attribut: undefined, geuebt: undefined, magie: undefined, zweihaendig: undefined }
                 )
               }
-            >
-              <option value="">{t('angriff.frei')}</option>
-              {(['einfach', 'kriegs'] as const).map((k) => (
-                <optgroup key={k} label={t(k === 'einfach' ? 'waffe.einfach' : 'waffe.kriegs')}>
-                  {WAFFEN.filter((x) => x.kategorie === k)
-                    .slice()
-                    .sort((x, y) => x.name[i].localeCompare(y.name[i]))
-                    .map((x) => (
-                      <option key={x.id} value={x.id}>
-                        {x.name[i]}
-                      </option>
-                    ))}
-                </optgroup>
-              ))}
-            </select>
+            />
           )}
           {waffe ? (
             <span className="angriff__wert" data-angriff-bonus title={t('angriff.bonus')}>
@@ -138,28 +139,24 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
         </div>
         {waffe && !fest ? (
           <div className="angriff__optionen">
-            <label>
-              {t('angriff.attribut')}
-              <select value={a.attribut ?? 'auto'} onChange={(e) => n !== null && setze(n, { attribut: e.target.value as Angriff['attribut'] })}>
-                <option value="auto">{t('angriff.attribut.auto')}</option>
-                <option value="sta">{t('angriff.attribut.sta')}</option>
-                <option value="ges">{t('angriff.attribut.ges')}</option>
-              </select>
-            </label>
+            <Segment
+              klein
+              label={t('angriff.attribut')}
+              wert={a.attribut ?? 'auto'}
+              optionen={(['auto', 'sta', 'ges'] as const).map((x) => ({ wert: x, text: t(`angriff.attribut.${x}`) }))}
+              aendern={(v) => n !== null && setze(n, { attribut: v })}
+            />
             <label className="schalter">
               <input type="checkbox" checked={a.geuebt !== false} onChange={(e) => n !== null && setze(n, { geuebt: e.target.checked })} />
               {t('angriff.geuebt')}
             </label>
-            <label>
-              {t('angriff.magie')}
-              <select value={a.magie ?? 0} onChange={(e) => n !== null && setze(n, { magie: Number(e.target.value) })}>
-                {[0, 1, 2, 3].map((m) => (
-                  <option key={m} value={m}>
-                    {m === 0 ? '—' : `+${m}`}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Segment
+              klein
+              label={t('angriff.magie')}
+              wert={a.magie ?? 0}
+              optionen={[0, 1, 2, 3].map((m) => ({ wert: m, text: m === 0 ? `${t('angriff.magie')} —` : `+${m}` }))}
+              aendern={(v) => n !== null && setze(n, { magie: v })}
+            />
             {waffe.vielseitig ? (
               <label className="schalter">
                 <input type="checkbox" checked={a.zweihaendig === true} onChange={(e) => n !== null && setze(n, { zweihaendig: e.target.checked })} />
@@ -197,14 +194,17 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
   return (
     <div className="angriffe">
       {imRaum ? (
-        <label className="angriffe__ziel">
-          {t('wurf.ziel')}
-          <select data-wurf-ziel value={ziel} onChange={(e) => setZiel(e.target.value as Ziel)}>
-            <option value="nicht">{t('wurf.nicht')}</option>
-            <option value="alle">{t('wurf.alle')}</option>
-            <option value="sl">{t('wurf.sl')}</option>
-          </select>
-        </label>
+        <div className="angriffe__ziel">
+          <span className="leise">{t('wurf.ziel')}</span>
+          <Segment
+            klein
+            label={t('wurf.ziel')}
+            wert={ziel}
+            daten={{ 'data-wurf-ziel': '' }}
+            optionen={(['nicht', 'alle', 'sl'] as const).map((x) => ({ wert: x, text: t(`wurf.${x}`) }))}
+            aendern={setZiel}
+          />
+        </div>
       ) : null}
       {ausInventar.map((a) => zeile(a, `inv-${a.ausInventar}`, null))}
       {w.angriffe.map((a, n) => zeile(a, `a-${n}`, n))}

@@ -98,6 +98,31 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
 }
 
 /**
+ * Alle abgelegten Gegenstaende so, wie der Charakterbogen sie ins Inventar
+ * uebernimmt: Name, Art und Seltenheit als Text, Wirkungen und Fluch als
+ * Beschreibung, Wert in GM. Die Huelle reicht es durch.
+ */
+export async function leseFuerInventar(
+  datenordner: string,
+  sprache: 'de' | 'en' = 'de'
+): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]> {
+  const alle = await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
+  const de = sprache === 'de';
+  return alle.map((g) => ({
+    id: g.id,
+    name: g.name,
+    art: `${ART_NAME[g.art][sprache]}, ${SELTENHEIT_NAME[g.seltenheit][sprache]}${g.einstimmung ? (de ? ' (Einstimmung)' : ' (attunement)') : ''}`,
+    einstimmung: g.einstimmung,
+    beschreibung: [
+      ...g.wirkungen,
+      ...(g.fluch ? [`${de ? 'Fluch' : 'Curse'}: ${g.fluch}`] : []),
+      ...(g.notiz ? [g.notiz] : [])
+    ].join('\n\n'),
+    wert: g.wert
+  }));
+}
+
+/**
  * Name und Seltenheit aller abgelegten Gegenstaende. Fuer den Loot
  * Generator, dem die Huelle das durchreicht — die Werkzeuge kennen
  * einander nicht.

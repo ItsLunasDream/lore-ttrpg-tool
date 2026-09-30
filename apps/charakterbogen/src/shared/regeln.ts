@@ -54,8 +54,14 @@ export const FERTIGKEITEN: readonly Fertigkeit[] = [
   { id: 'wahrnehmung', attribut: 'wei', name: ['Wahrnehmung', 'Perception'] }
 ];
 
-/** 0 = keine Uebung, 1 = Uebung, 2 = Expertise (doppelter Uebungsbonus). */
-export type Uebung = 0 | 1 | 2;
+/**
+ * 0 = keine Uebung, 0.5 = halbe Uebung (etwa „Alleskönner" des Barden:
+ * halber Uebungsbonus, abgerundet), 1 = Uebung, 2 = Expertise (doppelt).
+ */
+export type Uebung = 0 | 0.5 | 1 | 2;
+
+/** Die Stufen in der Reihenfolge, in der ein Klick sie durchlaeuft. */
+export const UEBUNGEN: readonly Uebung[] = [0, 0.5, 1, 2];
 
 /** Modifikator eines Attributswerts: (Wert − 10) / 2, abgerundet. */
 export function modifikator(wert: number): number {
@@ -73,7 +79,7 @@ export function mitVorzeichen(zahl: number): string {
 }
 
 export function fertigkeitsBonus(attributswert: number, uebung: Uebung, pb: number): number {
-  return modifikator(attributswert) + uebung * pb;
+  return modifikator(attributswert) + Math.floor(uebung * pb);
 }
 
 /** Passive Wahrnehmung: 10 + Bonus auf Weisheit (Wahrnehmung). */
@@ -97,4 +103,10 @@ export function zauberAngriff(attributswert: number, pb: number): number {
  */
 export function traglastLb(staerke: number): number {
   return staerke * 15;
+}
+
+/** Fertigkeiten alphabetisch in der Sprache der Anzeige. */
+export function fertigkeitenSortiert(sprache: Sprache): typeof FERTIGKEITEN {
+  const i = sprache === 'de' ? 0 : 1;
+  return [...FERTIGKEITEN].sort((a, b) => a.name[i].localeCompare(b.name[i], sprache));
 }

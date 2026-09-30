@@ -43,8 +43,11 @@ import { mountMonster } from '../../../monster/src/main/embed';
 import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
-import { leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
-import { mountLoot } from '../../../loot/src/main/embed';
+import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
+import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
+import { srdTabellen } from '../../../loot/src/shared/srd';
+import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
+import { wuerfle as wuerfleTabelle } from '@suite/tabellen';
 import { mountCharakterbogen } from '../../../charakterbogen/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
@@ -64,6 +67,10 @@ export interface MontierteApp {
    * Tracker kann das; alle anderen lassen es weg.
    */
   uebernimmBegegnung?(uebergabe: Uebergabe): Promise<boolean>;
+  /** Figuren aus dem Charakterbogen annehmen (nur der Initiative Tracker). */
+  figuren?(figuren: readonly unknown[], hinzufuegen: boolean): boolean;
+  /** Neue TP aus dem Initiative Tracker an einen Bogen (nur der Charakterbogen). */
+  setzeTp?(kennung: string, hp: number, temp: number): Promise<void>;
   /**
    * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
    * Werkzeuge ohne eigene Stellen lassen das weg.
@@ -212,6 +219,15 @@ export interface MontageHaken {
    * erst, ob ein laufender Kampf verlorenginge.
    */
   readonly inDenTracker?: (uebergabe: Uebergabe) => Promise<boolean>;
+  /**
+   * Figuren aus dem Charakterbogen an den Tracker. Mit `hinzufuegen` wird er
+   * nach vorn geholt und legt neue an; sonst frischt er nur auf, was er hat.
+   */
+  readonly figurenAnTracker?: (figuren: readonly unknown[], hinzufuegen: boolean) => void;
+  /** Neue TP aus dem Tracker an den Charakterbogen. */
+  readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
+  /** Holt den Story Creator nach vorn und zeigt eine Notiz (`<Kampagne>/<Notiz>`). */
+  readonly zeigeInStory?: (kennung: string) => void;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -671,7 +687,7 @@ async function legeNotizAn(
   markdown: string,
   wuensche: readonly string[],
   haken: MontageHaken
-): Promise<{ ok: boolean; text: string }> {
+): Promise<{ ok: boolean; text: string; kennung?: string }> {
   if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
   if (!backstoryEmbed) {
     return { ok: false, text: OHNE_STORY() };
@@ -683,9 +699,11 @@ async function legeNotizAn(
   const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
   const kampagne = kampagnen.find((eintrag) => eintrag.id === letzte) ?? kampagnen[0];
   const typ = passenderNotiztyp(kampagne, wuensche);
+  let kennung: string;
   try {
     const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
     await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+    kennung = `${kampagne.id}/${notiz.id}`;
   } catch (fehler) {
     return { ok: false, text: fehlerText(fehler) };
   }
@@ -696,7 +714,20 @@ async function legeNotizAn(
     backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
   }
   haken.onEreignis?.('backstory');
-  return { ok: true, text: `${titel} → ${kampagne.name}` };
+  return { ok: true, text: `${titel} → ${kampagne.name}`, kennung };
+}
+
+/** Gibt es die Notiz `<Kampagne>/<Notiz>` noch? */
+async function storyNotizDa(kennung: string, haken: MontageHaken): Promise<boolean> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
+  const teiler = kennung.indexOf('/');
+  if (!backstoryEmbed || teiler <= 0) return false;
+  try {
+    await backstoryEmbed.vault.getNote(kennung.slice(0, teiler), kennung.slice(teiler + 1));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -1035,7 +1066,8 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
             haken.raum?.anfang('initiative') ?? { lage: { rolle: 'aus', ich: null, personen: [] }, nachrichten: [] }
         }
       : undefined,
-    eigeneZustaende: leseEigeneZustaende
+    eigeneZustaende: leseEigeneZustaende,
+    bogenTp: (kennung, hp, temp) => haken.bogenTp?.(kennung, hp, temp)
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -1074,6 +1106,7 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
     // Oberflaeche des Trackers, und erst nach seiner eigenen Rueckfrage.
     uebernimmBegegnung: (uebergabe) =>
       eingebettet.uebernimmBegegnung(sicht.webContents as WebContents, uebergabe),
+    figuren: (figuren, hinzufuegen) => eingebettet.figuren(sicht.webContents as WebContents, figuren, hinzufuegen),
     // Die geteilte Initiative: Nachrichten und Lage aus dem Raum.
     raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
     raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
@@ -1511,6 +1544,13 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
   };
 }
 
+/** Alle Loot-Tabellen, wie der Loot Generator sie zeigt: eigene, SRD und die aus dem Magic Item Creator. */
+async function alleLootTabellen(sprache: 'de' | 'en') {
+  const datenordner = app.getPath('userData');
+  const [eigene, gegenstaende] = await Promise.all([leseTabellen(datenordner), leseNamenUndSeltenheit(datenordner)]);
+  return [...eigene, ...srdTabellen(sprache), ...gegenstandsTabellen(gegenstaende, sprache)];
+}
+
 /** Der Charakterbogen. Gebaut wie der Loot Generator. */
 async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountCharakterbogen({
@@ -1526,7 +1566,28 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
           merkeGruppe: (bogenId) => haken.raum?.merkeGruppe?.(bogenId),
           chatte: (text, an) => haken.raum?.chatte(text, an) ?? false
         }
-      : undefined
+      : undefined,
+    tracker: (figuren, hinzufuegen) => haken.figurenAnTracker?.(figuren, hinzufuegen),
+    story: {
+      anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['character', 'npc', 'creature', 'note'], haken),
+      oeffne: async (kennung) => {
+        if (!(await storyNotizDa(kennung, haken))) return false;
+        haken.zeigeInStory?.(kennung);
+        return true;
+      }
+    },
+    eigeneZustaende: async () => (await leseEigeneZustaende()).map((z) => ({ name: z.name, text: z.text })),
+    // Quellen fuers Inventar aus anderen Werkzeugen. Die Werkzeuge kennen
+    // einander nicht; die Huelle liest fuer den Charakterbogen mit.
+    quellen: {
+      magicitems: (sprache) => leseFuerInventar(app.getPath('userData'), sprache),
+      lootTabellen: async (sprache) => (await alleLootTabellen(sprache)).map((x) => ({ id: x.id, name: x.name })),
+      lootWuerfle: async (tabellenId, sprache) => {
+        const alle = await alleLootTabellen(sprache);
+        const tabelle = alle.find((x) => x.id === tabellenId);
+        return tabelle ? wuerfleTabelle(tabelle, alle, Math.random).text : null;
+      }
+    }
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1558,6 +1619,7 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
     // Boegen im Raum: Nachrichten und Lage.
     raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
-    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage),
+    setzeTp: (kennung, hp, temp) => eingebettet.setzeTp(kennung, hp, temp)
   };
 }

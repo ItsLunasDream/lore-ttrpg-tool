@@ -10,6 +10,7 @@
  * Die Regeln stehen nicht hier, sondern in shared/kampf.ts. Diese Datei
  * zeichnet und leitet Tastendruecke weiter.
  */
+import { leseFiguren, tpAenderungen, uebernimmFiguren } from '../shared/boegen';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
@@ -415,6 +416,27 @@ export function App() {
       }),
     [uebernimm, warnung]
   );
+
+  /*
+   * Figuren aus dem Charakterbogen: neu als Spielerfigur, sonst aufgefrischt.
+   * Aendern sich ihre TP hier im Kampf, gehen die neuen Werte zurueck an den
+   * Bogen. `bekanntTp` merkt, was der Bogen schon weiss, damit nichts im
+   * Kreis laeuft.
+   */
+  const bekanntTp = useRef(new Map<string, { hp: number; temp: number }>());
+  useEffect(
+    () =>
+      api.beiFiguren((roh, hinzufuegen) => {
+        const figuren = leseFiguren(roh);
+        for (const f of figuren) bekanntTp.current.set(f.kennung, { hp: f.tp, temp: f.tempTp });
+        setzeUndSichere((k) => uebernimmFiguren(k, figuren, hinzufuegen));
+        if (hinzufuegen && figuren.length) melde(t('msg.figuren', { n: figuren.length }));
+      }),
+    [setzeUndSichere, melde]
+  );
+  useEffect(() => {
+    for (const a of tpAenderungen(kampf, bekanntTp.current)) api.bogenTp(a.kennung, a.hp, a.temp);
+  }, [kampf]);
 
   const speichereBegegnung = useCallback(async (name: string, ersetzen = false) => {
     // Neuer Name: eine neue Datei. Eine fremde gleichen Namens wird nicht

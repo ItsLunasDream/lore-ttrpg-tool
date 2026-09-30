@@ -221,12 +221,6 @@ textarea {
   color: var(--text-leise);
 }
 
-.feld--name input {
-  font-size: 20px;
-  font-weight: 600;
-  padding: 8px 10px;
-}
-
 .feld--zahl input {
   width: 72px;
   text-align: center;
@@ -259,196 +253,6 @@ textarea {
 
 .raster--kopf {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-
-.raster--kampf {
-  grid-template-columns: 90px 110px 1fr;
-}
-
-.raster--tp {
-  grid-template-columns: repeat(3, auto);
-  justify-content: start;
-}
-
-.raster--zustand {
-  grid-template-columns: auto auto;
-  justify-content: start;
-  align-items: end;
-  margin-top: 12px;
-}
-
-.spalten {
-  display: grid;
-  grid-template-columns: minmax(250px, 1fr) minmax(260px, 1fr) minmax(300px, 1.2fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.spalten > .block {
-  margin-top: 14px;
-}
-
-@media (max-width: 980px) {
-  .spalten {
-    grid-template-columns: 1fr;
-  }
-}
-
-.klassen {
-  display: grid;
-  gap: 6px;
-  grid-column: 1 / -1;
-}
-
-.klassen__zeile {
-  display: flex;
-  gap: 8px;
-  align-items: end;
-}
-
-.klassen__zeile > input {
-  flex: 1;
-}
-
-.klassen__zeile .feld--zahl {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.klassen__fuss {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.attribute {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.attribut {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  padding: 10px 6px;
-  border: 1px solid var(--rand);
-  border-radius: var(--radius);
-  background: var(--grund);
-}
-
-.attribut__name {
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: var(--text-leise);
-}
-
-.attribut__mod {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.attribut__rettung {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  font-size: 12px;
-  color: var(--text-leise);
-}
-
-.fertigkeiten {
-  list-style: none;
-  margin: 0 0 10px;
-  padding: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.fertigkeiten li {
-  display: grid;
-  grid-template-columns: 28px 36px 1fr auto;
-  align-items: center;
-  gap: 6px;
-}
-
-.fertigkeiten__bonus {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.uebung {
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  line-height: 1;
-}
-
-.uebung--1 {
-  color: var(--betont);
-}
-
-.uebung--2 {
-  color: var(--warnung);
-}
-
-.tp__balken {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--grund-tief);
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.tp__balken span {
-  display: block;
-  height: 100%;
-  background: var(--gut);
-  transition: width var(--motion-state, 200ms) ease;
-}
-
-.tp__balken .angeschlagen {
-  background: var(--warnung);
-}
-
-.tp__balken .kritisch {
-  background: var(--gefahr);
-}
-
-.tp .feld {
-  margin-top: 8px;
-}
-
-.tp .leise {
-  margin: 4px 0 0;
-}
-
-.todesrettung__zeile {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.todesrettung__zeile span {
-  min-width: 100px;
-}
-
-.tw__zeile {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.tw__zeile .feld--zahl {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.tw__zeile .feld--zahl input {
-  width: 56px;
 }
 
 .kurzrast {
@@ -881,4 +685,1152 @@ textarea {
 
 .sl-hinweis--verlauf summary {
   cursor: pointer;
+}
+
+/* --- Quellen fuers Inventar ----------------------------------------------- */
+
+.quellen {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-tief);
+}
+
+.quellen__reiter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.quellen__reiter .ist-an {
+  border-color: var(--betont);
+  color: var(--betont);
+}
+
+.quellen__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.quellen__liste li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rand);
+}
+
+.quellen__zahlen {
+  font-size: 0.85em;
+}
+
+.quellen__wurf {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+/* ==========================================================================
+ * Der Bogen als Blatt: eigenes Papier, eigene Schrift, eigene Akzentfarbe
+ * (je Bogen, `shared/design.ts`). Innerhalb des Blatts gelten die Farben
+ * des Blatts statt des Themas der Huelle; alle Teile darunter erben sie.
+ * ======================================================================== */
+
+.blatt {
+  --grund: var(--b-grund);
+  --grund-hoch: var(--b-kasten);
+  --grund-tief: color-mix(in srgb, var(--b-kasten) 70%, var(--b-grund));
+  --rand: var(--b-linie);
+  --text: var(--b-text);
+  --text-leise: color-mix(in srgb, var(--b-text) 62%, var(--b-kasten));
+  --betont: var(--b-akzent);
+  --betont-leise: color-mix(in srgb, var(--b-akzent) 16%, var(--b-kasten));
+  --radius: 6px;
+  position: relative;
+  margin-top: 8px;
+  padding: 22px 24px 28px;
+  color: var(--text);
+  background: var(--grund);
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+  font-family: var(--b-schrift);
+  font-size: 15px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+}
+
+/* Pergament: ein wenig Wolke im Papier. */
+.blatt[data-papier='pergament'] {
+  background:
+    radial-gradient(ellipse at 20% 10%, rgb(255 255 255 / 0.35), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgb(120 80 30 / 0.12), transparent 60%),
+    radial-gradient(ellipse at 60% 40%, rgb(150 110 50 / 0.07), transparent 70%),
+    var(--grund);
+}
+
+.blatt--dunkel {
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+
+/* Handschrift ist schmaler; etwas groesser liest sie sich besser. */
+.blatt[data-schrift='hand'] {
+  font-size: 18px;
+}
+
+.blatt h2 {
+  font-family: var(--b-titel);
+  color: var(--betont);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin: 0 0 10px;
+}
+
+.blatt button,
+.blatt input,
+.blatt textarea {
+  background: var(--grund-hoch);
+}
+
+.blatt input,
+.blatt textarea {
+  border-color: color-mix(in srgb, var(--rand) 60%, transparent);
+}
+
+.blatt input:focus,
+.blatt textarea:focus {
+  border-color: var(--betont);
+  outline: none;
+}
+
+.blatt .knopf--haupt {
+  color: var(--b-kasten);
+}
+
+.bogenfeld {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/* --- Kopf ----------------------------------------------------------------- */
+
+.blatt__name {
+  display: grid;
+  margin-bottom: 12px;
+}
+
+.blatt__name input {
+  font-family: var(--b-titel);
+  font-size: 30px;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--betont);
+  border-radius: 0;
+  padding: 2px 4px;
+}
+
+.linie {
+  display: grid;
+  min-width: 0;
+}
+
+.linie input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rand);
+  border-radius: 0;
+  padding: 3px 4px;
+  font-size: 15px;
+}
+
+.linie__label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+  padding: 2px 4px 0;
+}
+
+.linie--zahl input {
+  width: 100%;
+  text-align: center;
+}
+
+.blatt__kopf {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.1fr) 2fr;
+  gap: 8px 18px;
+  padding: 10px 14px 12px;
+  border: 2px solid var(--rand);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--grund-hoch) 70%, transparent);
+}
+
+.klassen {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.klassen__zeile {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr 56px auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.klassen__dazu {
+  justify-self: start;
+}
+
+.kopfraster {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+@media (max-width: 860px) {
+  .blatt__kopf {
+    grid-template-columns: 1fr;
+  }
+  .kopfraster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --- Leiste: Attribute und Kennzahlen -------------------------------------- */
+
+.blatt__leiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.attribute {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(92px, 1fr));
+  gap: 10px;
+  flex: 3 1 600px;
+}
+
+@media (max-width: 760px) {
+  .attribute {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.attribut {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 8px 6px 0;
+  border: 2px solid var(--rand);
+  border-radius: 12px 12px 18px 18px;
+  background: var(--grund-hoch);
+  min-height: 118px;
+}
+
+.attribut__name {
+  font-family: var(--b-titel);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--betont);
+}
+
+.attribut__mod {
+  font-family: var(--b-titel);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 2px 0 10px;
+}
+
+.attribut__oval {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 30px;
+  border: 2px solid var(--rand);
+  border-radius: 50%;
+  background: var(--grund);
+  display: grid;
+  place-items: center;
+}
+
+.attribut__oval input {
+  width: 44px;
+  padding: 0;
+  text-align: center;
+  background: transparent;
+  border: none;
+  font-weight: 700;
+}
+
+.kennzahlen {
+  display: flex;
+  gap: 10px;
+  flex: 1 1 320px;
+}
+
+.kennbox {
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-width: 92px;
+  padding: 8px;
+  border: 2px solid var(--rand);
+  border-radius: 12px;
+  background: var(--grund-hoch);
+  text-align: center;
+}
+
+.kennbox__titel {
+  font-family: var(--b-titel);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--betont);
+}
+
+.kennbox__wert {
+  font-family: var(--b-titel);
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.kennbox__fuss {
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+.kennbox__eingabe {
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  background: transparent !important;
+  border: none !important;
+}
+
+.kennbox--knopf {
+  cursor: pointer;
+}
+
+.inspiration__stern {
+  font-size: 30px;
+  line-height: 1;
+  color: var(--rand);
+  transition:
+    color var(--motion-feedback, 120ms) ease,
+    transform var(--motion-state, 200ms) ease;
+}
+
+.inspiration.ist-an {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.inspiration.ist-an .inspiration__stern {
+  color: var(--betont);
+  transform: scale(1.15) rotate(12deg);
+}
+
+/* --- Drei Spalten ------------------------------------------------------------ */
+
+.spalten {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.9fr) minmax(260px, 1fr) minmax(300px, 1.15fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 22px;
+}
+
+.spalte {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.spalte > .kasten {
+  margin-top: 0;
+}
+
+@media (max-width: 1020px) {
+  .spalten {
+    grid-template-columns: 1fr 1fr;
+  }
+  .spalten > .spalte:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .spalten {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kasten {
+  position: relative;
+  margin-top: 14px;
+  padding: 12px 14px 14px;
+  border: 2px solid var(--rand);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--grund-hoch) 85%, transparent);
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+/* Die innere Linie eines klassischen Bogens. */
+.kasten::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid color-mix(in srgb, var(--rand) 45%, transparent);
+  border-radius: 7px;
+  pointer-events: none;
+}
+
+/* --- Uebungspunkt: ueberall gleich gross, per CSS gezeichnet ---------------- */
+
+.uebung {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 50%;
+}
+
+.uebung:hover .upunkt {
+  box-shadow: 0 0 0 3px var(--betont-leise);
+}
+
+.upunkt {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-leise);
+  box-sizing: border-box;
+  transition:
+    background var(--motion-feedback, 120ms) ease,
+    border-color var(--motion-feedback, 120ms) ease;
+}
+
+.upunkt--halb {
+  border-color: var(--betont);
+  background: linear-gradient(90deg, var(--betont) 50%, transparent 50%);
+}
+
+.upunkt--voll {
+  border-color: var(--betont);
+  background: var(--betont);
+}
+
+.upunkt--doppelt {
+  border-color: var(--betont);
+  background: var(--betont);
+  box-shadow:
+    0 0 0 2px var(--grund-hoch),
+    0 0 0 3.5px var(--betont);
+}
+
+.wertkasten {
+  min-width: 42px;
+  padding: 2px 6px;
+  border: 1.5px solid var(--rand);
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--grund);
+}
+
+/* --- Rettungswuerfe, Passiv, Uebungen ---------------------------------------- */
+
+.rettungen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.rettungen li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.rettungen__name {
+  font-family: var(--b-titel);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.passiv {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.passiv li {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.passiv strong {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border: 1.5px solid var(--rand);
+  border-radius: 50%;
+  font-size: 15px;
+  background: var(--grund);
+}
+
+.umschalter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.umschalter button {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.umschalter button.ist-an {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: var(--b-kasten, var(--grund));
+}
+
+/* --- Fertigkeiten ------------------------------------------------------------ */
+
+.fertigkeiten__kopf,
+.fertigkeiten li {
+  display: grid;
+  grid-template-columns: 26px 38px 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.fertigkeiten__kopf {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+  border-bottom: 1px solid var(--rand);
+  padding-bottom: 4px;
+}
+
+.fertigkeiten__kopf span:last-child {
+  text-align: right;
+}
+
+.fertigkeiten {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.fertigkeiten li {
+  padding: 3px 0;
+  border-bottom: 1px dotted color-mix(in srgb, var(--rand) 55%, transparent);
+}
+
+.fertigkeiten__attr {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* --- Kampf ------------------------------------------------------------------- */
+
+.kampf__oben {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  align-items: center;
+}
+
+.raute,
+.schild {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 92px;
+  height: 100px;
+  background: var(--rand);
+}
+
+.raute {
+  clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+  width: 110px;
+  height: 92px;
+}
+
+.schild {
+  clip-path: polygon(50% 0, 100% 12%, 100% 55%, 50% 100%, 0 55%, 0 12%);
+}
+
+.raute::before,
+.schild::before {
+  content: '';
+  position: absolute;
+  inset: 2.5px;
+  background: var(--grund-hoch);
+  clip-path: inherit;
+}
+
+.raute > *,
+.schild > * {
+  position: relative;
+}
+
+.raute__titel,
+.schild__titel {
+  font-family: var(--b-titel);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--betont);
+}
+
+.raute input,
+.schild input {
+  width: 60px;
+  padding: 0;
+  text-align: center;
+  font-family: var(--b-titel);
+  font-size: 26px;
+  font-weight: 700;
+  background: transparent !important;
+  border: none !important;
+}
+
+.schild input {
+  margin-bottom: 10px;
+}
+
+/* Der gerechnete Wert steht als Platzhalter da; er soll wie ein Wert aussehen. */
+.raute input::placeholder {
+  color: var(--text);
+  opacity: 1;
+}
+
+.tp {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1.5px solid var(--rand);
+  border-radius: 8px;
+  background: var(--grund);
+}
+
+.tp__kopf {
+  text-align: center;
+}
+
+.tp__zahlen {
+  display: grid;
+  grid-template-columns: 1.3fr auto 1fr 1fr;
+  gap: 6px;
+  align-items: end;
+}
+
+.tp__zahl {
+  display: grid;
+  justify-items: center;
+}
+
+.tp__zahl input {
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--rand) !important;
+  border-radius: 0 !important;
+}
+
+.tp__zahl--gross input {
+  font-family: var(--b-titel);
+  font-size: 30px;
+}
+
+.tp__strich {
+  font-size: 24px;
+  color: var(--text-leise);
+  padding-bottom: 18px;
+}
+
+.tp__balken {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--grund-tief);
+  overflow: hidden;
+}
+
+.tp__balken span {
+  display: block;
+  height: 100%;
+  background: var(--gut);
+  transition: width var(--motion-state, 200ms) ease;
+}
+
+.tp__balken .angeschlagen {
+  background: var(--warnung);
+}
+
+.tp__balken .kritisch {
+  background: var(--gefahr);
+}
+
+.tp__betrag {
+  width: 100%;
+}
+
+.todesrettung {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1.5px dashed var(--rand);
+  border-radius: 8px;
+  opacity: 0.7;
+}
+
+.todesrettung.ist-akut {
+  opacity: 1;
+  border-style: solid;
+  border-color: var(--gefahr);
+}
+
+.todesrettung__zeile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.todesrettung__zeile--fehlschlaege .pip.ist-an {
+  background: var(--gefahr);
+  border-color: var(--gefahr);
+}
+
+.tw {
+  display: grid;
+  gap: 6px;
+}
+
+.tw__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.tw__zeile .zahl {
+  width: 46px;
+  text-align: center;
+}
+
+.kurzrast {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed var(--rand);
+  border-radius: var(--radius);
+}
+
+.kurzrast__zeile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.rasten .leiste {
+  justify-content: center;
+  margin: 0;
+}
+
+/* --- Zustaende, Ressourcen, Texte ------------------------------------------ */
+
+.chip--eigen {
+  background: color-mix(in srgb, var(--warnung) 22%, var(--grund-hoch));
+}
+
+.erschoepfung {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.erschoepfung .leise {
+  grid-column: 1 / -1;
+  min-height: 1.2em;
+}
+
+.ressourcen {
+  display: grid;
+  gap: 8px;
+}
+
+.ressource {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) auto 46px auto auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.ressource .zahl {
+  text-align: center;
+}
+
+.ressourcen > button {
+  justify-self: start;
+}
+
+.texte {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.texte--zwei {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 860px) {
+  .texte,
+  .texte--zwei {
+    grid-template-columns: 1fr;
+  }
+}
+
+.knopf--leise {
+  background: transparent !important;
+  border-color: transparent;
+  color: var(--text-leise);
+}
+
+.knopf--leise:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--rand);
+}
+
+.knopfpaar {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* ==========================================================================
+ * Bedienelemente statt Auswahllisten (Bedienung.tsx)
+ * ======================================================================== */
+
+.segment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--grund-tief);
+}
+
+.segment button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 5px 11px;
+  border-right: 1px solid color-mix(in srgb, var(--rand) 60%, transparent);
+}
+
+.segment button:last-child {
+  border-right: none;
+}
+
+.segment button.ist-an {
+  background: var(--betont);
+  color: var(--grund);
+  font-weight: 600;
+}
+
+.blatt .segment button.ist-an {
+  color: var(--b-kasten);
+}
+
+.segment--klein button {
+  padding: 2px 8px;
+  font-size: 12.5px;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.pip {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-leise);
+  background: transparent;
+  transition:
+    background var(--motion-feedback, 120ms) ease,
+    transform var(--motion-feedback, 120ms) ease;
+}
+
+.pip:hover:not(:disabled) {
+  transform: scale(1.15);
+  background: var(--betont-leise);
+}
+
+.pip.ist-an {
+  background: var(--betont);
+  border-color: var(--betont);
+}
+
+.pip--gefahr {
+  border-color: var(--gefahr);
+}
+
+.pip--gefahr.ist-an {
+  background: var(--gefahr);
+}
+
+.suchwahl {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+}
+
+.suchwahl__knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.suchwahl--klein .suchwahl__knopf {
+  padding: 3px 9px;
+  font-size: 13px;
+}
+
+.suchwahl__pfeil {
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+.suchwahl__tafel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  width: min(320px, 90vw);
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
+  animation: auftauchen var(--motion-state, 160ms) ease;
+}
+
+.suchwahl__tafel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow: auto;
+  display: grid;
+  gap: 1px;
+}
+
+.suchwahl__tafel li button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+}
+
+.suchwahl__tafel li button.ist-an {
+  background: var(--betont-leise);
+}
+
+.suchwahl__gruppe {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--betont);
+  padding: 6px 8px 2px;
+}
+
+@keyframes auftauchen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* --- Aussehen waehlen ------------------------------------------------------- */
+
+.designwahl {
+  position: relative;
+}
+
+.designwahl > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.designwahl__tupfer {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.designwahl__tafel {
+  position: absolute;
+  z-index: 40;
+  right: 0;
+  top: calc(100% + 6px);
+  width: min(420px, 92vw);
+  padding: 12px 14px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.4);
+  animation: auftauchen var(--motion-state, 160ms) ease;
+}
+
+.designwahl__tafel h3 {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.tupfer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tupfer button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2);
+}
+
+.tupfer button.ist-an {
+  border-color: var(--text);
+  transform: scale(1.1);
+}
+
+.papiere {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.papiere button {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 8px;
+  border-width: 2px;
+  font-size: 12.5px;
+}
+
+.papiere button.ist-an {
+  outline: 2px solid var(--betont);
+  outline-offset: 1px;
+}
+
+.papiere__kasten {
+  width: 100%;
+  height: 14px;
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+.schriften {
+  display: grid;
+  gap: 4px;
+}
+
+.schriften button {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  text-align: left;
+}
+
+.schriften button.ist-an {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.schriften__probe {
+  font-size: 17px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .suchwahl__tafel,
+  .designwahl__tafel {
+    animation: none;
+  }
 }

@@ -49,6 +49,16 @@ const api = {
       ipcRenderer.off(kanal('uebergabe'), lauscher);
     };
   },
+  /** Figuren aus dem Charakterbogen (neu oder aufgefrischt). */
+  beiFiguren: (hoerer: (figuren: unknown, hinzufuegen: boolean) => void) => {
+    const lauscher = (_e: unknown, figuren: unknown, hinzufuegen: boolean) => hoerer(figuren, hinzufuegen === true);
+    ipcRenderer.on(kanal('figuren'), lauscher);
+    return () => {
+      ipcRenderer.off(kanal('figuren'), lauscher);
+    };
+  },
+  /** Neue TP einer Figur zurueck an ihren Bogen. */
+  bogenTp: (kennung: string, hp: number, temp: number) => ipcRenderer.send(kanal('bogen:tp'), kennung, hp, temp),
   begegnungen: {
     liste: () => ipcRenderer.invoke(kanal('begegnungen:liste')) as Promise<Begegnung[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('begegnungen:lesen'), id) as Promise<Begegnung>,

@@ -4,7 +4,7 @@
  */
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
-import type { Kachel } from '../shared/ablage';
+import type { Figur, Kachel } from '../shared/ablage';
 import type { Bogen } from '../shared/bogen';
 import type { Uebergabe } from '../shared/uebergabe';
 import type { Anfrage } from '../shared/live';
@@ -53,6 +53,32 @@ const api = {
         ipcRenderer.off(kanal('live'), lauscher);
       };
     }
+  },
+  /** Quellen fuers Inventar aus anderen Werkzeugen (ueber die Huelle). */
+  quellen: {
+    magicitems: () =>
+      ipcRenderer.invoke(kanal('quellen:magicitems')) as Promise<
+        { id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]
+      >,
+    lootTabellen: () => ipcRenderer.invoke(kanal('quellen:lootTabellen')) as Promise<{ id: string; name: string }[]>,
+    lootWuerfle: (id: string) => ipcRenderer.invoke(kanal('quellen:lootWuerfle'), id) as Promise<string | null>
+  },
+  /** Notiz im Story Creator anlegen oder oeffnen. */
+  story: {
+    anlegen: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:anlegen'), bogen) as Promise<{ ok: boolean; text: string; kennung?: string }>,
+    oeffne: (kennung: string) => ipcRenderer.invoke(kanal('story:oeffne'), kennung) as Promise<boolean>
+  },
+  /** Eigene Zustaende aus dem Status Effect Creator. */
+  eigeneZustaende: () => ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<{ name: string; text: string }[]>,
+  /** Figuren in den Initiative Tracker. */
+  tracker: (figuren: Figur[]) => ipcRenderer.invoke(kanal('tracker'), figuren) as Promise<boolean>,
+  /** Ein Bogen wurde von aussen geaendert (Initiative Tracker). */
+  beiExtern: (hoerer: (bogen: Bogen) => void) => {
+    const lauscher = (_e: unknown, bogen: Bogen) => hoerer(bogen);
+    ipcRenderer.on(kanal('extern'), lauscher);
+    return () => {
+      ipcRenderer.off(kanal('extern'), lauscher);
+    };
   },
   /** Einen Wurf in den Raum: an alle, oder an jede SL. */
   wurf: (text: string, ziel: 'alle' | 'sl') =>
