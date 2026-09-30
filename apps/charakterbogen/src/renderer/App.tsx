@@ -14,6 +14,7 @@ import { ZUSTAENDE } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
 import { ZauberBlock } from './ZauberBlock';
+import { InventarBlock } from './InventarBlock';
 import { alsKachel, type Kachel } from '../shared/ablage';
 import {
   gesamtstufe,
@@ -167,6 +168,18 @@ export function App() {
     [speichereJetzt]
   );
 
+  /** Boegen, die der Hauptprozess gerade geschrieben hat (Uebergabe, Aufteilen). */
+  const uebernimm = useCallback((boegen: readonly Bogen[]) => {
+    const jetzt = offenRef.current;
+    const neu = jetzt ? boegen.find((b) => b.id === jetzt.id) : undefined;
+    if (neu) {
+      offenRef.current = neu;
+      schmutzig.current = false;
+      setOffen(neu);
+    }
+    setKacheln((alt) => alt.map((k) => boegen.find((b) => b.id === k.id)).map((b, n) => (b ? alsKachel(b) : alt[n])));
+  }, []);
+
   const schliesse = useCallback(async () => {
     await speichereJetzt();
     offenRef.current = null;
@@ -176,8 +189,8 @@ export function App() {
     void ladeListe();
   }, [ladeListe, speichereJetzt]);
 
-  const anlegen = useCallback(async () => {
-    const vorlage = neuerBogen('neu', t('neu.name'));
+  const anlegen = useCallback(async (art: Bogen['art'] = 'figur') => {
+    const vorlage = neuerBogen('neu', art === 'gruppe' ? t('neu.gruppeName') : t('neu.name'), art);
     const antwort = await api.sammlung.speichern(vorlage, true);
     if (!antwort.ok || !antwort.bogen) {
       setFehler(t('fehler.speichern', { detail: antwort.text }));
@@ -226,6 +239,9 @@ export function App() {
           />
           <button type="button" className="knopf--haupt" data-neu onClick={() => void anlegen()}>
             {t('neu')}
+          </button>
+          <button type="button" data-neu-gruppe onClick={() => void anlegen('gruppe')}>
+            {t('neu.gruppe')}
           </button>
           <button
             type="button"
@@ -314,6 +330,19 @@ export function App() {
       </label>
 
       {offen.werte ? <Figurenbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} /> : null}
+
+      <section className="block" data-block="inventar">
+        <h2>{offen.art === 'gruppe' ? t('gruppe') : t('inventar')}</h2>
+        <InventarBlock
+          bogen={offen}
+          andere={kacheln}
+          aendere={aendere}
+          speichereJetzt={speichereJetzt}
+          uebernimm={uebernimm}
+          setMeldung={setMeldung}
+          setFehler={setFehler}
+        />
+      </section>
 
       <section className="block">
         <h2>{t('notizen')}</h2>

@@ -657,3 +657,80 @@ textarea {
   max-height: 420px;
   overflow: auto;
 }
+
+/* --- Inventar ------------------------------------------------------------- */
+
+.muenzen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.muenze input {
+  width: 76px;
+}
+
+.dialogzeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px dashed var(--rand);
+  border-radius: var(--radius);
+}
+
+.dialogzeile .feld--zahl input {
+  width: 64px;
+}
+
+.gegenstaende {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.gegenstand__kopf,
+.gegenstand__zeile {
+  display: grid;
+  grid-template-columns: minmax(140px, 3fr) 64px 90px 90px 26px 26px 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.gegenstand__kopf.gegenstand--gruppe,
+.gegenstand__zeile.gegenstand--gruppe {
+  grid-template-columns: minmax(140px, 3fr) 64px 90px 90px 34px;
+}
+
+.gegenstand__detail {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--betont-leise);
+}
+
+.schmal {
+  width: 64px;
+}
+
+.summen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 10px 0 0;
+}
+
+.verlauf {
+  margin-top: 10px;
+}
+
+.verlauf ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}

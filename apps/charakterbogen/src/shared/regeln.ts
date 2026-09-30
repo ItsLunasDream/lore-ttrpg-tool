@@ -91,10 +91,10 @@ export function zauberAngriff(attributswert: number, pb: number): number {
 }
 
 /**
- * Traglast in Pfund (englisch) oder Kilogramm (deutsch), nach der Tabelle
- * „Traglast" des SRD: klein oder mittelgross Staerke × 15 lb bzw. × 7,5 kg.
- * Andere Groessen stehen in der Tabelle; der Bogen kennt vorerst nur diese.
+ * Traglast in Pfund nach der Tabelle „Traglast" des SRD: klein oder
+ * mittelgross Staerke × 15 lb (deutsche Fassung × 7,5 kg). Andere Groessen
+ * stehen in der Tabelle; der Bogen kennt vorerst nur diese.
  */
-export function traglast(staerke: number, sprache: Sprache): number {
-  return sprache === 'de' ? staerke * 7.5 : staerke * 15;
+export function traglastLb(staerke: number): number {
+  return staerke * 15;
 }

@@ -15,6 +15,7 @@
  */
 import { bereinige, gesamtstufe, initiativeBonus, type Bogen } from './bogen';
 import { gradVon, nameVon, sortiert } from './zauber';
+import { MUENZARTEN, MUENZ_NAMEN, gewichtAnzeige, inGold, summen } from './inventar';
 import {
   ATTRIBUTE,
   ATTRIBUT_NAMEN,
@@ -134,6 +135,32 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
     }
   } else {
     teile.push(`# ${b.name}`, '');
+  }
+  const hatGeld = MUENZARTEN.some((a) => b.muenzen[a] > 0);
+  if (hatGeld || b.gegenstaende.length) {
+    const L = (de: string, en: string) => (i === 0 ? de : en);
+    teile.push(`## ${b.art === 'gruppe' ? L('Gruppeninventar', 'Party inventory') : L('Inventar', 'Inventory')}`, '');
+    if (hatGeld) {
+      teile.push(
+        `**${L('Geld', 'Money')}:** ` +
+          MUENZARTEN.filter((a) => b.muenzen[a] > 0)
+            .map((a) => `${b.muenzen[a]} ${MUENZ_NAMEN[a].kurz[i]}`)
+            .join(', ') +
+          ` (${inGold(b.muenzen)} ${L('GM', 'GP')})`,
+        ''
+      );
+    }
+    for (const g of b.gegenstaende) {
+      const teile2 = [
+        g.gewicht !== null ? gewichtAnzeige(g.gewicht * g.anzahl, sprache) : '',
+        g.wert !== null ? `${g.wert * g.anzahl} ${L('GM', 'GP')}` : '',
+        g.ausgeruestet ? L('ausgerüstet', 'equipped') : '',
+        g.eingestimmt ? L('eingestimmt', 'attuned') : ''
+      ].filter(Boolean);
+      teile.push(`- ${g.anzahl > 1 ? `${g.anzahl} × ` : ''}${g.name}${teile2.length ? ` (${teile2.join(' · ')})` : ''}`);
+    }
+    const s = summen(b.gegenstaende, b.muenzen, b.muenzgewicht);
+    teile.push('', `*${L('Gewicht', 'Weight')}: ${s.gewichtUnvollstaendig ? L('mindestens ', 'at least ') : ''}${gewichtAnzeige(s.gewicht, sprache)}*`, '');
   }
   if (b.notizen.trim()) teile.push(`## ${i === 0 ? 'Notizen' : 'Notes'}`, '', b.notizen.trim(), '');
   kopf.push(`geaendert: ${yaml(b.geaendert)}`, '---', '');

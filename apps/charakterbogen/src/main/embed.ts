@@ -14,6 +14,8 @@ import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
 import { alsKachel, alsMarkdown, freieKennung, klassenText, leseBogen, zuId, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
+import { uebergib, geldText, type Uebergabe } from '../shared/uebergabe';
+import { legeDazu, teileAuf } from '../shared/inventar';
 import type { Sprache } from '../shared/regeln';
 
 export const WERKZEUG = 'charakterbogen';
@@ -105,6 +107,25 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
   const fensterVon = (ereignis: never) =>
     BrowserWindow.fromWebContents((ereignis as { sender: WebContents }).sender);
 
+  const lies = async (id: string): Promise<Bogen> =>
+    leseBogen(await readFile(path.join(ordner, `${zuId(id)}.md`), 'utf8'), zuId(id));
+  const schreib = async (b: Bogen): Promise<Bogen> => {
+    const neu = { ...b, fassung: b.fassung + 1, geaendert: new Date().toISOString() };
+    await schreibeSicher(path.join(ordner, `${neu.id}.md`), alsMarkdown(neu, sprache));
+    return neu;
+  };
+  /*
+   * Mehrere Boegen in einem Schritt aendern. Nacheinander in einer Reihe,
+   * damit zwei Uebergaben kurz hintereinander nicht denselben alten Stand
+   * lesen und sich gegenseitig ueberschreiben.
+   */
+  let reihe: Promise<unknown> = Promise.resolve();
+  const inReihe = <T>(arbeit: () => Promise<T>): Promise<T> => {
+    const weiter = reihe.then(arbeit, arbeit);
+    reihe = weiter.catch(() => undefined);
+    return weiter;
+  };
+
   handle('liste', async (): Promise<Kachel[]> => (await leseAlle(ordner)).map(alsKachel));
 
   handle('lesen', async (_e: never, id: string): Promise<Bogen | null> => {
@@ -121,7 +142,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
    */
   handle(
     'speichern',
-    async (_e: never, roh: Bogen, neu: boolean): Promise<{ ok: boolean; bogen: Bogen | null; text: string }> => {
+    async (_e: never, roh: Bogen, neu: boolean): Promise<{ ok: boolean; bogen: Bogen | null; text: string }> => inReihe(async () => {
       try {
         const id = neu ? freieKennung(zuId(roh.name), (await leseAlle(ordner)).map((b) => b.id)) : zuId(roh.id);
         const bogen: Bogen = {
@@ -134,7 +155,69 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
       } catch (fehler) {
         return { ok: false, bogen: null, text: String(fehler instanceof Error ? fehler.message : fehler) };
       }
-    }
+    })
+  );
+
+  /** Gegenstand oder Geld von einem Bogen zum anderen. */
+  handle(
+    'uebergib',
+    async (_e: never, vonId: string, nachId: string, was: Uebergabe): Promise<{ ok: boolean; boegen: Bogen[]; text: string }> =>
+      inReihe(async () => {
+        try {
+          const ergebnis = uebergib(await lies(vonId), await lies(nachId), was, sprache);
+          if (!ergebnis) return { ok: false, boegen: [], text: '' };
+          return { ok: true, boegen: [await schreib(ergebnis.von), await schreib(ergebnis.nach)], text: '' };
+        } catch (fehler) {
+          return { ok: false, boegen: [], text: String(fehler instanceof Error ? fehler.message : fehler) };
+        }
+      })
+  );
+
+  /** Das Geld eines Bogens gleichmaessig auf andere verteilen; der Rest bleibt. */
+  handle(
+    'aufteilen',
+    async (_e: never, vonId: string, anIds: string[]): Promise<{ ok: boolean; boegen: Bogen[]; text: string }> =>
+      inReihe(async () => {
+        try {
+          const ziele = [...new Set(anIds)].filter((id) => zuId(id) !== zuId(vonId));
+          if (ziele.length === 0) return { ok: false, boegen: [], text: '' };
+          const von = await lies(vonId);
+          const { jeder, rest } = teileAuf(von.muenzen, ziele.length);
+          const text = geldText(jeder, sprache);
+          if (!text) return { ok: false, boegen: [], text: '' };
+          const zeit = new Date().toISOString();
+          const geschrieben: Bogen[] = [];
+          for (const id of ziele) {
+            const b = await lies(id);
+            geschrieben.push(
+              await schreib({
+                ...b,
+                muenzen: legeDazu(b.muenzen, jeder),
+                verlauf: [{ zeit, text: sprache === 'de' ? `${text} von ${von.name} (aufgeteilt)` : `${text} from ${von.name} (split)` }, ...b.verlauf]
+              })
+            );
+          }
+          geschrieben.unshift(
+            await schreib({
+              ...von,
+              muenzen: rest,
+              verlauf: [
+                {
+                  zeit,
+                  text:
+                    sprache === 'de'
+                      ? `Aufgeteilt: je ${text} an ${geschrieben.map((b) => b.name).join(', ')}`
+                      : `Split: ${text} each to ${geschrieben.map((b) => b.name).join(', ')}`
+                },
+                ...von.verlauf
+              ]
+            })
+          );
+          return { ok: true, boegen: geschrieben, text };
+        } catch (fehler) {
+          return { ok: false, boegen: [], text: String(fehler instanceof Error ? fehler.message : fehler) };
+        }
+      })
   );
 
   handle('loeschen', async (_e: never, id: string): Promise<boolean> => {
@@ -212,7 +295,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

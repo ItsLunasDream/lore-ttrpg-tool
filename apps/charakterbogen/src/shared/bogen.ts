@@ -9,6 +9,7 @@
 import { rollExpression, type RandomSource } from '@suite/dice';
 import { ATTRIBUTE, FERTIGKEITEN, modifikator, type Attribut, type Uebung } from './regeln';
 import { bereinigeZauberei, fuellePlaetze, type Zauberei } from './zauber';
+import { bereinigeGegenstaende, type Gegenstand } from './inventar';
 
 export const SCHEMA = 1;
 
@@ -75,13 +76,23 @@ export interface Bogen {
   /** Nur bei Figuren. */
   werte?: Werte;
   muenzen: Muenzen;
-  /** Kommt mit dem Inventar (Schritt 3). Bis dahin leer, aber schon im Format. */
-  gegenstaende: unknown[];
+  gegenstaende: Gegenstand[];
+  /** Ob Muenzen mitgewogen werden (SRD: 50 Muenzen = 1 lb). Aus, bis man es einschaltet. */
+  muenzgewicht: boolean;
+  /** Wer was genommen oder gegeben hat; vor allem fuers Gruppeninventar. Neueste zuerst. */
+  verlauf: VerlaufEintrag[];
   notizen: string;
   /** Zaehlt bei jeder gespeicherten Aenderung hoch. */
   fassung: number;
   geaendert: string;
 }
+
+export interface VerlaufEintrag {
+  zeit: string;
+  text: string;
+}
+
+export const MAX_VERLAUF = 200;
 
 export const LEERE_MUENZEN: Muenzen = { pm: 0, gm: 0, em: 0, sm: 0, km: 0 };
 
@@ -116,6 +127,8 @@ export function neuerBogen(id: string, name: string, art: Bogen['art'] = 'figur'
     ...(art === 'figur' ? { werte: leereWerte() } : {}),
     muenzen: { ...LEERE_MUENZEN },
     gegenstaende: [],
+    muenzgewicht: false,
+    verlauf: [],
     notizen: '',
     fassung: 0,
     geaendert: ''
@@ -273,7 +286,12 @@ export function bereinige(roh: unknown, id: string): Bogen {
       sm: zahl(m.sm, 0, 0),
       km: zahl(m.km, 0, 0)
     },
-    gegenstaende: Array.isArray(r.gegenstaende) ? r.gegenstaende : [],
+    gegenstaende: bereinigeGegenstaende(r.gegenstaende),
+    muenzgewicht: r.muenzgewicht === true,
+    verlauf: (Array.isArray(r.verlauf) ? r.verlauf : []).slice(0, MAX_VERLAUF).flatMap((v) => {
+      const x = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+      return typeof x.text === 'string' && x.text ? [{ zeit: text(x.zeit, 40), text: x.text.slice(0, 300) }] : [];
+    }),
     notizen: text(r.notizen, 100_000),
     fassung: zahl(r.fassung, 0, 0),
     geaendert: text(r.geaendert, 40)

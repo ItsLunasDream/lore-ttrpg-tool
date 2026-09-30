@@ -183,7 +183,9 @@ Obsidian.
   (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
 - **Zauber**: SG und Angriff, Plätze je Grad (auch Paktmagie), Liste aus
   den 339 SRD-Zaubern oder eigenen, Wirken verbraucht einen Platz.
-- Speichert von selbst als Markdown. Inventar und der Raum folgen
+- **Inventar**: Gegenstände mit Gewicht und Wert, Geld in PM/GM/EM/SM/KM,
+  Gruppeninventare, Geben und Aufteilen zwischen Bögen; Gewichte in kg und lb.
+- Speichert von selbst als Markdown. Der Raum folgt
   (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -363,7 +365,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
-| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Schritte 1 und 2 gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar und Rollen im Raum (Schritte 1 bis 3 gebaut) |
 
 ## Lizenz
 

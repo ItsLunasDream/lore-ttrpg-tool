@@ -171,7 +171,9 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
 - **Spells**: save DC and attack, slots per level (Pact Magic too), list
   from the 339 SRD spells or your own; casting spends a slot.
-- Saves itself as Markdown. Inventory and the room come next
+- **Inventory**: items with weight and value, money in PP/GP/EP/SP/CP,
+  party inventories, give and split between sheets; weights in lb and kg.
+- Saves itself as Markdown. The room comes next
   (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
@@ -345,7 +347,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
-| `charakterbogen.md` | Character sheet with inventory and room roles (steps 1 and 2 built) |
+| `charakterbogen.md` | Character sheet with inventory and room roles (steps 1 to 3 built) |
 
 ## License
 

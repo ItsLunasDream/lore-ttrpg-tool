@@ -6,6 +6,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Kachel } from '../shared/ablage';
 import type { Bogen } from '../shared/bogen';
+import type { Uebergabe } from '../shared/uebergabe';
 
 type Antwort = { ok: boolean; text: string };
 
@@ -32,7 +33,11 @@ const api = {
       ipcRenderer.invoke(kanal('speichern'), b, neu) as Promise<Antwort & { bogen: Bogen | null }>,
     loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>,
     weitergeben: (id: string) => ipcRenderer.invoke(kanal('weitergeben'), id) as Promise<Antwort>,
-    einlesen: () => ipcRenderer.invoke(kanal('einlesen')) as Promise<Antwort & { namen: string[] }>
+    einlesen: () => ipcRenderer.invoke(kanal('einlesen')) as Promise<Antwort & { namen: string[] }>,
+    uebergib: (vonId: string, nachId: string, was: Uebergabe) =>
+      ipcRenderer.invoke(kanal('uebergib'), vonId, nachId, was) as Promise<Antwort & { boegen: Bogen[] }>,
+    aufteilen: (vonId: string, anIds: string[]) =>
+      ipcRenderer.invoke(kanal('aufteilen'), vonId, anIds) as Promise<Antwort & { boegen: Bogen[] }>
   },
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);

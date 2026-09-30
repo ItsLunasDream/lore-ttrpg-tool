@@ -160,3 +160,77 @@ test('Zauber: ueberstehen Speichern und Einlesen, Unsinn faellt weg', () => {
   assert.deepEqual(u.werte.zauber.plaetze[0], { grad: 1, max: 9, verbraucht: 9 });
   assert.equal(u.werte.zauber.liste.length, 0);
 });
+
+const geld = (pm = 0, gm = 0, em = 0, sm = 0, km = 0) => ({ pm, gm, em, sm, km });
+
+test('Geld: Wert in Gold nach der Tabelle des SRD', () => {
+  assert.equal(B.inGold(geld(1, 2, 1, 3, 4)), 10 + 2 + 0.5 + 0.3 + 0.04);
+  assert.equal(B.anzahlMuenzen(geld(1, 2, 1, 3, 4)), 11);
+});
+
+test('Geld umrechnen: wenige Muenzen ohne Elektrum, oder alles in Gold', () => {
+  assert.deepEqual(B.rechneUm(geld(0, 0, 3, 25, 130), 'wenige'), geld(0, 5, 0, 3, 0));
+  assert.deepEqual(B.rechneUm(geld(0, 0, 0, 0, 1234), 'wenige'), geld(1, 2, 0, 3, 4));
+  assert.deepEqual(B.rechneUm(geld(2, 0, 0, 0, 5), 'gold'), geld(0, 20, 0, 0, 5));
+});
+
+test('Geld: abziehen nur, wenn es reicht; aufteilen mit Rest', () => {
+  assert.equal(B.zieheAb(geld(0, 5), { gm: 6 }), null);
+  assert.deepEqual(B.zieheAb(geld(0, 5, 0, 2), { gm: 5, sm: 1 }), geld(0, 0, 0, 1));
+  const { jeder, rest } = B.teileAuf(geld(1, 10, 0, 7), 3);
+  assert.deepEqual(jeder, geld(0, 3, 0, 2));
+  assert.deepEqual(rest, geld(1, 1, 0, 1));
+});
+
+test('Summen: unbekannte Werte markieren, Muenzgewicht nur auf Wunsch', () => {
+  const liste = [
+    { ...B.neuerGegenstand('Seil'), anzahl: 2, gewicht: 5, wert: 1 },
+    { ...B.neuerGegenstand('Ring'), gewicht: null, wert: null, eingestimmt: true }
+  ];
+  const s = B.summen(liste, geld(0, 50), false);
+  assert.equal(s.gewicht, 10);
+  assert.equal(s.gewichtUnvollstaendig, true);
+  assert.equal(s.wert, 52);
+  assert.equal(s.eingestimmt, 1);
+  assert.equal(B.summen(liste, geld(0, 50), true).gewicht, 11, '50 Muenzen = 1 lb');
+  // Beide Einheiten, damit am Tisch niemand umrechnen muss.
+  assert.equal(B.gewichtAnzeige(11, 'de'), '5,5 kg (11 lb)');
+  assert.equal(B.gewichtAnzeige(11, 'en'), '11 lb (5.5 kg)');
+  assert.equal(B.gewichtAusEingabe('2,5', 'de'), 5);
+  assert.equal(B.gewichtAusEingabe('', 'de'), null);
+});
+
+test('Uebergabe: Teil eines Stapels, ganzer Stapel, Geld, mit Verlauf', () => {
+  const a = B.neuerBogen('a', 'Mira');
+  const gruppe = B.neuerBogen('g', 'Gruppe', 'gruppe');
+  a.gegenstaende = [{ ...B.neuerGegenstand('Pfeil'), anzahl: 20, ausgeruestet: true }];
+  a.muenzen = geld(0, 10);
+  const teil = B.uebergib(a, gruppe, { art: 'gegenstand', gegenstandId: a.gegenstaende[0].id, anzahl: 5 }, 'de', 'T');
+  assert.equal(teil.von.gegenstaende[0].anzahl, 15);
+  assert.equal(teil.nach.gegenstaende[0].anzahl, 5);
+  assert.notEqual(teil.nach.gegenstaende[0].id, a.gegenstaende[0].id);
+  assert.equal(teil.nach.gegenstaende[0].ausgeruestet, false);
+  assert.deepEqual(teil.nach.verlauf[0], { zeit: 'T', text: '5 × Pfeil von Mira' });
+  const ganz = B.uebergib(teil.von, teil.nach, { art: 'gegenstand', gegenstandId: a.gegenstaende[0].id, anzahl: 15 }, 'de');
+  assert.equal(ganz.von.gegenstaende.length, 0);
+  assert.equal(B.uebergib(a, gruppe, { art: 'gegenstand', gegenstandId: 'x', anzahl: 1 }, 'de'), null);
+  assert.equal(B.uebergib(a, a, { art: 'geld', betrag: { gm: 1 } }, 'de'), null);
+  assert.equal(B.uebergib(a, gruppe, { art: 'geld', betrag: { gm: 11 } }, 'de'), null);
+  const g = B.uebergib(a, gruppe, { art: 'geld', betrag: { gm: 4 } }, 'en');
+  assert.equal(g.von.muenzen.gm, 6);
+  assert.equal(g.nach.muenzen.gm, 4);
+  assert.equal(g.von.verlauf[0].text, '4 GP to Gruppe');
+});
+
+test('Inventar ueberlebt Speichern und Einlesen', () => {
+  const b = B.neuerBogen('i', 'Inventar');
+  b.gegenstaende = [{ ...B.neuerGegenstand('Seil'), gewicht: 5, wert: 1, quelle: { art: 'srd', kennung: 'rope' } }];
+  b.muenzen = geld(1, 2, 3, 4, 5);
+  b.muenzgewicht = true;
+  b.verlauf = [{ zeit: 'T', text: 'x' }];
+  assert.deepEqual(B.leseBogen(B.alsMarkdown(b, 'de'), 'i'), b);
+  const u = B.bereinige({ gegenstaende: [{ name: '' }, { name: 'A', anzahl: -3, gewicht: -1, wert: 'x' }] }, 'u');
+  assert.equal(u.gegenstaende.length, 1);
+  assert.equal(u.gegenstaende[0].anzahl, 1);
+  assert.equal(u.gegenstaende[0].gewicht, null);
+});

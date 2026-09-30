@@ -175,6 +175,40 @@ app.whenReady().then(async () => {
     'die Liste zeigt den Bogen mit TP'
   );
 
+  // --- Inventar, Geld, Gruppeninventar ----------------------------------------
+  const ereignis = (auswahl, art, extra = '') =>
+    js(`(() => { const e = document.querySelector(${JSON.stringify(auswahl)}); if (!e) return false;
+      e.dispatchEvent(new ${art === 'blur' ? 'FocusEvent' : 'KeyboardEvent'}('${art}', { bubbles: true ${extra} })); return true; })()`);
+  await js(`document.querySelector('[data-neu-gruppe]').click(); true`);
+  await warte(800);
+  pruefe(await js(`Boolean(document.querySelector('[data-block="inventar"]')) && !document.querySelector('[data-block="zauber"]')`), 'ein Gruppeninventar hat Inventar, aber keine Werte');
+  await js(tippe('[data-muenze="gm"]', '+25'));
+  await ereignis('[data-muenze="gm"]', 'keydown', ", key: 'Enter'");
+  await warte(200);
+  await js(tippe('[data-muenze="sm"]', '7'));
+  await ereignis('[data-muenze="sm"]', 'keydown', ", key: 'Enter'");
+  await warte(200);
+  pruefe(/25,7 GM/.test(await js(`document.querySelector('[data-geld-summe]').textContent`)), 'Geld: 25 GM + 7 SM = 25,7 GM');
+  await js(`document.querySelector('[data-gegenstand-dazu]').click(); true`);
+  await warte(200);
+  await js(tippe('[data-gegenstand-name]', 'Seil'));
+  await warte(900);
+  // Das Seil an Mira geben.
+  await js(`document.querySelector('[data-geben]').click(); true`);
+  await warte(200);
+  await js(`document.querySelector('[data-geben-ok]').click(); true`);
+  await warte(900);
+  pruefe((await js(`document.querySelectorAll('[data-gegenstand-name]').length`)) === 0, 'Geben nimmt das Seil aus der Gruppe');
+  // Geld aufteilen (nur Mira ist Figur): alles geht an sie.
+  await js(`document.querySelector('[data-aufteilen]').click(); true`);
+  await warte(200);
+  await js(`document.querySelector('[data-aufteilen-ok]').click(); true`);
+  await warte(900);
+  pruefe(/0 GM/.test(await js(`document.querySelector('[data-geld-summe]').textContent`)), 'Aufteilen leert die Gruppenkasse');
+  pruefe(/Seil an Mira/.test(await js(`document.querySelector('.verlauf')?.textContent ?? ''`)), 'der Verlauf nennt die Uebergabe');
+  const mira = fs.readFileSync(path.join(ordner, dateien().find((d) => d.startsWith('neue-figur'))), 'utf8');
+  pruefe(/- Seil/.test(mira) && /25 GM, 7 SM|"gm": 25/.test(mira), 'bei Mira liegen Seil und Geld in der Datei');
+
   pruefe(konsole.length === 0, `keine Fehler in der Konsole (${konsole.join(' | ')})`);
   console.log(fehler.length ? `\n${fehler.length} fehlgeschlagen` : '\nCharakterbogen bestanden.');
   app.exit(fehler.length ? 1 : 0);
