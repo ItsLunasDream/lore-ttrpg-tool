@@ -15,6 +15,8 @@ import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
 import { ZauberBlock } from './ZauberBlock';
 import { InventarBlock } from './InventarBlock';
+import { AngriffeBlock } from './AngriffeBlock';
+import { angriffeAusInventar } from '../shared/waffen';
 import { LiveLeiste, LiveListe, SlHinweis, SlMarke, SlMarkenKontext, markenAus } from './LiveTeile';
 import { alsKachel, type Kachel } from '../shared/ablage';
 import { schritteAus, type Anfrage, type Schritt } from '../shared/live';
@@ -27,6 +29,7 @@ import {
   leseBetrag,
   neuerBogen,
   wendeBetragAn,
+  type Angriff,
   type Bogen,
   type Werte
 } from '../shared/bogen';
@@ -509,7 +512,15 @@ export function App() {
             />
           </label>
 
-          {offen.werte ? <Figurenbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} /> : null}
+          {offen.werte ? (
+            <Figurenbogen
+              werte={offen.werte}
+              aendere={aendereWerte}
+              setMeldung={setMeldung}
+              ausInventar={angriffeAusInventar(offen)}
+              imRaum={live.rolle !== 'aus'}
+            />
+          ) : null}
 
           <section className="block" data-block="inventar">
             <h2>
@@ -563,11 +574,14 @@ export function App() {
 
 interface FigurProps {
   readonly werte: Werte;
+  /** Angriffe aus ausgeruesteten Waffen im Inventar. */
+  readonly ausInventar: readonly Angriff[];
+  readonly imRaum: boolean;
   readonly aendere: (wie: (w: Werte) => Werte, schritt?: Schritt) => void;
   readonly setMeldung: (text: string) => void;
 }
 
-function Figurenbogen({ werte: w, aendere, setMeldung }: FigurProps) {
+function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRaum }: FigurProps) {
   const i = getLanguage() === 'de' ? 0 : 1;
   const stufe = gesamtstufe(w);
   const pb = uebungsbonus(stufe);
@@ -728,7 +742,7 @@ function Figurenbogen({ werte: w, aendere, setMeldung }: FigurProps) {
         <h2>
           {t('angriffe')} <SlMarke feld="angriffe" />
         </h2>
-        <Angriffe w={w} aendere={aendere} />
+        <AngriffeBlock w={w} aendere={aendere} ausInventar={ausInventar} imRaum={imRaum} />
       </section>
 
       <section className="block" data-block="zauber">
@@ -1099,48 +1113,6 @@ function Zustaende({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] })
   );
 }
 
-function Angriffe({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }) {
-  const setze = (n: number, feld: 'name' | 'bonus' | 'schaden' | 'notiz', wert: string) =>
-    aendere((x) => ({ ...x, angriffe: x.angriffe.map((a, m) => (m === n ? { ...a, [feld]: wert } : a)) }));
-  return (
-    <div className="angriffe">
-      {w.angriffe.length ? (
-        <div className="angriffe__kopf leise">
-          <span>{t('angriff.name')}</span>
-          <span>{t('angriff.bonus')}</span>
-          <span>{t('angriff.schaden')}</span>
-          <span>{t('angriff.notiz')}</span>
-          <span />
-        </div>
-      ) : null}
-      {w.angriffe.map((a, n) => (
-        <div className="angriffe__zeile" key={n}>
-          <input aria-label={t('angriff.name')} value={a.name} maxLength={80} onChange={(e) => setze(n, 'name', e.target.value)} />
-          <input aria-label={t('angriff.bonus')} value={a.bonus} maxLength={20} onChange={(e) => setze(n, 'bonus', e.target.value)} />
-          <input aria-label={t('angriff.schaden')} value={a.schaden} maxLength={60} onChange={(e) => setze(n, 'schaden', e.target.value)} />
-          <input aria-label={t('angriff.notiz')} value={a.notiz} maxLength={200} onChange={(e) => setze(n, 'notiz', e.target.value)} />
-          <button
-            type="button"
-            className="knopf--klein"
-            aria-label={t('angriff.weg')}
-            title={t('angriff.weg')}
-            onClick={() => aendere((x) => ({ ...x, angriffe: x.angriffe.filter((_, m) => m !== n) }))}
-          >
-            ×
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        className="knopf--klein"
-        data-angriff-dazu
-        onClick={() => aendere((x) => ({ ...x, angriffe: [...x.angriffe, { name: '', bonus: '', schaden: '', notiz: '' }] }))}
-      >
-        {t('angriff.dazu')}
-      </button>
-    </div>
-  );
-}
 
 // --- Kleine Felder ---------------------------------------------------------
 

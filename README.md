@@ -171,6 +171,9 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
 - **Spells**: save DC and attack, slots per level (Pact Magic too), list
   from the 339 SRD spells or your own; casting spends a slot.
+- **Attacks**: pick an SRD weapon and the sheet works out attack and
+  damage; 🎲 rolls both, in the room to everyone or GM only. Equipped
+  weapons in the inventory show up as attacks by themselves.
 - **Inventory**: items with weight and value, money in PP/GP/EP/SP/CP,
   party inventories, give and split between sheets; weights in lb and kg.
 - **In the room**: bring your sheet in; the host keeps the shared state.

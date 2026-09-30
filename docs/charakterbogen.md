@@ -336,6 +336,37 @@ was man zum Mitlesen braucht.
 - Ablage: eine Datei je Raum im Datenordner der Hülle
   (`userData/raeume/<id>.json`), in der Sicherung der Sammlung enthalten.
 
+## Waffenangriffe
+
+Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
+
+- **SRD-Waffen:** alle 38 Waffen aus der Tabelle „Waffen“ des SRD 5.2
+  (`@suite/srd/ausruestung`), zweisprachig. Beide Sprachen sind dort je
+  für sich alphabetisch sortiert; gepaart wird über Gruppe,
+  Schadenswürfel, Schadensart, Preis und Meisterschaft (ein Test prüft,
+  dass das für alle eindeutig ist). Code: `shared/waffen.ts`.
+- **Rechnung:** Angriff = Attributsmodifikator + Übungsbonus (wenn geübt)
+  + magischer Bonus (+1 bis +3). Nahkampf nimmt Stärke, Fernkampf
+  Geschicklichkeit, „Finesse“ den besseren Wert; das Attribut lässt sich
+  von Hand festlegen. Schaden = Würfel + derselbe Modifikator + Magie;
+  „Vielseitig“ zweihändig mit dem größeren Würfel. Eigenschaften und
+  Meisterschaft stehen unter dem Angriff. Ob die Figur die Meisterschaft
+  nutzen darf, rechnet der Bogen nicht (Klassenmerkmal).
+- **Freie Angriffe** bleiben: ohne Waffe gelten Bonus und Schaden aus den
+  Textfeldern (etwa „+4“ und „2W6+1 Feuer“).
+- **Würfeln:** 🎲 an jedem Angriff würfelt W20 + Bonus und den Schaden;
+  eine natürliche 20 würfelt die Schadenswürfel doppelt. Im Raum wählt man
+  „nicht teilen“, „an alle“ oder „nur an SL“ (an jede SL; wer selbst die
+  einzige SL ist, behält den Wurf verdeckt). Der Wurf geht als Chatzeile
+  mit ⚔ in den Raum.
+- **Inventar:** Ein Gegenstand kann als SRD-Waffe markiert werden (mit
+  Magie und Übung). Ausgerüstet steht er von selbst unter Angriffe; wer
+  ihn ablegt oder weggibt, verliert den Angriff. Diese Angriffe werden
+  jedes Mal gerechnet, nicht gespeichert.
+- Grenzen: kein Vorteil/Nachteil am Angriffsknopf (dafür den Würfel
+  nehmen), keine Zusatzwürfe wie Hinterhältiger Angriff, keine
+  Munitionszählung.
+
 ## Andere Werkzeuge
 
 - **Initiative Tracker**: Spielerfiguren aus den Bögen übernehmen (Name,
@@ -410,6 +441,16 @@ interface Bogen {
 7. Quellen fürs Inventar (Magic Items, SRD, Loot) und Initiative-Anbindung.
 
 Schritt 4 lohnt sich auch allein: Würfel und Initiative profitieren sofort.
+
+## Später
+
+Notiert, noch nicht geplant:
+
+- **Waffen-Creator:** eigene Waffen bauen (Homebrew), mit Schaden,
+  Eigenschaften und Meisterschaft wie die SRD-Waffen, damit der Bogen sie
+  genauso rechnet.
+- **Zauber-Homebrew:** eigene Zauber anlegen, die in der Zauberliste des
+  Bogens neben den SRD-Zaubern stehen.
 
 ## Zu klären
 

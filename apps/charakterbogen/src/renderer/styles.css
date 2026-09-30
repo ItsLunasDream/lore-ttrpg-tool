@@ -503,12 +503,65 @@ textarea {
   justify-items: start;
 }
 
-.angriffe__kopf,
-.angriffe__zeile {
-  display: grid;
-  grid-template-columns: 2fr 80px 1.2fr 2fr 34px;
+.angriffe {
+  justify-items: stretch;
+}
+
+.angriffe__ziel {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-  width: 100%;
+  justify-self: start;
+}
+
+.angriff {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rand);
+}
+
+.angriff__zeile {
+  display: grid;
+  grid-template-columns: 2fr 1.6fr 64px 1.4fr 36px 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.angriff__wert {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.angriff__herkunft {
+  font-size: 0.85em;
+}
+
+.angriff__optionen,
+.gegenstand__waffe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.angriff__optionen label,
+.gegenstand__waffe label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.angriff__info {
+  margin: 0;
+  font-size: 0.85em;
+}
+
+.angriff__ergebnis {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--betont-leise);
 }
 
 .notizen {

@@ -17,7 +17,7 @@ import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
 import type { Anfrage } from '../shared/live';
-import { Liveleitung, type LiveZustand, type RaumLage } from './live';
+import { GASTGEBER, Liveleitung, type LiveZustand, type RaumLage } from './live';
 
 export const WERKZEUG = 'charakterbogen';
 export const ORDNER_NAME = 'boegen';
@@ -34,6 +34,8 @@ export interface BogenEmbedOptions {
     lage(): RaumLage;
     /** Das Gruppeninventar mit dem gespeicherten Raum merken. */
     merkeGruppe?(id: string): void;
+    /** Eine Chatzeile in den Raum (Wuerfe). */
+    chatte?(text: string, an: string | null): boolean;
   };
 }
 
@@ -191,6 +193,19 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
     }
   });
 
+  /** Ein Wurf vom Bogen in den Raum. „sl" geht an jede SL; wer selbst die einzige ist, behaelt ihn. */
+  handle('wurf', (_e: never, text: string, ziel: 'alle' | 'sl') => {
+    const raum = options.raum;
+    const lage = raum?.lage();
+    if (!raum?.chatte || !lage || lage.rolle === 'aus' || !lage.ich) return 'aus';
+    const zeile = String(text).slice(0, 400);
+    if (ziel !== 'sl') return raum.chatte(zeile, null) ? 'ok' : 'fehler';
+    const sl = lage.personen.filter((p) => p.sl).map((p) => p.id);
+    const an = (sl.length ? sl : [GASTGEBER]).filter((id) => id !== lage.ich!.id);
+    if (an.length === 0) return 'selbst';
+    return an.map((id) => raum.chatte!(zeile, id)).every(Boolean) ? 'ok' : 'fehler';
+  });
+
   handle('liste', async (): Promise<Kachel[]> => (await leseAlle(ordner)).map(alsKachel));
 
   handle('lesen', async (_e: never, id: string): Promise<Bogen | null> => {
@@ -342,7 +357,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

@@ -1523,7 +1523,8 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
       ? {
           sende: (inhalt, an) => haken.raum?.sende('charakterbogen', inhalt, an) ?? false,
           lage: () => haken.raum?.anfang('charakterbogen').lage ?? { rolle: 'aus', ich: null, personen: [] },
-          merkeGruppe: (bogenId) => haken.raum?.merkeGruppe?.(bogenId)
+          merkeGruppe: (bogenId) => haken.raum?.merkeGruppe?.(bogenId),
+          chatte: (text, an) => haken.raum?.chatte(text, an) ?? false
         }
       : undefined
   });

@@ -187,6 +187,23 @@ app.whenReady().then(async () => {
   pruefe(letzter(anna, thorinId)?.darfAendern === false, 'aendern darf sie ihn trotzdem nicht');
   if (process.env.BILD) fs.writeFileSync(process.env.BILD, (await sicht.webContents.capturePage()).toPNG());
 
+  // --- Waffenangriff wuerfeln, an alle im Raum ------------------------------------
+  await js(`document.querySelector('[data-angriff-dazu]').click(); true`);
+  await bis(async () => js(`Boolean(document.querySelector('[data-angriff="a-0"] [data-angriff-waffe]'))`));
+  await js(waehle('[data-angriff="a-0"] [data-angriff-waffe]', 'longsword'));
+  await warte(400);
+  await js(`document.querySelector('[data-wuerfeln="a-0"]').click(); true`);
+  pruefe(
+    await bis(() => anna.alle.some((n) => n.typ === 'chat' && /^⚔ Langschwert: \d+/.test(n.text) && n.an === null)),
+    'ein Waffenangriff vom Bogen geht an alle im Raum'
+  );
+  await js(waehle('[data-wurf-ziel]', 'sl'));
+  await js(`document.querySelector('[data-wuerfeln="a-0"]').click(); true`);
+  pruefe(
+    await bis(async () => /verdeckt/.test(await js(`document.querySelector('[data-wurf-ergebnis]')?.textContent ?? ''`))),
+    'nur an SL, und man leitet selbst: der Wurf bleibt verdeckt'
+  );
+
   // --- Schritt 6: Geben im Raum -------------------------------------------------
   // Geld von Thorin an Anna, ueber die Oberflaeche.
   await js(`document.querySelector('[data-geld-geben]').click(); true`);

@@ -23,6 +23,7 @@ import {
 } from '../shared/inventar';
 import { leseBetrag } from '../shared/bogen';
 import { traglastLb } from '../shared/regeln';
+import { WAFFEN } from '../shared/waffen';
 
 interface Props {
   readonly bogen: Bogen;
@@ -247,6 +248,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                 <input
                   type="checkbox"
                   aria-label={t('gegenstand.ausgeruestet')}
+                  data-ausgeruestet={g.id}
                   checked={g.ausgeruestet}
                   onChange={(e) => setG(g.id, (x) => ({ ...x, ausgeruestet: e.target.checked }))}
                 />
@@ -263,7 +265,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                   }}
                 />
               ) : null}
-              <button type="button" className="knopf--klein" aria-label={t('gegenstand.mehr')} onClick={() => setOffen(offen === g.id ? null : g.id)}>
+              <button type="button" className="knopf--klein" data-mehr={g.id} aria-label={t('gegenstand.mehr')} onClick={() => setOffen(offen === g.id ? null : g.id)}>
                 {offen === g.id ? '▴' : '▾'}
               </button>
             </div>
@@ -276,6 +278,61 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                   value={g.beschreibung}
                   onChange={(e) => setG(g.id, (x) => ({ ...x, beschreibung: e.target.value }))}
                 />
+                {figur ? (
+                  <div className="leiste gegenstand__waffe">
+                    <label>
+                      {t('angriff.waffe')}
+                      <select
+                        data-gegenstand-waffe={g.id}
+                        value={g.waffe?.id ?? ''}
+                        onChange={(e) =>
+                          setG(g.id, (x) => {
+                            if (!e.target.value) {
+                              const { waffe: _w, ...rest } = x;
+                              return rest;
+                            }
+                            return { ...x, waffe: { id: e.target.value, magie: x.waffe?.magie ?? 0, geuebt: x.waffe?.geuebt ?? true } };
+                          })
+                        }
+                      >
+                        <option value="">{t('gegenstand.keineWaffe')}</option>
+                        {WAFFEN.slice()
+                          .sort((x, y) => x.name[i].localeCompare(y.name[i]))
+                          .map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.name[i]}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    {g.waffe ? (
+                      <>
+                        <label>
+                          {t('angriff.magie')}
+                          <select
+                            value={g.waffe.magie}
+                            onChange={(e) => setG(g.id, (x) => (x.waffe ? { ...x, waffe: { ...x.waffe, magie: Number(e.target.value) } } : x))}
+                          >
+                            {[0, 1, 2, 3].map((m) => (
+                              <option key={m} value={m}>
+                                {m === 0 ? '—' : `+${m}`}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="schalter">
+                          <input
+                            type="checkbox"
+                            checked={g.waffe.geuebt}
+                            onChange={(e) => setG(g.id, (x) => (x.waffe ? { ...x, waffe: { ...x.waffe, geuebt: e.target.checked } } : x))}
+                          />
+                          {t('angriff.geuebt')}
+                        </label>
+                        <span className="leise">{g.ausgeruestet ? t('gegenstand.waffe.angriff') : t('gegenstand.waffe.ausruesten')}</span>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="leiste">
                   {ziele.length ? (
                     geben && geben.id === g.id ? (

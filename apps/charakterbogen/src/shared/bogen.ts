@@ -27,9 +27,22 @@ export interface Trefferwuerfel {
 
 export interface Angriff {
   name: string;
+  /** Freier Text, wenn keine Waffe gewaehlt ist. */
   bonus: string;
   schaden: string;
   notiz: string;
+  /** SRD-Waffe (Kennung aus `shared/waffen.ts`): dann rechnet der Bogen. */
+  waffe?: string;
+  /** Womit angegriffen wird; „auto" nach den Regeln der Waffe. */
+  attribut?: 'auto' | 'sta' | 'ges';
+  /** Uebung mit der Waffe (Vorgabe: ja). */
+  geuebt?: boolean;
+  /** Magischer Bonus (+1 bis +3) auf Angriff und Schaden. */
+  magie?: number;
+  /** Vielseitige Waffe zweihaendig fuehren. */
+  zweihaendig?: boolean;
+  /** Nur gerechnet, nie gespeichert: der Angriff kommt von diesem Gegenstand. */
+  ausInventar?: string;
 }
 
 export interface Werte {
@@ -343,7 +356,15 @@ export function bereinige(roh: unknown, id: string): Bogen {
     angriffe: Array.isArray(w.angriffe)
       ? w.angriffe.slice(0, 30).map((x) => {
           const xx = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
-          return { name: text(xx.name, 80), bonus: text(xx.bonus, 20), schaden: text(xx.schaden, 60), notiz: text(xx.notiz, 200) };
+          const a: Angriff = { name: text(xx.name, 80), bonus: text(xx.bonus, 20), schaden: text(xx.schaden, 60), notiz: text(xx.notiz, 200) };
+          if (typeof xx.waffe === 'string' && /^[a-z0-9-]{1,40}$/.test(xx.waffe)) {
+            a.waffe = xx.waffe;
+            a.attribut = xx.attribut === 'sta' || xx.attribut === 'ges' ? xx.attribut : 'auto';
+            a.geuebt = xx.geuebt !== false;
+            a.magie = zahl(xx.magie, 0, 0, 3);
+            a.zweihaendig = xx.zweihaendig === true;
+          }
+          return a;
         })
       : [],
     ...(bereinigeZauberei(w.zauber) ? { zauber: bereinigeZauberei(w.zauber) } : {})

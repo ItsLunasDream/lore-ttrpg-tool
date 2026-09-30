@@ -183,6 +183,9 @@ Obsidian.
   (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
 - **Zauber**: SG und Angriff, Plätze je Grad (auch Paktmagie), Liste aus
   den 339 SRD-Zaubern oder eigenen, Wirken verbraucht einen Platz.
+- **Angriffe**: SRD-Waffe wählen, der Bogen rechnet Angriff und Schaden;
+  🎲 würfelt beides, im Raum auf Wunsch an alle oder nur an die SL.
+  Ausgerüstete Waffen im Inventar stehen von selbst unter Angriffe.
 - **Inventar**: Gegenstände mit Gewicht und Wert, Geld in PM/GM/EM/SM/KM,
   Gruppeninventare, Geben und Aufteilen zwischen Bögen; Gewichte in kg und lb.
 - **Im Raum**: den eigenen Bogen hineinbringen; der Gastgeber führt den

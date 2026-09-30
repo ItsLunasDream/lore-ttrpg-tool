@@ -54,6 +54,9 @@ const api = {
       };
     }
   },
+  /** Einen Wurf in den Raum: an alle, oder an jede SL. */
+  wurf: (text: string, ziel: 'alle' | 'sl') =>
+    ipcRenderer.invoke(kanal('wurf'), text, ziel) as Promise<'ok' | 'selbst' | 'aus' | 'fehler'>,
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);
     ipcRenderer.on(kanal('suche:zeigen'), lauscher);

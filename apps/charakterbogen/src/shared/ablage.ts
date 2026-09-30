@@ -16,6 +16,7 @@
 import { bereinige, gesamtstufe, initiativeBonus, type Bogen } from './bogen';
 import { gradVon, nameVon, sortiert } from './zauber';
 import { MUENZARTEN, MUENZ_NAMEN, gewichtAnzeige, inGold, summen } from './inventar';
+import { angriffswerte } from './waffen';
 import {
   ATTRIBUTE,
   ATTRIBUT_NAMEN,
@@ -130,7 +131,12 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
     }
     if (w.angriffe.length) {
       teile.push(`## ${L('Angriffe', 'Attacks')}`, '');
-      for (const a of w.angriffe) teile.push(`- **${a.name}** ${a.bonus} · ${a.schaden}${a.notiz ? ` · ${a.notiz}` : ''}`);
+      for (const a of w.angriffe) {
+        const werte = angriffswerte(w, a, sprache);
+        const bonus = werte.bonus !== null ? mitVorzeichen(werte.bonus) : a.bonus;
+        const name = a.name || (werte.waffe ? werte.waffe.name[i] : '');
+        teile.push(`- **${name}** ${bonus} · ${werte.waffe ? `${werte.schaden} ${werte.art}` : a.schaden}${a.notiz ? ` · ${a.notiz}` : ''}`);
+      }
       teile.push('');
     }
   } else {

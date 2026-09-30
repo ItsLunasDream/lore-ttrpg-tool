@@ -157,6 +157,40 @@ app.whenReady().then(async () => {
   await warte(300);
   pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
 
+  // --- Waffenangriffe ----------------------------------------------------------
+  const waehle = (auswahl, wert) =>
+    js(`(() => { const s = document.querySelector(${JSON.stringify(auswahl)}); if (!s) return false;
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, ${JSON.stringify(wert)});
+      s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await js(`document.querySelector('[data-angriff-dazu]').click(); true`);
+  await warte(200);
+  await waehle('[data-angriff="a-0"] [data-angriff-waffe]', 'rapier');
+  await warte(200);
+  pruefe(
+    (await js(`document.querySelector('[data-angriff="a-0"] [data-angriff-bonus]')?.textContent`)) === '+6' &&
+      /^1d8\+3 Stich/.test(await js(`document.querySelector('[data-angriff="a-0"] [data-angriff-schaden]')?.textContent ?? ''`)),
+    'Rapier mit GES 16 und Stufe 5: +6, 1d8+3 Stich (Finesse)'
+  );
+  await js(`document.querySelector('[data-wuerfeln="a-0"]').click(); true`);
+  await warte(200);
+  pruefe(/^⚔ Rapier: \d+ \(d20 \d+ \+6\)/.test(await js(`document.querySelector('[data-wurf-ergebnis]')?.textContent ?? ''`)), 'Wuerfeln zeigt Angriff und Schaden');
+  // Eine Waffe im Inventar: ausgeruestet wird sie zum Angriff.
+  await js(`document.querySelector('[data-block="inventar"] [data-gegenstand-dazu]').click(); true`);
+  await warte(200);
+  await js(tippe('[data-gegenstand-name]', 'Dolch'));
+  const gid = await js(`document.querySelector('[data-gegenstand-name]').dataset.gegenstandName`);
+  // Ein neuer Gegenstand steht schon aufgeklappt da.
+  await warte(200);
+  await waehle(`[data-gegenstand-waffe="${gid}"]`, 'dagger');
+  await warte(100);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-angriff="inv-${gid}"]'))`)), 'nicht ausgeruestet: kein Angriff');
+  await js(`document.querySelector('[data-ausgeruestet="${gid}"]').click(); true`);
+  await warte(200);
+  pruefe(
+    (await js(`document.querySelector('[data-angriff="inv-${gid}"] [data-angriff-bonus]')?.textContent`)) === '+6',
+    'ausgeruestet: der Dolch steht unter Angriffe, +6'
+  );
+
   // --- Auf der Platte, ohne Speichern-Knopf -----------------------------------
   await warte(1500);
   const inhalt = dateien().length ? fs.readFileSync(path.join(ordner, dateien()[0]), 'utf8') : '';
@@ -165,6 +199,8 @@ app.whenReady().then(async () => {
   pruefe(/Heimlichkeit \+9/.test(inhalt), 'die Lesefassung zeigt die Fertigkeit');
   pruefe(/Magisches Geschoss/.test(inhalt) && /"srd": "magic-missile"/.test(inhalt), 'der Zauber steht in der Datei');
   pruefe(dateien().length === 1, 'Umbenennen legt keine zweite Datei an');
+  pruefe(/\*\*Rapier\*\* \+6 · 1d8\+3 Stich/.test(inhalt), 'die Lesefassung zeigt den Waffenangriff');
+  pruefe(/"waffe": \{\s*"id": "dagger"/.test(inhalt), 'der Dolch ist in der Datei als Waffe vermerkt');
 
   // --- Zurueck zur Liste --------------------------------------------------------
   await js(`[...document.querySelectorAll('button')].find((b) => /Zurück zur Liste/.test(b.textContent)).click(); true`);

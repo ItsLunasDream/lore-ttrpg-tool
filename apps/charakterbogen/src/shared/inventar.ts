@@ -21,6 +21,8 @@ export interface Gegenstand {
   eingestimmt: boolean;
   /** Woher er kam, zum spaeteren Auffrischen. */
   quelle?: { art: 'magicitem' | 'srd' | 'loot'; kennung: string };
+  /** Eine SRD-Waffe: ausgeruestet wird sie von selbst zum Angriff. */
+  waffe?: { id: string; magie: number; geuebt: boolean };
 }
 
 export const MUENZARTEN = ['pm', 'gm', 'em', 'sm', 'km'] as const;
@@ -193,6 +195,11 @@ export function bereinigeGegenstaende(roh: unknown): Gegenstand[] {
       q && ['magicitem', 'srd', 'loot'].includes(q.art as string) && typeof q.kennung === 'string'
         ? { art: q.art as 'magicitem' | 'srd' | 'loot', kennung: q.kennung.slice(0, 120) }
         : undefined;
+    const w = r.waffe && typeof r.waffe === 'object' ? (r.waffe as Record<string, unknown>) : null;
+    const waffe =
+      w && typeof w.id === 'string' && /^[a-z0-9-]{1,40}$/.test(w.id)
+        ? { id: w.id, magie: Math.max(0, Math.min(3, Math.round(Number(w.magie) || 0))), geuebt: w.geuebt !== false }
+        : undefined;
     return [
       {
         id: typeof r.id === 'string' && r.id ? r.id.slice(0, 40) : neueKennung(),
@@ -203,7 +210,8 @@ export function bereinigeGegenstaende(roh: unknown): Gegenstand[] {
         wert: zahlOderNull(r.wert, 100_000_000),
         ausgeruestet: r.ausgeruestet === true,
         eingestimmt: r.eingestimmt === true,
-        ...(quelle ? { quelle } : {})
+        ...(quelle ? { quelle } : {}),
+        ...(waffe ? { waffe } : {})
       }
     ];
   });
