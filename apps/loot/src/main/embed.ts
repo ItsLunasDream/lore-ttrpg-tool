@@ -10,6 +10,7 @@
  * Weitergeben: „Weitergeben" schreibt sie irgendwohin, „Einlesen" holt
  * fremde herein. Die Sicherung der Huelle nimmt den Ordner von selbst mit.
  */
+import { srdTabellen } from '../shared/srd';
 import path from 'node:path';
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { BrowserWindow, dialog, ipcMain } from 'electron';
@@ -89,13 +90,14 @@ async function leseAlle(ordner: string): Promise<Gespeichert[]> {
  * gibt ihren Datenordner; darin hat jedes Werkzeug seinen eigenen.
  */
 export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
-  const alle = await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
+  // Die eingebauten SRD-Tabellen gehoeren dazu (Rueckmeldung: nur Eigene waren zu finden).
+  const alle = [...(await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME))), ...srdTabellen(sprache)];
   return alle.map((t) => ({
     werkzeug: WERKZEUG,
     kennung: t.id,
     name: t.name,
     art: sprache === 'de' ? 'Zufallstabelle' : 'Random table',
-    stichworte: ['random table', 'loot', 'Beute', t.eintraege.map((e) => e.text).join(' ').slice(0, 300)].join(' ')
+    stichworte: [...(t.aliase ?? []), 'random table', 'loot', 'Beute', t.eintraege.map((e) => e.text).join(' ').slice(0, 300)].join(' ')
   }));
 }
 

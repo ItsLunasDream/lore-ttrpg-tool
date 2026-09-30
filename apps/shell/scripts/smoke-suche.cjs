@@ -152,6 +152,11 @@ app.whenReady().then(async () => {
     `die Teilnehmer stehen als Stichworte da (${begegnung?.stichworte})`
   );
 
+  // Die eingebauten SRD-Tabellen des Loot Generators sind dabei, und „Tabelle“
+  // hinter dem Namen findet sie (Rueckmeldung).
+  const srd = (eintraege ?? []).filter((e) => e.werkzeug === 'loot' && e.kennung.startsWith('srd-'));
+  pruefe(srd.length >= 4, `die SRD-Tabellen stehen in der Suche (${srd.map((e) => e.name).join(', ')})`);
+
   // --- Strg+K oeffnet ------------------------------------------------------
   await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })); true`);

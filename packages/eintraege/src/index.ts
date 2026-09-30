@@ -92,9 +92,36 @@ export function schluessel(text: string): string {
     .replace(/ß/g, 'ss');
 }
 
+/**
+ * Weitere Worte fuer die Art eines Eintrags, je Werkzeug und in beiden
+ * Sprachen.
+ *
+ * Wer „Armor Table“ oder „Rüstung Zufallstabelle“ tippt, meint die Tabelle
+ * „Armor“ (Rueckmeldung): das Wort fuer die Art soll mitsuchen, egal in
+ * welcher Sprache die Anzeige steht. Stehen hier, damit nicht jeder Leser
+ * seine Synonyme selbst pflegt.
+ */
+export const ART_WORTE: Readonly<Record<string, string>> = {
+  loot: 'table tables random table random tables loot tabelle tabellen zufallstabelle zufallstabellen beute',
+  monster: 'monster monsters creature creatures kreatur kreaturen statblock',
+  zustaende: 'condition conditions status effect effects zustand zustaende effekt effekte',
+  initiative: 'encounter encounters combat fight begegnung begegnungen kampf initiative participant teilnehmer',
+  encounter: 'encounter encounters begegnung begegnungen',
+  backstory: 'note notes notiz notizen story',
+  nachschlagewerk: 'rule rules regel regeln reference nachschlagewerk srd',
+  magicitems: 'item items magic item magic items gegenstand gegenstaende magischer gegenstand',
+  charakterbogen: 'character sheet sheet charakterbogen bogen figur character',
+  app: 'app tool werkzeug anwendung'
+};
+
 /** Alles, worin gesucht wird. */
 export function heuhaufen(eintrag: Eintrag): string {
-  return schluessel([eintrag.name, eintrag.art, eintrag.stichworte ?? ''].join(' '));
+  return schluessel([eintrag.name, eintrag.art, eintrag.stichworte ?? '', ART_WORTE[eintrag.werkzeug] ?? ''].join(' '));
+}
+
+/** Die Worte, die nur die Art beschreiben (Art selbst und ihre Synonyme). */
+function artWorte(eintrag: Eintrag): Set<string> {
+  return new Set(schluessel(`${eintrag.art} ${ART_WORTE[eintrag.werkzeug] ?? ''}`).split(/[\s·,()]+/).filter(Boolean));
 }
 
 /**
@@ -148,6 +175,20 @@ export function guete(eintrag: Eintrag, suche: string): number {
   const worte = gesucht.split(/\s+/).filter(Boolean);
   const imNamen = worte.filter((wort) => name.includes(wort)).length;
   if (imNamen === worte.length) return 40;
+
+  /*
+   * Name plus Art: „armor table“ findet die Tabelle „Armor“. Was nicht im
+   * Namen steht, muss die Art beschreiben; dann zaehlt der Rest wie eine
+   * Suche nach dem Namen allein, knapp darunter.
+   */
+  const art = artWorte(eintrag);
+  const rest = worte.filter((wort) => !name.includes(wort));
+  const namensteil = worte.filter((wort) => name.includes(wort)).join(' ');
+  if (namensteil && rest.every((wort) => [...art].some((a) => a.startsWith(wort)))) {
+    if (name === namensteil) return 95 + aufschlag;
+    if (name.startsWith(namensteil)) return 70 + aufschlag;
+    return 45 + aufschlag;
+  }
   return 10 + imNamen;
 }
 

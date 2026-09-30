@@ -503,7 +503,23 @@ export function App() {
    * Hand, und die Rueckfrage dafuer gehoert in eine eigene Runde, nicht
    * hier nebenbei.
    */
-  useEffect(() => api.beiSuchtreffer((kennung) => void ladeBegegnung(kennung)), [ladeBegegnung]);
+  useEffect(
+    () =>
+      api.beiSuchtreffer((kennung) => {
+        // Ein Teilnehmer im laufenden Kampf: hinscrollen und kurz hervorheben, nichts laden.
+        if (kennung.startsWith('kampf:')) {
+          const zeile = document.querySelector<HTMLElement>(`[data-zeile="${CSS.escape(kennung.slice(6))}"]`);
+          if (zeile) {
+            zeile.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            zeile.classList.add('ist-gesucht');
+            window.setTimeout(() => zeile.classList.remove('ist-gesucht'), 1600);
+          }
+          return;
+        }
+        void ladeBegegnung(kennung);
+      }),
+    [ladeBegegnung]
+  );
   // Die geladene Begegnung ist der Ort (fuer „Zuletzt geoeffnet" im Teilen).
   // Kein Sprung zurueck: er wuerde einen laufenden Kampf ueberschreiben.
   useEffect(() => api.ort.melde(kampf.begegnungId ?? null), [kampf.begegnungId]);

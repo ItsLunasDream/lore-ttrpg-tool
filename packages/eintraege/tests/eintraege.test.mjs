@@ -126,3 +126,22 @@ test('nichts gefunden ist kein Fehler', () => {
   assert.deepEqual(finde(BESTAND, 'gibtesnicht'), []);
   assert.deepEqual(buendle([]), []);
 });
+
+test('Name plus Art: „armor table“ findet die Tabelle „Armor“ zuerst', () => {
+  const bestand = [
+    E('loot', 't1', 'Armor', 'Random table', ''),
+    E('nachschlagewerk', 'r1', 'Armor', 'Rule', ''),
+    E('magicitems', 'i1', 'Armor of Resistance', 'Armor · Rare', ''),
+    E('loot', 't2', 'Weapons', 'Zufallstabelle', '')
+  ];
+  for (const anfrage of ['armor table', 'Armor Random Table', 'armor tabelle', 'armor zufallstabelle']) {
+    const treffer = finde(bestand, anfrage);
+    assert.equal(treffer[0]?.kennung, 't1', anfrage);
+    assert.ok(!treffer.some((t) => t.kennung === 't2'), `${anfrage}: nur passende Namen`);
+  }
+  // Andere Werkzeuge ebenso: „ghul monster“, „kälte condition“.
+  assert.equal(finde(BESTAND, 'ghul monster')[0].kennung, 'm1');
+  assert.equal(finde(BESTAND, 'kälte condition')[0].kennung, 'z1');
+  // Der Name allein bleibt der beste Treffer.
+  assert.ok(guete(bestand[0], 'armor') > guete(bestand[0], 'armor table'));
+});

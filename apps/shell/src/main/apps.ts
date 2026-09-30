@@ -48,6 +48,7 @@ import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
 import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
 import { wuerfle as wuerfleTabelle } from '@suite/tabellen';
+import { groessenTaste } from '../shared/tasten';
 import { mountCharakterbogen } from '../../../charakterbogen/src/main/embed';
 import { ersetzeStoryBlock } from '../../../charakterbogen/src/shared/ablage';
 import type { KiQuelle } from './ki';
@@ -417,13 +418,7 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
   });
 }
 
-/** Welche Groessentaste gedrueckt ist, oder null. Auch der Ziffernblock zaehlt. */
-export function groessenTaste(key: string, code = ''): 'groesser' | 'kleiner' | 'zurueck' | null {
-  if (key === '+' || key === '=' || code === 'NumpadAdd' || code === 'Equal') return 'groesser';
-  if (key === '-' || code === 'NumpadSubtract' || code === 'Minus') return 'kleiner';
-  if (key === '0' || code === 'Digit0' || code === 'Numpad0') return 'zurueck';
-  return null;
-}
+export { groessenTaste } from '../shared/tasten';
 
 let huellenGroesse: ((stufe: 'groesser' | 'kleiner' | 'zurueck') => void) | null = null;
 

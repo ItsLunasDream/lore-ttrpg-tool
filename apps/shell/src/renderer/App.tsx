@@ -10,6 +10,7 @@
  * etwas, wenn keine daraufliegt: weil das Werkzeug noch nicht einbettbar ist,
  * oder weil es sich nicht oeffnen liess.
  */
+import { groessenTaste } from '../shared/tasten';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   APPS,
@@ -675,14 +676,7 @@ export function App() {
   useEffect(() => {
     const beiTaste = (ereignis: KeyboardEvent) => {
       if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.altKey) {
-        const stufe =
-          ereignis.key === '+' || ereignis.code === 'NumpadAdd' || ereignis.code === 'Equal'
-            ? 'groesser'
-            : ereignis.key === '-' || ereignis.code === 'NumpadSubtract' || ereignis.code === 'Minus'
-              ? 'kleiner'
-              : ereignis.code === 'Digit0' || ereignis.code === 'Numpad0'
-                ? 'zurueck'
-                : null;
+        const stufe = groessenTaste(ereignis.key, ereignis.code);
         if (stufe) {
           ereignis.preventDefault();
           window.shell.einstellungen.groesseTaste(stufe);

@@ -264,15 +264,8 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             ))}
           </ul>
         )}
+        <h3 className="raum__kopf">{t('room.direct')}</h3>
         <div className="raum__reihe">
-          <input
-            className="suche__feld raum__eingabe"
-            type="password"
-            data-beitritt-passwort
-            value={beitrittPasswort}
-            placeholder={t('room.password')}
-            onChange={(e) => setBeitrittPasswort(e.target.value)}
-          />
           <input
             className="suche__feld raum__eingabe"
             data-adresse
@@ -280,6 +273,17 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             placeholder={t('room.address')}
             title={t('room.addressHint', { port: String(RAUM_INTERNETPORT) })}
             onChange={(e) => setAdresse(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && ziel) beitreten(ziel.host, ziel.port);
+            }}
+          />
+          <input
+            className="suche__feld raum__eingabe"
+            type="password"
+            data-beitritt-passwort
+            value={beitrittPasswort}
+            placeholder={t('room.password')}
+            onChange={(e) => setBeitrittPasswort(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && ziel) beitreten(ziel.host, ziel.port);
             }}
