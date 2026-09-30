@@ -124,6 +124,24 @@ app.whenReady().then(async()=>{
   const treffer = dateien.map(p=>fs.readFileSync(p,'utf8')).filter(t=>t.includes('Krug'));
   pruefe(treffer.length===1, `die Notiz liegt auf der Platte (${dateien.length} Dateien, ${treffer.length} mit dem eigenen Satz)`);
   if (treffer[0]) console.log('\n--- Die Notiz ---\n' + treffer[0].slice(0,600));
+  pruefe(/species: \S/.test(treffer[0] ?? ''), 'die Spezies steht im Steckbrieffeld');
+
+  // --- Nochmal senden: kein Duplikat, dafuer „aktualisieren" ---------------
+  await njs(`[...document.querySelectorAll('button')].find(b=>/Angelegt|Created/.test(b.textContent)).click(); true`);
+  await warte(900);
+  pruefe(
+    await njs("Boolean(document.querySelector('[data-aktualisieren]'))"),
+    'ein zweites Senden bietet Aktualisieren an'
+  );
+  await njs("document.querySelector('[data-aktualisieren]').click(); true");
+  await warte(900);
+  const nachher = [];
+  const suche2 = (ordner) => { for (const e of fs.readdirSync(ordner,{withFileTypes:true})) {
+    const p = path.join(ordner, e.name);
+    if (e.isDirectory()) { if (e.name !== 'history') suche2(p); } else if (e.name.endsWith('.md')) nachher.push(p); } };
+  suche2(path.join(vault, 'campaigns'));
+  const mitKrug = nachher.map(p=>fs.readFileSync(p,'utf8')).filter(t=>t.includes('Krug'));
+  pruefe(mitKrug.length===1, `Aktualisieren legt nichts doppelt an (${mitKrug.length})`);
 
   // --- Und sieht man sie auch? --------------------------------------------
   /*

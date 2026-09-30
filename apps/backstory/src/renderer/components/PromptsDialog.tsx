@@ -6,6 +6,8 @@ import { AssistantThread, kiAbgeschaltet, type AiStatus } from './AssistantThrea
 
 interface Props {
   categories: PromptCategory[] | null;
+  /** Typ der offenen Notiz. Passende Kategorien stehen oben und sind vorgewaehlt. */
+  noteType?: string;
   aiStatus: AiStatus | null;
   aiSendLinked: boolean;
   onToggleAiSendLinked: (value: boolean) => void;
@@ -31,7 +33,12 @@ function pickRandom(options: string[], count: number): string[] {
  * darunter die vollstaendige Liste zum Stoebern.
  */
 export function PromptsDialog(props: Props) {
-  const { categories, aiStatus, onInsert, onEditFile, onClose } = props;
+  const { aiStatus, onInsert, onEditFile, onClose, noteType } = props;
+  const categories = useMemo(() => {
+    if (!props.categories || !noteType) return props.categories;
+    const passt = (k: PromptCategory) => k.types?.includes(noteType) ?? false;
+    return [...props.categories.filter(passt), ...props.categories.filter((k) => !passt(k))];
+  }, [props.categories, noteType]);
   const t = useT();
   const [tab, setTab] = useState<'prompts' | 'ai'>('prompts');
   // Ist die KI aus, gibt es den Reiter nicht — dann bleiben die Vorschlaege,

@@ -45,6 +45,7 @@ import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
 import { mountLoot } from '../../../loot/src/main/embed';
+import { mountCharakterbogen } from '../../../charakterbogen/src/main/embed';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
@@ -157,7 +158,11 @@ export interface MontierteApp {
 export interface RaumLage {
   readonly rolle: 'aus' | 'gastgeber' | 'gast';
   readonly ich: { readonly id: string; readonly name: string } | null;
-  readonly personen: readonly { readonly id: string; readonly name: string }[];
+  readonly personen: readonly { readonly id: string; readonly name: string; readonly sl?: boolean }[];
+  /** Nur beim Gastgeber eines gespeicherten Raums: seine Einstellungen. */
+  readonly einstellungen?: { readonly gruppeNehmen: boolean; readonly slMarkieren: boolean };
+  /** Nur beim Gastgeber eines gespeicherten Raums: die Kennung des Gruppeninventars. */
+  readonly gruppeninventar?: string | null;
 }
 
 /** Was die Huelle jeder Anwendung beim Montieren mitgibt. */
@@ -225,6 +230,8 @@ export interface MontageHaken {
     sende(werkzeug: string, inhalt: string, an: string | null): boolean;
     /** Eine gewoehnliche Chatzeile, etwa ein Wurf aus dem Wuerfel. */
     chatte(text: string, an: string | null): boolean;
+    /** Das Gruppeninventar mit dem gespeicherten Raum merken (Charakterbogen). */
+    merkeGruppe?(id: string): void;
     anfang(werkzeug: string): {
       lage: RaumLage;
       nachrichten: readonly { von: { id: string; name: string }; inhalt: string }[];
@@ -510,16 +517,28 @@ export async function leseEigeneZustaende(): Promise<{ name: string; text: strin
   return heraus.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Gibt es in der Kampagne schon eine Notiz mit diesem Titel (oder Alias)? */
-async function titelVergeben(kampagneId: string, titel: string): Promise<boolean> {
-  if (!backstoryEmbed) return false;
+/** Die Notiz mit diesem Titel oder Alias, oder null. */
+async function findeNotiz(kampagneId: string, titel: string) {
+  if (!backstoryEmbed) return null;
   const gesucht = titel.trim().toLowerCase();
   const notizen = await backstoryEmbed.vault.listNotes(kampagneId);
-  return notizen.some(
-    (notiz) =>
-      notiz.title.trim().toLowerCase() === gesucht ||
-      notiz.aliases.some((alias) => alias.trim().toLowerCase() === gesucht)
+  return (
+    notizen.find(
+      (notiz) =>
+        notiz.title.trim().toLowerCase() === gesucht ||
+        notiz.aliases.some((alias) => alias.trim().toLowerCase() === gesucht)
+    ) ?? null
   );
+}
+
+/** Nur Werte fuer Felder, die der Notiztyp wirklich hat, und nur Textfelder. */
+function nurBekannteFelder(
+  def: { fields: readonly { key: string; type: string }[] } | undefined,
+  felder: Readonly<Record<string, string>> | undefined
+): Record<string, string> {
+  if (!def || !felder) return {};
+  const erlaubt = new Set(def.fields.filter((f) => f.type === 'text' || f.type === 'textarea').map((f) => f.key));
+  return Object.fromEntries(Object.entries(felder).filter(([key, wert]) => erlaubt.has(key) && wert.trim()));
 }
 
 const OHNE_KAMPAGNE = () =>
@@ -539,6 +558,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
   if (id === 'magicitems') return montiereMagicItems(id, haken);
   if (id === 'loot') return montiereLoot(id, haken);
+  if (id === 'charakterbogen') return montiereCharakterbogen(id, haken);
   return null;
 }
 
@@ -554,7 +574,7 @@ async function montiereDice(id: string, haken: MontageHaken): Promise<MontierteA
       ? {
           lage: () => {
             const lage = haken.raum!.anfang('dice').lage;
-            return { rolle: lage.rolle, ichId: lage.ich?.id ?? null };
+            return { rolle: lage.rolle, ichId: lage.ich?.id ?? null, slIds: lage.personen.filter((p) => p.sl).map((p) => p.id) };
           },
           chatte: (text, an) => haken.raum!.chatte(text, an)
         }
@@ -700,7 +720,12 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
     // und soll auch keine eigene Einstellung bekommen.
     kiQuelle: haken.kiQuelle,
     kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
-    anlegen: async (titel: string, markdown: string, kampagneId?: string | null) => {
+    anlegen: async (
+      titel: string,
+      markdown: string,
+      kampagneId?: string | null,
+      optionen?: { ersetzen?: boolean; felder?: Readonly<Record<string, string>> }
+    ) => {
       if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
@@ -728,20 +753,37 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
       const kampagne = waehleKampagne(kampagnen, kampagneId);
 
       // Zweimal „Senden" legte zwei Notizen gleichen Namens an (Testbericht).
-      // Eine vorhandene Figur wird nicht ueberschrieben und nicht verdoppelt.
-      if (await titelVergeben(kampagne.id, titel)) {
+      // Eine vorhandene Figur wird nicht verdoppelt; auf ausdruecklichen
+      // Wunsch wird sie aktualisiert. Die alte Fassung bleibt im Verlauf.
+      const vorhandene = await findeNotiz(kampagne.id, titel);
+      if (vorhandene && !optionen?.ersetzen) {
         return {
           ok: false,
+          vorhanden: true,
           text: zweisprachig(
             `„${titel}" gibt es in ${kampagne.name} schon.`,
             `"${titel}" already exists in ${kampagne.name}.`
           )
         };
       }
-      const typ = passenderNotiztyp(kampagne, ['character', 'note']);
       try {
-        const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
-        await backstoryEmbed.vault.saveNote(kampagne.id, { ...notiz, body: markdown });
+        if (vorhandene) {
+          const def = kampagne.noteTypes.find((d) => d.id === vorhandene.type);
+          await backstoryEmbed.vault.saveNote(kampagne.id, {
+            ...vorhandene,
+            body: markdown,
+            fields: { ...vorhandene.fields, ...nurBekannteFelder(def, optionen?.felder) }
+          });
+        } else {
+          const typ = passenderNotiztyp(kampagne, ['character', 'note']);
+          const def = kampagne.noteTypes.find((d) => d.id === typ);
+          const notiz = await backstoryEmbed.vault.createNote(kampagne.id, typ, titel);
+          await backstoryEmbed.vault.saveNote(kampagne.id, {
+            ...notiz,
+            body: markdown,
+            fields: { ...notiz.fields, ...nurBekannteFelder(def, optionen?.felder) }
+          });
+        }
       } catch (fehler) {
         return { ok: false, text: fehlerText(fehler) };
       }
@@ -840,7 +882,7 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
             ?.slice(0, 90) ?? ''
         }));
     },
-    anlegen: async (notizen, kampagneId?: string | null) => {
+    anlegen: async (notizen, kampagneId?: string | null, optionen?: { ersetzen?: boolean }) => {
       if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
       if (!backstoryEmbed) {
         return {
@@ -879,10 +921,19 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
        */
       let angelegt = 0;
       let uebersprungen = 0;
+      let aktualisiert = 0;
       try {
         for (const notiz of notizen) {
-          if (await titelVergeben(kampagne.id, notiz.titel)) {
-            uebersprungen += 1;
+          const vorhandene = await findeNotiz(kampagne.id, notiz.titel);
+          if (vorhandene) {
+            // Auf ausdruecklichen Wunsch den Text ersetzen; Steckbrief,
+            // Aliasse und Beziehungen bleiben, die alte Fassung im Verlauf.
+            if (optionen?.ersetzen) {
+              await backstoryEmbed.vault.saveNote(kampagne.id, { ...vorhandene, body: notiz.markdown });
+              aktualisiert += 1;
+            } else {
+              uebersprungen += 1;
+            }
             continue;
           }
           const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
@@ -898,14 +949,15 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
           angelegt
         };
       }
-      if (angelegt === 0 && uebersprungen > 0) {
+      if (angelegt === 0 && aktualisiert === 0 && uebersprungen > 0) {
         return {
           ok: false,
           text: zweisprachig(
             `Alles davon steht schon in ${kampagne.name}; nichts doppelt angelegt.`,
             `All of it is already in ${kampagne.name}; nothing was duplicated.`
           ),
-          angelegt: 0
+          angelegt: 0,
+          vorhanden: uebersprungen
         };
       }
 
@@ -924,8 +976,14 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
                 `${kampagne.name} (${uebersprungen} schon vorhanden, übersprungen)`,
                 `${kampagne.name} (${uebersprungen} already there, skipped)`
               )
-            : kampagne.name,
-        angelegt
+            : aktualisiert > 0
+              ? zweisprachig(
+                  `${kampagne.name} (${aktualisiert} aktualisiert)`,
+                  `${kampagne.name} (${aktualisiert} updated)`
+                )
+              : kampagne.name,
+        angelegt,
+        vorhanden: uebersprungen
       };
     }
   });
@@ -1450,5 +1508,56 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+/** Der Charakterbogen. Gebaut wie der Loot Generator. */
+async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountCharakterbogen({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.CHARAKTERBOGEN_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          sende: (inhalt, an) => haken.raum?.sende('charakterbogen', inhalt, an) ?? false,
+          lage: () => haken.raum?.anfang('charakterbogen').lage ?? { rolle: 'aus', ich: null, personen: [] },
+          merkeGruppe: (bogenId) => haken.raum?.merkeGruppe?.(bogenId),
+          chatte: (text, an) => haken.raum?.chatte(text, an) ?? false
+        }
+      : undefined
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    // Boegen im Raum: Nachrichten und Lage.
+    raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
   };
 }

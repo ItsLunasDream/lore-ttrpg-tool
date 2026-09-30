@@ -10,6 +10,7 @@ export const texte = {
   'knopf.festhalten': ['Festhalten', 'Lock'],
   'knopf.losgeben': ['Freigeben', 'Unlock'],
   'knopf.export': ['In den Story Creator', 'Send to Story Creator'],
+  'knopf.aktualisieren': ['Dort aktualisieren', 'Update it there'],
   'ziel.kampagne': ['Kampagne:', 'Campaign:'],
   'ziel.hinweis': ['In diese Kampagne des Story Creators kommt die Figur.', 'The Story Creator campaign the character goes into.'],
   'knopf.exportLaeuft': ['Wird angelegt …', 'Creating …'],

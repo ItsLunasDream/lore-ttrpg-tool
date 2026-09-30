@@ -152,6 +152,16 @@ export const LootIcon = (p: IconProps) => (
   </Rahmen>
 );
 
+/** Charakterbogen: ein Blatt mit Herz fuer die Trefferpunkte und zwei Zeilen. */
+export const CharakterbogenIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M12,7 L32,7 L37,12 L37,41 L12,41 Z" />
+    <path d="M24.5,24 C20,20 17,18 17,15.5 C17,13.5 18.6,12 20.5,12 C22.2,12 23.6,13 24.5,14.5 C25.4,13 26.8,12 28.5,12 C30.4,12 32,13.5 32,15.5 C32,18 29,20 24.5,24 Z" />
+    <path d="M17,30 L32,30" />
+    <path d="M17,35 L28,35" />
+  </Rahmen>
+);
+
 /** Die Marke der Sammlung: ein Sechseck mit Stern. */
 export const SuiteIcon = (p: IconProps) => (
   <Rahmen {...p}>
@@ -263,7 +273,8 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   encounter: EncounterIcon,
   nachschlagewerk: NachschlagewerkIcon,
   magicitems: MagicItemsIcon,
-  loot: LootIcon
+  loot: LootIcon,
+  charakterbogen: CharakterbogenIcon
 };
 
 /**

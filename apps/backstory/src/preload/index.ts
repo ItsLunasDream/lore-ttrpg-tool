@@ -182,6 +182,8 @@ const api = {
       };
     }
   },
+  /** Ausschneiden, Kopieren, Einfuegen am fokussierten Feld, wie mit der Tastatur. */
+  zwischenablage: (art: 'cut' | 'copy' | 'paste') => invoke<void>('edit:clipboard', art),
   /** Das Woerterbuch der Sitzung. Jede Antwort ist die vollstaendige Liste. */
   woerterbuch: {
     liste: () => invoke<string[]>('spell:list'),
@@ -242,7 +244,8 @@ const api = {
     save: (campaignId: string, note: Note) => invoke<Note>('note:save', campaignId, note),
     rename: (campaignId: string, noteId: string, title: string) =>
       invoke<{ note: Note; rewritten: number }>('note:rename', campaignId, noteId, title),
-    remove: (campaignId: string, noteId: string) => invoke<void>('note:delete', campaignId, noteId)
+    remove: (campaignId: string, noteId: string) => invoke<void>('note:delete', campaignId, noteId),
+    restore: (campaignId: string, noteId: string) => invoke<Note>('note:restore', campaignId, noteId)
   },
   history: {
     list: (campaignId: string, noteId: string) => invoke<NoteVersion[]>('history:list', campaignId, noteId),

@@ -5,6 +5,7 @@ import type { IpcMainInvokeEvent } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
+import { setzePruefsprache } from './rechtschreibung';
 import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
 import { referencedAssets, renderNoteMarkdown, aliasKopf, toFileName } from './markdownExport';
 import { exportNotesToPdf } from './pdfExport';
@@ -117,6 +118,7 @@ export function registerIpc(context: IpcContext): void {
   handleWithEvent<[Partial<AppSettings>], AppSettings>('settings:update', async (event, patch) => {
     const vorher = context.settings.language;
     const kiVorher = context.settings.aiProvider;
+    const pruefungVorher = context.settings.spellcheck;
     const next: AppSettings = { ...context.settings, ...patch, vaultRoot: context.settings.vaultRoot };
     context.settings = await writeSettings(context.settingsFile, next);
     vault.setHistoryOptions({
@@ -124,6 +126,9 @@ export function registerIpc(context: IpcContext): void {
       maxVersions: context.settings.historyMaxVersions
     });
     if (context.settings.language !== vorher) context.onLanguageChange?.(context.settings.language);
+    if (context.settings.spellcheck !== pruefungVorher && !event.sender.isDestroyed()) {
+      setzePruefsprache(event.sender.session, context.settings.language, context.settings.spellcheck);
+    }
     /*
      * Ein Wechsel des Anbieters entscheidet, ob es den Assistenten ueberhaupt
      * gibt. Aus dem eigenen Einstellungsdialog holt die Oberflaeche den
@@ -231,6 +236,7 @@ export function registerIpc(context: IpcContext): void {
     vault.renameNote(campaignId, noteId, title)
   );
   handle<[string, string], void>('note:delete', (campaignId, noteId) => vault.deleteNote(campaignId, noteId));
+  handle<[string, string], Note>('note:restore', (campaignId, noteId) => vault.restoreNote(campaignId, noteId));
 
   handle<[string, string], NoteVersion[]>('history:list', (campaignId, noteId) =>
     vault.listVersions(campaignId, noteId)
@@ -361,6 +367,17 @@ export function registerIpc(context: IpcContext): void {
    * laeuft jede Anwendung in ihrer eigenen (`persist:<id>`), und das
    * Woerterbuch haengt an ihr.
    */
+  /**
+   * Ausschneiden, Kopieren, Einfuegen aus dem eigenen Rechtsklickmenue.
+   * Ueber den Hauptprozess, damit es genau wie Strg+X/C/V wirkt: dieselben
+   * Einfuege-Wege im Editor, auch fuer Bilder aus der Zwischenablage.
+   */
+  handleWithEvent<['cut' | 'copy' | 'paste'], void>('edit:clipboard', async (event, art) => {
+    if (art === 'cut') event.sender.cut();
+    else if (art === 'copy') event.sender.copy();
+    else if (art === 'paste') event.sender.paste();
+  });
+
   handleWithEvent<[string], string[]>('spell:add', async (event, wort) => {
     const sitzung = event.sender.session;
     sitzung.addWordToSpellCheckerDictionary(wort);

@@ -116,6 +116,8 @@ export const STATUS_KEY: Record<AppStatus, MessageKey> = {
 export const APPS: readonly AppEntry[] = [
   { id: 'backstory', status: 'bereit', rolle: 'alle', einstellungen: true },
   { id: 'dice', status: 'bereit', rolle: 'alle' },
+  // Bei „alle": den eigenen Bogen fuehren die Spielenden, die SL alle.
+  { id: 'charakterbogen', status: 'bereit', rolle: 'alle' },
   // Bei „alle", nicht bei „leitung": ein Nachschlagewerk brauchen Spielende
   // genauso, und am Tisch schlaegt meist jemand anderes nach als der, der
   // leitet.

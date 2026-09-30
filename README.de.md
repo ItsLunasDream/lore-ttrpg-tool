@@ -14,6 +14,7 @@ KI-Anbindung, die man selbst einrichtet.
   Abzug.
 - **Story Creator**: Figuren, Orte, Beziehungen als Markdown-Notizen mit
   Wiki-Links.
+- **Charakterbogen**: kleiner Bogen für D&D 5.5e, der mitrechnet.
 - **NPC Creator**: Randfiguren aus Tabellen oder per KI.
 - **Inspirationshilfe**: Gerüst für eine neue Kampagne (Aufhänger,
   Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl).
@@ -143,7 +144,8 @@ Obsidian.
 | Verlinken, neu aus Link, Markiertes verlinken | `[[` tippen |
 | Link öffnen | Strg+Klick |
 | Suchen und ersetzen | Strg+F, F3 / Umschalt+F3 |
-| Umbenennen, löschen | Rechtsklick in der Notizliste |
+| Umbenennen, löschen (mit Rückgängig) | Rechtsklick in der Notizliste |
+| Ausschneiden, Kopieren, Einfügen, Rechtschreibvorschläge | Rechtsklick im Text |
 | Zoom (20–500 %) | Strg+Mausrad, Strg+Plus/Minus/0 |
 | Sichern, einlesen, Notiztypen | Menü „Kampagne" |
 | Bild | Knopf ▣ oder hineinziehen |
@@ -158,11 +160,41 @@ Obsidian.
 - **Bilder** werden nach `assets/` kopiert.
 - **Verlauf** sichert höchstens alle zwei Minuten; Wiederherstellen ist
   umkehrbar.
+- **Gelöschte Notizen** liegen im Papierkorb (`trash/` im Speicherort, die
+  letzten 20 je Kampagne); „Rückgängig“ im Hinweis holt sie samt
+  Beziehungen zurück.
+- **Rechtschreibung** prüft wahlweise wie die Oberfläche, fest Deutsch oder
+  Englisch, oder gar nicht (Einstellungen).
+- **Schreibhilfe** fügt an der Schreibmarke ein; Vorschläge zum Notiztyp
+  (Figur, Ort, Fraktion, Ereignis) stehen oben.
 - **Der Assistent** schreibt nie in den Text.
 - **Das Markdown bleibt erhalten**: Kommentare, Linktitel, `<spitze>` Links
   und enge Listen kommen so heraus, wie sie hineingingen.
 - **Export**: PDF mit Inhaltsverzeichnis, Graph und Sprungzielen; Markdown
   mit Alias-Kopf, wenn der Dateiname vom Titel abweicht.
+
+## Charakterbogen
+
+- Kleiner Bogen für D&D 5.5e (2024): Attribute, Rettungswürfe, 18
+  Fertigkeiten mit Übung und Expertise, RK, Initiative, TP, Trefferwürfel,
+  Zustände, Erschöpfung, Heldische Inspiration, Angriffe, Notizen.
+- Rechnet Modifikatoren, Übungsbonus, Fertigkeiten und passive Wahrnehmung.
+- **Schaden / Heilung**: `-7` oder `7` zieht ab, `+5` heilt, Würfel gehen
+  (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
+- **Zauber**: SG und Angriff, Plätze je Grad (auch Paktmagie), Liste aus
+  den 339 SRD-Zaubern oder eigenen, Wirken verbraucht einen Platz.
+- **Angriffe**: SRD-Waffe wählen, der Bogen rechnet Angriff und Schaden;
+  🎲 würfelt beides, im Raum auf Wunsch an alle oder nur an die SL.
+  Ausgerüstete Waffen im Inventar stehen von selbst unter Angriffe.
+- **Inventar**: Gegenstände mit Gewicht und Wert, Geld in PM/GM/EM/SM/KM,
+  Gruppeninventare, Geben und Aufteilen zwischen Bögen; Gewichte in kg und lb.
+- **Im Raum**: den eigenen Bogen hineinbringen; der Gastgeber führt den
+  gemeinsamen Stand. Je Bogen sehen die anderen nichts, eine Übersicht oder
+  alles. Die SL kann jeden Bogen ändern; das wird bei der Person, der er
+  gehört, markiert, außer die SL schaltet auf „Still ändern“. Es kann
+  mehrere SL geben, die Rolle lässt sich weitergeben (Rechtsklick auf einen
+  Namen unter Teilen → Raum).
+- Speichert von selbst als Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
 
@@ -186,7 +218,9 @@ Obsidian.
   Feld neu würfeln, festhalten oder überschreiben.
 - Namensklang: feminin, maskulin, neutral.
 - Mit KI schlägt das Modell frei vor, ohne gelten die Tabellen.
-- **Export** legt eine Notiz in der offenen Kampagne an, ohne Doppel.
+- **Export** legt eine Notiz in der gewählten Kampagne an, mit der Spezies
+  im Steckbrief. Gibt es sie schon, bietet der Knopf „Dort aktualisieren“ an.
+- Die **Merkliste** bleibt über einen Neustart erhalten.
 
 ## Inspirationshilfe
 
@@ -199,7 +233,8 @@ Obsidian.
 - Das Figurengeflecht als Bild, per Klick über den ganzen Schirm.
 - „Karte anlegen" öffnet den Karteneditor mit den Notizen zum Ort als Pins.
 - „Alles von der KI" entwirft alle sechs Bausteine aufeinander bezogen.
-- **Übernehmen** legt Notizen und eine Übersicht in der offenen Kampagne an.
+- **Übernehmen** legt Notizen und eine Übersicht in der gewählten Kampagne
+  an. Vorhandene werden übersprungen oder auf Wunsch aktualisiert.
 
 Konzept: `docs/inspirationshilfe.md`.
 
@@ -333,10 +368,12 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `statuseffekte.md` | Status Effect Creator |
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Teilen und Räume |
+| `raum-online.md` | Anleitung: Raum übers Internet (Portfreigabe, IPv6) |
 | `magicitems.md` | Magic Item Creator |
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |
+| `charakterbogen.md` | Charakterbogen mit Inventar, Rollen und Bögen live im Raum (Schritte 1 bis 6 gebaut) |
 
 ## Lizenz
 

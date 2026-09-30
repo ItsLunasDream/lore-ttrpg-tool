@@ -13,6 +13,7 @@ connection you set up yourself.
 - **Dice**: d4 to d100 plus a custom die, flat or 3D, subtraction included.
 - **Story Creator**: characters, places, relationships as Markdown notes with
   wiki links.
+- **Character Sheet**: a small D&D 5.5e sheet that does the maths.
 - **NPC Creator**: background characters from tables or AI.
 - **Inspiration**: scaffold for a new campaign (hook, factions, characters,
   places, connections, timeline).
@@ -133,7 +134,8 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 | Link, create from a link, link selected text | type `[[` |
 | Open a link | Ctrl+click |
 | Find and replace | Ctrl+F, F3 / Shift+F3 |
-| Rename, delete | right-click in the note list |
+| Rename, delete (with undo) | right-click in the note list |
+| Cut, copy, paste, spelling suggestions | right-click in the text |
 | Zoom (20–500 %) | Ctrl+wheel, Ctrl+Plus/Minus/0 |
 | Backup, restore, note types | "Campaign" menu |
 | Image | ▣ button or drag in |
@@ -146,11 +148,40 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - **Relationships** are directed and stored per note pair.
 - **Images** are copied into `assets/`.
 - **History** saves at most every two minutes; restoring can be undone.
+- **Deleted notes** go to a trash folder (`trash/` in the storage folder, the
+  last 20 per campaign); "Undo" in the notice brings them back with their
+  relationships.
+- **Spelling** checks like the interface, fixed German or English, or not at
+  all (settings).
+- **Writing prompts** insert at the cursor; prompts for the note type
+  (character, place, faction, event) come first.
 - **The assistant** never writes into your text.
 - **The Markdown survives**: comments, link titles, `<angle>` links and tight
   lists come out as they went in.
 - **Export**: PDF with table of contents, graph and jump links; Markdown with
   an alias header where the file name differs from the title.
+
+## Character Sheet
+
+- A small sheet for D&D 5.5e (2024): abilities, saves, 18 skills with
+  proficiency and expertise, AC, initiative, HP, Hit Point Dice, conditions,
+  exhaustion, Heroic Inspiration, attacks, notes.
+- Works out modifiers, proficiency bonus, skills and passive Perception.
+- **Damage / Healing**: `-7` or `7` subtracts, `+5` heals, dice work
+  (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
+- **Spells**: save DC and attack, slots per level (Pact Magic too), list
+  from the 339 SRD spells or your own; casting spends a slot.
+- **Attacks**: pick an SRD weapon and the sheet works out attack and
+  damage; 🎲 rolls both, in the room to everyone or GM only. Equipped
+  weapons in the inventory show up as attacks by themselves.
+- **Inventory**: items with weight and value, money in PP/GP/EP/SP/CP,
+  party inventories, give and split between sheets; weights in lb and kg.
+- **In the room**: bring your sheet in; the host keeps the shared state.
+  Each sheet shows others nothing, an overview or everything. GMs can
+  change any sheet; their changes are marked for the owner unless the GM
+  switches to "change quietly". Several GMs are possible, the role can be
+  handed on (right-click a name under Share → Room).
+- Saves itself as Markdown (`docs/charakterbogen.md`).
 
 ## Initiative Tracker
 
@@ -173,7 +204,9 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   rerolled, locked or edited.
 - Sound of the name: feminine, masculine, neutral.
 - With AI the model suggests freely; without, the tables apply.
-- **Export** creates a note in the open Story Creator campaign; no duplicates.
+- **Export** creates a note in the chosen campaign, species filled into the
+  profile. If it already exists, the button offers "Update it there".
+- The **shortlist** survives a restart.
 
 ## Inspiration
 
@@ -184,7 +217,8 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - The web of characters as a picture, full screen on click.
 - "Start a map" opens the Map Editor with the place's notes as pins.
 - "All from AI" drafts all six blocks in one consistent answer.
-- **Taking it over** creates notes plus an overview in the open campaign.
+- **Taking it over** creates notes plus an overview in the chosen campaign.
+  Existing ones are skipped or, on request, updated.
 
 Concept: `docs/inspirationshilfe.md` (German).
 
@@ -315,10 +349,12 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `statuseffekte.md` | Status Effect Creator |
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Sharing and rooms |
+| `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
 | `magicitems.md` | Magic Item Creator |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
+| `charakterbogen.md` | Character sheet with inventory, room roles and live sheets (steps 1 to 6 built) |
 
 ## License
 

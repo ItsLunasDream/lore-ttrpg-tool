@@ -19,7 +19,7 @@
  * Ohne Electron: nur node:net, node:dgram, node:crypto. So laesst sich der
  * ganze Ablauf mit zwei Diensten in einem Prozess pruefen.
  */
-import { randomBytes } from 'node:crypto';
+import { createPublicKey, randomBytes, sign as unterschreibe, verify as pruefeUnterschrift, type KeyObject } from 'node:crypto';
 import { createSocket, type Socket as UdpSocket } from 'node:dgram';
 import { createServer, connect, type Server, type Socket } from 'node:net';
 import { networkInterfaces } from 'node:os';
@@ -153,10 +153,32 @@ export type Raumereignis =
   | { readonly art: 'chat'; readonly zeile: Chatzeile }
   | { readonly art: 'paket'; readonly von: Person; readonly an: Person | null; readonly titel: string; readonly paket: string }
   | { readonly art: 'werkzeug'; readonly von: Person; readonly werkzeug: string; readonly inhalt: string }
+  /** Nur beim Gastgeber: die gemerkten Rollen haben sich geaendert (zum Speichern). */
+  | { readonly art: 'rollen'; readonly rollen: Readonly<Record<string, GemerkteRolle>> }
   | { readonly art: 'fehler'; readonly grund: 'passwort' | 'voll' | 'version' | Verbindungsgrund };
+
+/** Eine gemerkte Rolle, nach Tischschluessel. Der Name ist nur zum Anzeigen. */
+export interface GemerkteRolle {
+  readonly name: string;
+  readonly sl: boolean;
+}
+
+/** Der Tischschluessel dieser Installation (Ed25519). */
+export interface Tischschluessel {
+  /** SPKI als Base64: so reist er, so wird er gemerkt. */
+  readonly oeffentlich: string;
+  readonly privat: KeyObject;
+}
+
+/** Was unterschrieben wird: die Zufallszahl des Gastgebers und der Raumname. */
+function zuUnterschreiben(nonce: string, raum: string): Buffer {
+  return Buffer.from(`${nonce}:${raum}`, 'utf8');
+}
 
 interface Gastverbindung {
   person: Person | null;
+  /** Der geprueft vorgezeigte Tischschluessel, sonst null. */
+  schluessel?: string | null;
   socket: Socket;
   nonce: string;
   /** Ab der Anmeldung, wenn der Raum ein Passwort hat. */
@@ -184,6 +206,8 @@ export class Raumdienst {
   private internet = false;
   private rufer: UdpSocket | null = null;
   private rufTakt: NodeJS.Timeout | null = null;
+  /** Gemerkte Rollen nach Tischschluessel (aus dem gespeicherten Raum). */
+  private rollen = new Map<string, GemerkteRolle>();
 
   // Gast
   private leitung: Socket | null = null;
@@ -206,8 +230,16 @@ export class Raumdienst {
 
   constructor(
     private readonly melde: (ereignis: Raumereignis) => void,
-    private readonly optionen: { suchport?: number; rufziel?: string } = {}
+    private readonly optionen: { suchport?: number; rufziel?: string; schluessel?: () => Tischschluessel | null } = {}
   ) {}
+
+  private schluessel(): Tischschluessel | null {
+    try {
+      return this.optionen.schluessel?.() ?? null;
+    } catch {
+      return null;
+    }
+  }
 
   private get suchport(): number {
     return this.optionen.suchport ?? RAUM_SUCHPORT;
@@ -353,9 +385,10 @@ export class Raumdienst {
     raum: string,
     passwort: string,
     name: string,
-    optionen: { internet?: boolean; port?: number } = {}
+    optionen: { internet?: boolean; port?: number; sl?: boolean; rollen?: Readonly<Record<string, GemerkteRolle>> } = {}
   ): Promise<number> {
     this.verlasse();
+    this.rollen = new Map(Object.entries(optionen.rollen ?? {}));
     const internet = optionen.internet === true;
     if (internet && !passwort) throw new Error('passwort-noetig');
     this.salz = passwort ? neuesSalz() : '';
@@ -392,7 +425,12 @@ export class Raumdienst {
     }
     this.server = server;
     this.raumName = raum.trim().slice(0, 40) || name;
-    this.ich = { id: 'gastgeber', name: eindeutigerName(name, []) };
+    const eigener = this.schluessel()?.oeffentlich;
+    const gemerkt = eigener ? this.rollen.get(eigener) : undefined;
+    // Ausdruecklich angegeben gilt; sonst was gemerkt ist; sonst leitet, wer eroeffnet.
+    const sl = optionen.sl ?? gemerkt?.sl ?? true;
+    this.ich = { id: 'gastgeber', name: eindeutigerName(name, []), ...(sl ? { sl: true } : {}) };
+    if (eigener) this.merkeRolle(eigener, this.ich);
     this.personen = [this.ich];
     this.chat = [];
     this.letzter = null;
@@ -497,10 +535,24 @@ export class Raumdienst {
         }
         gast.schutz = new Leitungsschutz(this.stamm, gast.nonce, n.gastNonce, 'gastgeber');
       }
+      gast.schluessel = null;
+      if (n.schluessel && n.unterschrift) {
+        try {
+          const offen = createPublicKey({ key: Buffer.from(n.schluessel, 'base64'), format: 'der', type: 'spki' });
+          if (pruefeUnterschrift(null, zuUnterschreiben(gast.nonce, this.raumName), offen, Buffer.from(n.unterschrift, 'base64'))) {
+            gast.schluessel = n.schluessel;
+          }
+        } catch {
+          // Kein gueltiger Schluessel: ein Gast ohne Gedaechtnis.
+        }
+      }
+      const gemerkt = gast.schluessel ? this.rollen.get(gast.schluessel) : undefined;
       gast.person = {
         id: randomBytes(6).toString('hex'),
-        name: eindeutigerName(n.name, this.personen.map((p) => p.name))
+        name: eindeutigerName(n.name, this.personen.map((p) => p.name)),
+        ...(gemerkt?.sl ? { sl: true } : {})
       };
+      if (gast.schluessel) this.merkeRolle(gast.schluessel, gast.person);
       this.setzePersonen([...this.personen, gast.person]);
       this.schreibe(gast, { typ: 'willkommen', du: gast.person, personen: this.personen });
       this.verteilePersonen();
@@ -530,7 +582,12 @@ export class Raumdienst {
       };
       gast.person = neu;
       this.personen = this.personen.map((p) => (p.id === neu.id ? neu : p));
+      if (gast.schluessel) this.merkeRolle(gast.schluessel, neu);
       this.verteilePersonen();
+      return;
+    }
+    if (n.typ === 'rolle') {
+      this.setzeRolle(gast.person.id, n.person, n.sl);
       return;
     }
     // Absender ist, wer die Leitung haelt — nicht, wer im Feld steht.
@@ -542,6 +599,61 @@ export class Raumdienst {
   /** Eine Nachricht an einen Gast, verschluesselt, wenn der Raum ein Passwort hat. */
   private schreibe(gast: Gastverbindung, n: Nachricht): void {
     gast.socket.write(gast.schutz ? gast.schutz.verpacke(kodiere(n).slice(0, -1)) : kodiere(n));
+  }
+
+  /** Merkt die Rolle einer Person unter ihrem Schluessel und meldet es zum Speichern. */
+  private merkeRolle(schluessel: string, person: Person): void {
+    const alt = this.rollen.get(schluessel);
+    const neu = { name: person.name, sl: person.sl === true };
+    if (alt && alt.name === neu.name && alt.sl === neu.sl) return;
+    this.rollen.set(schluessel, neu);
+    this.melde({ art: 'rollen', rollen: Object.fromEntries(this.rollen) });
+  }
+
+  /**
+   * Beim Gastgeber: Person `ziel` wird SL oder gibt die Rolle ab, auf Bitte
+   * von `von`. Erlaubt, wenn `von` SL ist, oder wenn es gar keine SL gibt und
+   * `von` der Gastgeber ist. Die letzte SL kann die Rolle nicht abgeben.
+   * Liefert, ob es geklappt hat.
+   */
+  private setzeRolle(von: string, ziel: string, sl: boolean): boolean {
+    const slZahl = this.personen.filter((p) => p.sl).length;
+    const bittender = this.personen.find((p) => p.id === von);
+    const darf = bittender?.sl === true || (slZahl === 0 && von === this.ich?.id);
+    const person = this.personen.find((p) => p.id === ziel);
+    if (!darf || !person || (person.sl === true) === sl) return false;
+    if (!sl && slZahl <= 1) return false;
+    const neu: Person = sl ? { ...person, sl: true } : { id: person.id, name: person.name };
+    this.personen = this.personen.map((p) => (p.id === ziel ? neu : p));
+    if (this.ich?.id === ziel) this.ich = neu;
+    let schluessel: string | null | undefined;
+    if (this.ich?.id === ziel) schluessel = this.schluessel()?.oeffentlich;
+    for (const g of this.gaeste) {
+      if (g.person?.id === ziel) {
+        g.person = neu;
+        schluessel = g.schluessel;
+      }
+    }
+    if (schluessel) this.merkeRolle(schluessel, neu);
+    this.verteilePersonen();
+    return true;
+  }
+
+  /**
+   * Jemanden zur SL machen oder die Rolle abgeben. Der Gastgeber entscheidet
+   * selbst, ein Gast bittet ihn darum. Ob es geklappt hat, zeigt die
+   * naechste Personenliste.
+   */
+  slRolle(ziel: string, sl: boolean): boolean {
+    if (!this.ich) return false;
+    if (this.rolle === 'gastgeber') return this.setzeRolle(this.ich.id, ziel, sl);
+    if (this.rolle === 'gast') return this.schreibeLeitung({ typ: 'rolle', person: ziel, sl });
+    return false;
+  }
+
+  /** Die gemerkten Rollen des offenen Raums (beim Gastgeber). */
+  gemerkteRollen(): Record<string, GemerkteRolle> {
+    return Object.fromEntries(this.rollen);
   }
 
   private verteilePersonen(): void {
@@ -673,7 +785,19 @@ export class Raumdienst {
       schutz = new Leitungsschutz(stamm, nonce, gastNonce, 'gast');
     }
     if (this.leitung !== socket) return;
-    socket.write(kodiere({ typ: 'hallo', name, nachweis: nachweisText, version: RAUM_VERSION, gastNonce }));
+    const eigener = this.schluessel();
+    let ausweis = {};
+    if (eigener) {
+      try {
+        ausweis = {
+          schluessel: eigener.oeffentlich,
+          unterschrift: unterschreibe(null, zuUnterschreiben(nonce, this.raumName), eigener.privat).toString('base64')
+        };
+      } catch {
+        // Ohne Ausweis geht es auch.
+      }
+    }
+    socket.write(kodiere({ typ: 'hallo', name, nachweis: nachweisText, version: RAUM_VERSION, gastNonce, ...ausweis }));
     this.leitungsschutz = schutz;
   }
 

@@ -31,6 +31,8 @@ export interface ExportErgebnis {
   readonly ok: boolean;
   readonly text: string;
   readonly angelegt: number;
+  /** Wie viele schon in der Kampagne standen und uebersprungen wurden. */
+  readonly vorhanden?: number;
 }
 
 /**
@@ -40,7 +42,11 @@ export interface ExportErgebnis {
  * montiert ist und welche Kampagne offen steht — genauso wie beim NPC
  * Creator.
  */
-export type Anleger = (notizen: readonly Notiz[], kampagneId?: string | null) => Promise<ExportErgebnis>;
+export type Anleger = (
+  notizen: readonly Notiz[],
+  kampagneId?: string | null,
+  optionen?: { readonly ersetzen?: boolean }
+) => Promise<ExportErgebnis>;
 
 /** Eine Figur, die es in der offenen Kampagne schon gibt. */
 export interface KampagnenFigur {
@@ -150,12 +156,12 @@ export async function mountInspiration(
   // Erst abmelden: nach einem Fehlschlag kann dieselbe Anwendung ein zweites
   // Mal montiert werden, und `handle` weist einen zweiten Handler ab.
   ipcMain.removeHandler(kanal('export'));
-  ipcMain.handle(kanal('export'), async (_e, notizen: Notiz[], kampagneId?: string | null) => {
+  ipcMain.handle(kanal('export'), async (_e, notizen: Notiz[], kampagneId?: string | null, ersetzen?: boolean) => {
     if (!options.anlegen) {
       return { ok: false, text: 'Der Story Creator ist nicht verfügbar.', angelegt: 0 };
     }
     try {
-      return await options.anlegen(notizen, kampagneId ?? null);
+      return await options.anlegen(notizen, kampagneId ?? null, { ersetzen: ersetzen === true });
     } catch (fehler) {
       return {
         ok: false,

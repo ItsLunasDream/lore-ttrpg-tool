@@ -17,6 +17,8 @@ export interface ExportErgebnis {
   readonly ok: boolean;
   /** Der Titel der angelegten Notiz, oder der Grund fuer das Scheitern. */
   readonly text: string;
+  /** Die Figur steht schon in der Kampagne. */
+  readonly vorhanden?: boolean;
 }
 
 const api = {
@@ -26,8 +28,12 @@ const api = {
    * Auf Knopfdruck und nicht von selbst: eine Figur, die man verwirft, soll
    * nicht schon im Archiv liegen.
    */
-  export: (titel: string, markdown: string, kampagneId?: string | null) =>
-    ipcRenderer.invoke(kanal('export'), titel, markdown, kampagneId ?? null) as Promise<ExportErgebnis>,
+  export: (
+    titel: string,
+    markdown: string,
+    kampagneId?: string | null,
+    optionen?: { ersetzen?: boolean; felder?: Record<string, string> }
+  ) => ipcRenderer.invoke(kanal('export'), titel, markdown, kampagneId ?? null, optionen ?? {}) as Promise<ExportErgebnis>,
 
   /** Die Kampagnen des Story Creators und die, an der zuletzt gearbeitet wurde. */
   kampagnen: () =>

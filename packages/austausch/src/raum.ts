@@ -35,6 +35,12 @@ export const MAX_WERKZEUG = 2 * 1024 * 1024;
 export interface Person {
   readonly id: string;
   readonly name: string;
+  /**
+   * Spielleitung. Es kann mehrere geben. Gesetzt nur vom Gastgeber, der die
+   * Rollen verwaltet; ein Gast kann darum bitten (`rolle`). Fehlt bei
+   * aelteren Fassungen, dann gilt: keine SL.
+   */
+  readonly sl?: boolean;
 }
 
 /** Was ein Gastgeber alle paar Sekunden ins Netz ruft. */
@@ -59,6 +65,14 @@ export type Nachricht =
       readonly version: number;
       /** Die Zufallszahl des Gastes; geht mit in den Sitzungsschluessel. */
       readonly gastNonce: string;
+      /**
+       * Der oeffentliche Tischschluessel (Ed25519, SPKI, Base64) und die
+       * Unterschrift ueber `<nonce>:<raum>`. Daran erkennt der Gastgeber
+       * jemanden wieder, auch unter anderem Namen, und gibt gemerkte Rollen
+       * zurueck. Fehlt beides, ist man ein Gast ohne Gedaechtnis.
+       */
+      readonly schluessel?: string;
+      readonly unterschrift?: string;
     }
   | { readonly typ: 'willkommen'; readonly du: Person; readonly personen: readonly Person[] }
   | { readonly typ: 'abgelehnt'; readonly grund: 'passwort' | 'voll' | 'version' }
@@ -74,6 +88,11 @@ export type Nachricht =
   | { readonly typ: 'pong'; readonly n: number }
   /** Der Gastgeber schliesst den Raum mit Absicht; die Gaeste lesen dann nicht „Verbindung abgerissen". */
   | { readonly typ: 'schluss' }
+  /**
+   * Bitte an den Gastgeber: diese Person wird SL oder gibt die Rolle ab.
+   * Er prueft, ob der Absender das darf, und verteilt die neue Liste.
+   */
+  | { readonly typ: 'rolle'; readonly person: string; readonly sl: boolean }
   | {
       readonly typ: 'chat';
       readonly von: string;
@@ -116,7 +135,13 @@ function istText(wert: unknown, max = 200): wert is string {
 
 function istPerson(wert: unknown): wert is Person {
   const p = wert as Person;
-  return typeof wert === 'object' && wert !== null && istText(p.id, 64) && istText(p.name, 64);
+  return (
+    typeof wert === 'object' &&
+    wert !== null &&
+    istText(p.id, 64) &&
+    istText(p.name, 64) &&
+    (p.sl === undefined || typeof p.sl === 'boolean')
+  );
 }
 
 /**
@@ -144,7 +169,14 @@ export function leseNachricht(zeile: string): Nachricht | null {
       // „falsche Fassung" hoeren und nicht stumm abgewiesen werden.
       if (typeof n.version !== 'number') return null;
       return istText(n.name, 64) && istText(n.nachweis, 256)
-        ? { typ: n.typ, name: n.name, nachweis: n.nachweis, version: n.version, gastNonce: istText(n.gastNonce, 128) ? n.gastNonce : '' }
+        ? {
+            typ: n.typ,
+            name: n.name,
+            nachweis: n.nachweis,
+            version: n.version,
+            gastNonce: istText(n.gastNonce, 128) ? n.gastNonce : '',
+            ...(istText(n.schluessel, 200) && istText(n.unterschrift, 200) ? { schluessel: n.schluessel, unterschrift: n.unterschrift } : {})
+          }
         : null;
     case 'willkommen':
       return istPerson(n.du) && Array.isArray(n.personen) && n.personen.every(istPerson)
@@ -158,6 +190,8 @@ export function leseNachricht(zeile: string): Nachricht | null {
       return istText(n.name, 64) && n.name.trim() ? { typ: n.typ, name: n.name } : null;
     case 'schluss':
       return { typ: n.typ };
+    case 'rolle':
+      return istText(n.person, 64) && typeof n.sl === 'boolean' ? { typ: n.typ, person: n.person, sl: n.sl } : null;
     case 'ping':
     case 'pong':
       return Number.isSafeInteger(n.n) && (n.n as number) >= 0 ? { typ: n.typ, n: n.n as number } : null;

@@ -1,0 +1,884 @@
+/*
+ * Aussehen des Charakterbogens.
+ *
+ * Farben aus dem Thema der Huelle (`--f-*`, packages/farben); die
+ * Rueckfallwerte gelten nur ohne Huelle.
+ */
+
+:root {
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --rand: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --gut: var(--f-gut, #46a758);
+  --warnung: var(--f-fest, #d9a441);
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.rahmen {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+}
+
+.kopf h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.kopf p {
+  margin: 4px 0 18px;
+  color: var(--text-leise);
+}
+
+h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+  margin: 0 0 10px;
+}
+
+h3 {
+  font-size: 13px;
+  margin: 14px 0 6px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  transition:
+    background-color var(--motion-feedback, 120ms) ease,
+    border-color var(--motion-feedback, 120ms) ease;
+}
+
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+input,
+select {
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: var(--grund);
+  font-weight: 600;
+}
+
+.knopf--haupt:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--betont) 85%, var(--text));
+}
+
+.knopf--gefahr {
+  color: var(--gefahr);
+}
+
+.knopf--klein {
+  padding: 3px 9px;
+  font-size: 13px;
+}
+
+.leiste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.leiste__rest {
+  flex: 1;
+}
+
+.suche {
+  flex: 1 1 220px;
+}
+
+.leise {
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+.meldung {
+  color: var(--gut);
+}
+
+.stoerung {
+  color: var(--gefahr);
+}
+
+.leer {
+  color: var(--text-leise);
+}
+
+.stand {
+  color: var(--text-leise);
+  font-size: 12px;
+  min-width: 90px;
+}
+
+.stand--fehler {
+  color: var(--gefahr);
+}
+
+/* --- Liste ---------------------------------------------------------------- */
+
+.kacheln {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.kachel {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  background: var(--grund-hoch);
+  border-radius: var(--radius);
+}
+
+.kachel__name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.kachel__kurz,
+.kachel__tp {
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+/* --- Bogen ---------------------------------------------------------------- */
+
+.feld {
+  display: grid;
+  gap: 4px;
+}
+
+.feld__label {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.feld--name input {
+  font-size: 20px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+.feld--zahl input {
+  width: 72px;
+  text-align: center;
+}
+
+.feld--ohneLabel {
+  display: block;
+}
+
+.unsichtbar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.block {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-top: 14px;
+}
+
+.raster {
+  display: grid;
+  gap: 10px;
+}
+
+.raster--kopf {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.raster--kampf {
+  grid-template-columns: 90px 110px 1fr;
+}
+
+.raster--tp {
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+}
+
+.raster--zustand {
+  grid-template-columns: auto auto;
+  justify-content: start;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.spalten {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(260px, 1fr) minmax(300px, 1.2fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.spalten > .block {
+  margin-top: 14px;
+}
+
+@media (max-width: 980px) {
+  .spalten {
+    grid-template-columns: 1fr;
+  }
+}
+
+.klassen {
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.klassen__zeile {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+}
+
+.klassen__zeile > input {
+  flex: 1;
+}
+
+.klassen__zeile .feld--zahl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.klassen__fuss {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.attribute {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.attribut {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund);
+}
+
+.attribut__name {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-leise);
+}
+
+.attribut__mod {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.attribut__rettung {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.fertigkeiten {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.fertigkeiten li {
+  display: grid;
+  grid-template-columns: 28px 36px 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.fertigkeiten__bonus {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.uebung {
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.uebung--1 {
+  color: var(--betont);
+}
+
+.uebung--2 {
+  color: var(--warnung);
+}
+
+.tp__balken {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--grund-tief);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.tp__balken span {
+  display: block;
+  height: 100%;
+  background: var(--gut);
+  transition: width var(--motion-state, 200ms) ease;
+}
+
+.tp__balken .angeschlagen {
+  background: var(--warnung);
+}
+
+.tp__balken .kritisch {
+  background: var(--gefahr);
+}
+
+.tp .feld {
+  margin-top: 8px;
+}
+
+.tp .leise {
+  margin: 4px 0 0;
+}
+
+.todesrettung__zeile {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.todesrettung__zeile span {
+  min-width: 100px;
+}
+
+.tw__zeile {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.tw__zeile .feld--zahl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tw__zeile .feld--zahl input {
+  width: 56px;
+}
+
+.kurzrast {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed var(--rand);
+  border-radius: var(--radius);
+}
+
+.kurzrast .feld--zahl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: var(--betont-leise);
+}
+
+.chip button {
+  border: none;
+  background: transparent;
+  padding: 0 6px;
+}
+
+.schalter {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.angriffe {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.angriffe {
+  justify-items: stretch;
+}
+
+.angriffe__ziel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+}
+
+.angriff {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rand);
+}
+
+.angriff__zeile {
+  display: grid;
+  grid-template-columns: 2fr 1.6fr 64px 1.4fr 36px 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.angriff__wert {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.angriff__herkunft {
+  font-size: 0.85em;
+}
+
+.angriff__optionen,
+.gegenstand__waffe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.angriff__optionen label,
+.gegenstand__waffe label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.angriff__info {
+  margin: 0;
+  font-size: 0.85em;
+}
+
+.angriff__ergebnis {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--betont-leise);
+}
+
+.notizen {
+  min-height: 120px;
+}
+
+/* --- Zauber --------------------------------------------------------------- */
+
+.raster--zauberkopf {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: end;
+}
+
+.kennzahl {
+  display: grid;
+  gap: 4px;
+}
+
+.kennzahl strong {
+  font-size: 20px;
+}
+
+.vorbereitet input {
+  width: 48px;
+  text-align: center;
+}
+
+.plaetze {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 14px;
+  margin-bottom: 8px;
+}
+
+.platz {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.platz > input {
+  width: 40px;
+  text-align: center;
+}
+
+.punkte {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.punkt {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--betont);
+  border-color: var(--betont);
+}
+
+.punkt--weg {
+  background: transparent;
+}
+
+.zauberliste,
+.zaubertreffer {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.zauberzeile,
+.zaubertreffer li {
+  display: grid;
+  grid-template-columns: 24px 30px minmax(120px, 1.4fr) auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.zaubertreffer li {
+  grid-template-columns: 30px 1fr auto auto;
+}
+
+.zauberzeile__grad {
+  color: var(--text-leise);
+  font-size: 12px;
+  text-align: center;
+}
+
+.zauberzeile__name {
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.zauberzeile__info {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marken {
+  display: flex;
+  gap: 3px;
+}
+
+.marke {
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--betont-leise);
+}
+
+.zauberdetail {
+  margin: 4px 0 10px 62px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--betont-leise);
+  line-height: 1.5;
+}
+
+.zauberdetail p {
+  margin: 0 0 6px;
+}
+
+.zauberdetail table {
+  border-collapse: collapse;
+  margin: 6px 0;
+}
+
+.zauberdetail th,
+.zauberdetail td {
+  border: 1px solid var(--rand);
+  padding: 3px 8px;
+}
+
+.zaubersuche {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px dashed var(--rand);
+  border-radius: var(--radius);
+  max-height: 420px;
+  overflow: auto;
+}
+
+/* --- Inventar ------------------------------------------------------------- */
+
+.muenzen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.muenze input {
+  width: 76px;
+}
+
+.dialogzeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px dashed var(--rand);
+  border-radius: var(--radius);
+}
+
+.dialogzeile .feld--zahl input {
+  width: 64px;
+}
+
+.gegenstaende {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.gegenstand__kopf,
+.gegenstand__zeile {
+  display: grid;
+  grid-template-columns: minmax(140px, 3fr) 64px 90px 90px 26px 26px 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.gegenstand__kopf.gegenstand--gruppe,
+.gegenstand__zeile.gegenstand--gruppe {
+  grid-template-columns: minmax(140px, 3fr) 64px 90px 90px 34px;
+}
+
+.gegenstand__detail {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--betont-leise);
+}
+
+.schmal {
+  width: 64px;
+}
+
+.summen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 10px 0 0;
+}
+
+.verlauf {
+  margin-top: 10px;
+}
+
+.verlauf ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+/* --- Boegen im Raum -------------------------------------------------------- */
+
+.bogenfeld {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.bogenfeld:disabled input,
+.bogenfeld:disabled textarea,
+.bogenfeld:disabled select,
+.bogenfeld:disabled button {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.live-liste h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kachel--live {
+  border-color: var(--gut);
+}
+
+.kachel--uebersicht {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.live-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--gut);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--gut) 10%, transparent);
+}
+
+.live-leiste__wer {
+  font-weight: 600;
+}
+
+.live-leiste__freigabe,
+.live-leiste__still {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.live-leiste__still.ist-an {
+  color: var(--warnung);
+  font-weight: 600;
+}
+
+.sl-marke {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--warnung);
+  border-radius: 999px;
+  color: var(--warnung);
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.sl-marke--rolle {
+  cursor: default;
+}
+
+.sl-hinweis {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--warnung);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warnung) 10%, transparent);
+}
+
+.sl-hinweis__liste {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.sl-hinweis--verlauf summary {
+  cursor: pointer;
+}

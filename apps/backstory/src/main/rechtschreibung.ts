@@ -12,6 +12,7 @@
  */
 import type { Session, WebContents } from 'electron';
 import type { Language } from '../shared/i18n';
+import type { Rechtschreibwahl } from '../shared/types';
 import { channel } from '../shared/channels';
 
 /** Was die Oberflaeche braucht, um ihr Menue zu bauen. */
@@ -37,9 +38,11 @@ export function pruefsprache(language: Language): string {
  * Schlaegt fehl, wenn die Fassung ohne Rechtschreibpruefung gebaut wurde —
  * dann bleibt es dabei, statt den Start abzubrechen.
  */
-export function setzePruefsprache(session: Session, language: Language): void {
+export function setzePruefsprache(session: Session, language: Language, wahl: Rechtschreibwahl = 'auto'): void {
   try {
-    session.setSpellCheckerLanguages([pruefsprache(language)]);
+    session.setSpellCheckerEnabled(wahl !== 'off');
+    if (wahl === 'off') return;
+    session.setSpellCheckerLanguages([pruefsprache(wahl === 'auto' ? language : wahl)]);
   } catch (fehler) {
     console.warn('[backstory] Rechtschreibsprache liess sich nicht setzen:', fehler);
   }
@@ -52,7 +55,11 @@ export function setzePruefsprache(session: Session, language: Language): void {
  * Ohne das Weiterreichen bliebe der Rechtsklick auf ein angestrichenes Wort
  * folgenlos.
  */
-export function richteRechtschreibungEin(webContents: WebContents, language: Language): void {
+export function richteRechtschreibungEin(
+  webContents: WebContents,
+  language: Language,
+  wahl: Rechtschreibwahl = 'auto'
+): void {
   // Fuer den Rauchtest: er hat keine echte Rechtschreibpruefung zur Hand
   // (die Woerterbuecher laedt Chromium erst nach), kann so aber den Weg von
   // hier bis ins Menue pruefen.
@@ -70,7 +77,7 @@ export function richteRechtschreibungEin(webContents: WebContents, language: Lan
     return;
   }
 
-  setzePruefsprache(webContents.session, language);
+  setzePruefsprache(webContents.session, language, wahl);
 
   webContents.on('context-menu', (_ereignis, params) => {
     if (!params.misspelledWord) return;

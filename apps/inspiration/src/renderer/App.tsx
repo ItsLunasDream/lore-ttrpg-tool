@@ -111,6 +111,8 @@ export function App() {
   const [titel, setTitel] = useState('');
   const [exportStand, setExportStand] = useState<'ruht' | 'laeuft' | 'fertig' | 'fehler'>('ruht');
   const [exportText, setExportText] = useState('');
+  /** Wie viele Notizen beim letzten Uebernehmen schon da waren. */
+  const [vorhanden, setVorhanden] = useState(0);
   const [kopiert, setKopiert] = useState(false);
   const [sprache, setSprache] = useState<Language>(getLanguage);
   /**
@@ -580,12 +582,13 @@ export function App() {
     );
   }, []);
 
-  const uebernehmen = useCallback(async () => {
+  const uebernehmen = useCallback(async (ersetzen = false) => {
     if (!entwurf) return;
     setExportStand('laeuft');
     const notizen = alsNotizen(entwurf, getLanguage(), titel.trim() || t('export.titelVorgabe'));
     try {
-      const ergebnis = await api.export(notizen, ziel);
+      const ergebnis = await api.export(notizen, ziel, ersetzen);
+      setVorhanden(ergebnis.vorhanden ?? 0);
       setExportStand(ergebnis.ok ? 'fertig' : 'fehler');
       setExportText(
         ergebnis.ok
@@ -1175,6 +1178,14 @@ export function App() {
           {exportStand !== 'ruht' && exportStand !== 'laeuft' && (
             <p className={exportStand === 'fehler' ? 'fuss__meldung fuss__meldung--fehler' : 'fuss__meldung'}>
               {exportText}
+              {vorhanden > 0 ? (
+                <>
+                  {' '}
+                  <button type="button" className="knopf" data-aktualisieren onClick={() => void uebernehmen(true)}>
+                    {t('export.aktualisieren', { anzahl: vorhanden })}
+                  </button>
+                </>
+              ) : null}
             </p>
           )}
         </footer>

@@ -114,7 +114,8 @@ const ORDNER: Readonly<Record<string, (datenordner: string) => string>> = {
   initiative: (d) => path.join(d, 'initiative', 'begegnungen'),
   encounter: (d) => path.join(d, 'encounter', 'encounter'),
   magicitems: (d) => path.join(d, 'magicitems', 'gegenstaende'),
-  loot: (d) => path.join(d, 'loot', 'tabellen')
+  loot: (d) => path.join(d, 'loot', 'tabellen'),
+  charakterbogen: (d) => path.join(d, 'charakterbogen', 'boegen')
 };
 
 const TEILNEHMER: ReadonlyMap<string, Teilnehmer> = new Map(
@@ -126,7 +127,8 @@ const TEILNEHMER: ReadonlyMap<string, Teilnehmer> = new Map(
     ordnerTeilnehmer('initiative', 'Begegnung', ORDNER.initiative),
     ordnerTeilnehmer('encounter', 'Begegnung', ORDNER.encounter),
     ordnerTeilnehmer('magicitems', 'Magischer Gegenstand', ORDNER.magicitems),
-    ordnerTeilnehmer('loot', 'Zufallstabelle', ORDNER.loot)
+    ordnerTeilnehmer('loot', 'Zufallstabelle', ORDNER.loot),
+    ordnerTeilnehmer('charakterbogen', 'Charakterbogen', ORDNER.charakterbogen)
   ].map((t) => [t.werkzeug, t])
 );
 

@@ -53,6 +53,7 @@ function startBericht(): void {
 }
 import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
 import { berechneAppFlaeche, GROESSEN, VORGABE_GROESSE } from '../shared/apps';
 import {
   meldeStoryCreatorAenderung,
@@ -83,7 +84,8 @@ import {
   zieleFuer
 } from './austausch';
 import { alsPaket, gastname, lesePaket, PaketFehler, PAKET_ENDUNG, type Modus, type Paket } from '@suite/austausch';
-import { Raumdienst, type Raumereignis, type Raumzustand } from './raum';
+import { Raumdienst, type Raumereignis, type Raumzustand, type Tischschluessel } from './raum';
+import { ladeTischschluessel, neueRaumId, Raumablage, VORGABE_RAUMEINSTELLUNGEN, type GespeicherterRaum } from './raeume';
 import { sicherungsname } from '../shared/sicherung';
 import { brichFahrtAb, fahreEin } from './fahrt';
 import {
@@ -464,9 +466,21 @@ let raumDienst: Raumdienst | null = null;
  */
 const geteilteStaende = new Map<string, { von: { id: string; name: string }; inhalt: string }>();
 
+/** Beim Gastgeber eines gespeicherten Raums: was die Werkzeuge davon wissen muessen. */
+let raumZusatz: Pick<RaumLage, 'einstellungen' | 'gruppeninventar'> = {};
+/** Setzt die Einrichtung des Raums (siehe unten); bis dahin geschieht nichts. */
+let merkeGruppeImRaum: (id: string) => void = () => undefined;
+
 function raumLage(): RaumLage {
   const z = raumDienst?.zustand();
-  return z ? { rolle: z.rolle, ich: z.ich, personen: z.personen } : { rolle: 'aus', ich: null, personen: [] };
+  if (!z) return { rolle: 'aus', ich: null, personen: [] };
+  return { rolle: z.rolle, ich: z.ich, personen: z.personen, ...(z.rolle === 'gastgeber' ? raumZusatz : {}) };
+}
+
+/** Die Lage an alle offenen Werkzeuge. */
+function meldeRaumLage(): void {
+  const lage = raumLage();
+  for (const montiert of offen.values()) montiert.raumZustand?.(lage);
 }
 
 /**
@@ -497,6 +511,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     raum: {
       sende: (werkzeug, inhalt, an) => raumDienst?.sendeWerkzeug(werkzeug, inhalt, an) ?? false,
       chatte: (text, an) => raumDienst?.chatte(text, an) ?? false,
+      merkeGruppe: (id) => merkeGruppeImRaum(id),
       anfang: (werkzeug) => ({
         lage: raumLage(),
         nachrichten: werkzeug === 'initiative' ? [...geteilteStaende.values()] : []
@@ -1007,11 +1022,43 @@ function registriereKanaele(): void {
    * ueber denselben Weg wie eine Paketdatei.
    */
   const raumPakete: { id: number; von: string; titel: string; paket: string; zeit: string }[] = [];
+  // Nachrichten an einen noch nicht montierten Charakterbogen, in Reihe.
+  let bogenImRaum: Promise<unknown> = Promise.resolve();
   let naechstesRaumpaket = 1;
   let raumRolle: Raumzustand['rolle'] = 'aus';
   const meldePakete = () =>
     huelle?.webContents.send('raum:ereignis', { art: 'pakete', pakete: raumPakete.map(({ paket: _p, ...rest }) => rest) });
+
+  /*
+   * Gespeicherte Raeume (docs/charakterbogen.md). Der offene Raum des
+   * Gastgebers wird bei jeder Rollenaenderung gespeichert, das Passwort nie.
+   * Der Tischschluessel wird erst geladen, wenn ein Raum ihn braucht.
+   */
+  const raumAblage = new Raumablage(join(app.getPath('userData'), 'raeume'));
+  let tischschluessel: Tischschluessel | null = null;
+  const holeTischschluessel = () => (tischschluessel ??= ladeTischschluessel(join(app.getPath('userData'), 'tischschluessel.json')));
+  let offenerRaum: GespeicherterRaum | null = null;
+  const meldeRaumliste = () =>
+    void raumAblage.liste().then((liste) => huelle?.webContents.send('raum:ereignis', { art: 'gespeichert', raeume: liste }));
+  const sichereOffenenRaum = async (aenderung: Partial<GespeicherterRaum>) => {
+    if (!offenerRaum) return;
+    // Erst im Speicher aendern, dann schreiben: zwei Aenderungen kurz
+    // hintereinander ueberschreiben sich so nicht gegenseitig.
+    offenerRaum = { ...offenerRaum, ...aenderung };
+    raumZusatz = { einstellungen: offenerRaum.einstellungen, gruppeninventar: offenerRaum.gruppeninventar };
+    await raumAblage.speichere(offenerRaum);
+    meldeRaumliste();
+  };
+
+  merkeGruppeImRaum = (id) => {
+    if (offenerRaum && offenerRaum.gruppeninventar !== id) void sichereOffenenRaum({ gruppeninventar: id }).catch(() => undefined);
+  };
+
   const raum = new Raumdienst((ereignis: Raumereignis) => {
+    if (ereignis.art === 'rollen') {
+      void sichereOffenenRaum({ rollen: ereignis.rollen }).catch(() => undefined);
+      return;
+    }
     if (ereignis.art === 'werkzeug') {
       // Nicht an die Oberflaeche der Huelle: sie reicht nur weiter. Den
       // letzten Stand der Initiative je Person merken (siehe oben).
@@ -1025,6 +1072,16 @@ function registriereKanaele(): void {
         if (art === 'stand') geteilteStaende.set(ereignis.von.id, { von: ereignis.von, inhalt: ereignis.inhalt });
         if (art === 'ende') geteilteStaende.delete(ereignis.von.id);
       }
+      // Boegen im Raum brauchen den Charakterbogen auch, wenn niemand ihn
+      // gerade offen hat: dann wird er still montiert, der Reihe nach.
+      if (ereignis.werkzeug === 'charakterbogen' && !offen.has('charakterbogen')) {
+        const { von, inhalt } = ereignis;
+        bogenImRaum = bogenImRaum
+          .then(() => montiereImHintergrund('charakterbogen'))
+          .then(() => offen.get('charakterbogen')?.raumNachricht?.(von, inhalt))
+          .catch(() => undefined);
+        return;
+      }
       offen.get(ereignis.werkzeug)?.raumNachricht?.(ereignis.von, ereignis.inhalt);
       return;
     }
@@ -1037,11 +1094,14 @@ function registriereKanaele(): void {
         meldePakete();
       }
       raumRolle = ereignis.zustand.rolle;
+      if (raumRolle !== 'gastgeber') {
+        offenerRaum = null;
+        raumZusatz = {};
+      }
       // Wer gegangen ist, hat auch nichts mehr geteilt.
       const da = new Set(ereignis.zustand.personen.map((p) => p.id));
       for (const id of [...geteilteStaende.keys()]) if (!da.has(id)) geteilteStaende.delete(id);
-      const lage = { rolle: ereignis.zustand.rolle, ich: ereignis.zustand.ich, personen: ereignis.zustand.personen };
-      for (const montiert of offen.values()) montiert.raumZustand?.(lage);
+      meldeRaumLage();
     }
     if (ereignis.art === 'paket') {
       raumPakete.push({
@@ -1055,7 +1115,7 @@ function registriereKanaele(): void {
       return;
     }
     huelle?.webContents.send('raum:ereignis', ereignis);
-  });
+  }, { schluessel: holeTischschluessel });
   raumDienst = raum;
   app.on('will-quit', () => raum.beende());
   /** Der eigene Name, sonst ein Gastname mit einer Zahl, die selten doppelt ist. */
@@ -1076,13 +1136,85 @@ function registriereKanaele(): void {
     raum.aktualisiereSuche();
     return raum.raeume();
   });
-  handle('raum:eroeffnen', async (_event, name: string, passwort: string, optionen?: { internet?: boolean; port?: number }) => {
+  handle(
+    'raum:eroeffnen',
+    async (_event, name: string, passwort: string, optionen?: { internet?: boolean; port?: number; sl?: boolean; raumId?: string }) => {
+      try {
+        const internet = optionen?.internet === true;
+        const port = Number.isInteger(optionen?.port) ? optionen!.port : undefined;
+        // Fortsetzen: Rollen und Einstellungen aus dem gespeicherten Raum. Neu: ein neuer Eintrag.
+        const gespeichert = typeof optionen?.raumId === 'string' ? await raumAblage.lies(optionen.raumId) : null;
+        const sl = typeof optionen?.sl === 'boolean' ? optionen.sl : undefined;
+        const offen = await raum.eroeffne(name, passwort, meinName(), { internet, port, sl, rollen: gespeichert?.rollen ?? {} });
+        offenerRaum = await raumAblage.speichere({
+          id: gespeichert?.id ?? neueRaumId(),
+          name: name.trim().slice(0, 60) || gespeichert?.name || 'Raum',
+          internet,
+          port: internet ? offen : null,
+          rollen: raum.gemerkteRollen(),
+          gruppeninventar: gespeichert?.gruppeninventar ?? null,
+          einstellungen: gespeichert?.einstellungen ?? VORGABE_RAUMEINSTELLUNGEN,
+          geaendert: ''
+        });
+        raumZusatz = { einstellungen: offenerRaum.einstellungen, gruppeninventar: offenerRaum.gruppeninventar };
+        meldeRaumliste();
+        meldeRaumLage();
+        return { ok: true, port: offen, raumId: offenerRaum.id };
+      } catch (fehler) {
+        return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+      }
+    }
+  );
+  handle('raum:rolle', (_event, ziel: string, sl: boolean) => typeof ziel === 'string' && raum.slRolle(ziel, sl === true));
+  handle('raum:gespeicherte', () => raumAblage.liste());
+  handle('raum:gespeichertLoeschen', async (_event, id: string) => {
+    if (offenerRaum?.id === id) return false;
+    const ok = await raumAblage.loesche(String(id));
+    meldeRaumliste();
+    return ok;
+  });
+  handle('raum:gespeichertUmbenennen', async (_event, id: string, name: string) => {
+    const r = await raumAblage.lies(String(id));
+    const neu = String(name ?? '').trim().slice(0, 60);
+    if (!r || !neu) return false;
+    const gespeichert = await raumAblage.speichere({ ...r, name: neu });
+    if (offenerRaum?.id === r.id) offenerRaum = gespeichert;
+    meldeRaumliste();
+    return true;
+  });
+  handle('raum:einstellungen', async (_event, aenderung: Partial<GespeicherterRaum['einstellungen']>) => {
+    if (!offenerRaum) return null;
+    await sichereOffenenRaum({ einstellungen: { ...offenerRaum.einstellungen, ...(aenderung ?? {}) } });
+    meldeRaumLage();
+    return offenerRaum?.einstellungen ?? null;
+  });
+  // Export als Datei fuer den Gastgeberwechsel; das Passwort steht nicht darin.
+  handle('raum:gespeichertExport', async (_event, id: string) => {
+    const r = await raumAblage.lies(String(id));
+    if (!r || !fenster) return { ok: false };
+    const antwort = await dialog.showSaveDialog(fenster as never, {
+      defaultPath: `${r.name.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'raum'}.lore-raum.json`,
+      filters: [{ name: 'LORE', extensions: ['json'] }]
+    });
+    if (antwort.canceled || !antwort.filePath) return { ok: false, abgebrochen: true };
+    await writeFile(antwort.filePath, JSON.stringify(r, null, 2), 'utf8');
+    return { ok: true };
+  });
+  handle('raum:gespeichertImport', async () => {
+    if (!fenster) return { ok: false };
+    const antwort = await dialog.showOpenDialog(fenster as never, {
+      properties: ['openFile'],
+      filters: [{ name: 'LORE', extensions: ['json'] }]
+    });
+    if (antwort.canceled || !antwort.filePaths[0]) return { ok: false, abgebrochen: true };
     try {
-      const internet = optionen?.internet === true;
-      const port = Number.isInteger(optionen?.port) ? optionen!.port : undefined;
-      return { ok: true, port: await raum.eroeffne(name, passwort, meinName(), { internet, port }) };
-    } catch (fehler) {
-      return { ok: false, grund: fehler instanceof Error ? fehler.message : String(fehler) };
+      const text = await readFile(antwort.filePaths[0], 'utf8');
+      if (text.length > 2_000_000) return { ok: false };
+      const r = await raumAblage.lesEin(text);
+      meldeRaumliste();
+      return r ? { ok: true, raum: r } : { ok: false };
+    } catch {
+      return { ok: false };
     }
   });
   handle('raum:beitreten', async (_event, adresse: string, port: number, passwort: string) => {

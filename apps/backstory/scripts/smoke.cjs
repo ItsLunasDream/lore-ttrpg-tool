@@ -1513,6 +1513,27 @@ app.whenReady().then(async () => {
       'Abbrechen im Löschdialog hat die Notiz trotzdem entfernt'
     );
 
+    // Wirklich loeschen und gleich rueckgaengig machen: die Notiz kommt zurueck.
+    await run(window, rechtsklick);
+    await sleep(400);
+    await run(window, `[...document.querySelectorAll('.kontextmenue button')]
+       .find((b) => /Löschen|Delete/.test(b.textContent)).click(); return true;`);
+    await sleep(500);
+    await run(window, `document.querySelector('.modal button.danger').click(); return true;`);
+    await sleep(900);
+    check(
+      (await run(window, `return document.querySelectorAll('.note-list__title').length;`)) === vorAbbruch - 1,
+      'Löschen hat die Notiz nicht entfernt'
+    );
+    check(await run(window, `return Boolean(document.querySelector('[data-toast-aktion]'));`),
+      'Nach dem Löschen fehlt „Rückgängig“');
+    await run(window, `document.querySelector('[data-toast-aktion]').click(); return true;`);
+    await sleep(900);
+    check(
+      (await run(window, `return document.querySelectorAll('.note-list__title').length;`)) === vorAbbruch,
+      'Rückgängig hat die gelöschte Notiz nicht zurückgebracht'
+    );
+
     // Umbenennen: der Dialog muss den bisherigen Titel mitbringen.
     await run(window, rechtsklick);
     await sleep(400);

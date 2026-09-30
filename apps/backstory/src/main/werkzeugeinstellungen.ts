@@ -15,7 +15,8 @@
 import { dialog, BrowserWindow, type Session, type WebContents } from 'electron';
 import type { Werkzeugeinstellungen, Wert } from '@suite/einstellungen';
 import { pruefeWert } from '@suite/einstellungen';
-import type { AppSettings } from '../shared/types';
+import type { AppSettings, Rechtschreibwahl } from '../shared/types';
+import { setzePruefsprache } from './rechtschreibung';
 
 /** Woran das Modul kommt, ohne den Rest des Hauptprozesses zu kennen. */
 export interface Umgebung {
@@ -35,6 +36,7 @@ const FELD = {
   verlauf: 'historyEnabled',
   verlaufMax: 'historyMaxVersions',
   ort: 'vaultRoot',
+  pruefung: 'spellcheck',
   woerter: 'woerter'
 } as const;
 
@@ -124,6 +126,22 @@ export async function baueBeschreibung(umgebung: Umgebung): Promise<Werkzeugeins
         name: { de: 'Rechtschreibung', en: 'Spelling' },
         felder: [
           {
+            art: 'auswahl',
+            id: FELD.pruefung,
+            name: { de: 'Prüfen in', en: 'Check in' },
+            hinweis: {
+              de: 'Unabhängig von der Sprache der Oberfläche. „Aus“ streicht nichts mehr an.',
+              en: 'Independent of the interface language. “Off” stops underlining.'
+            },
+            wert: s.spellcheck,
+            optionen: [
+              { id: 'auto', name: { de: 'Wie die Oberfläche', en: 'Same as interface' } },
+              { id: 'de', name: { de: 'Deutsch', en: 'German' } },
+              { id: 'en', name: { de: 'Englisch', en: 'English' } },
+              { id: 'off', name: { de: 'Aus', en: 'Off' } }
+            ]
+          },
+          {
             art: 'sammlung',
             id: FELD.woerter,
             name: { de: 'Eigene Wörter', en: 'Your own words' },
@@ -175,6 +193,12 @@ export async function setzeWert(
     case FELD.verlaufMax:
       await umgebung.schreibe({ historyMaxVersions: wert as number });
       break;
+    case FELD.pruefung: {
+      const neu = await umgebung.schreibe({ spellcheck: wert as Rechtschreibwahl });
+      const sitzung = umgebung.sitzung();
+      if (sitzung) setzePruefsprache(sitzung, neu.language, neu.spellcheck);
+      break;
+    }
     default:
       return vorher;
   }

@@ -34,11 +34,38 @@ interface Gemerkt {
   readonly figur: Figur;
 }
 
+const MERKLISTE = 'npc.merkliste';
+
+/** Liest die gemerkten Figuren; Unlesbares faellt still weg. */
+function ladeMerkliste(): Gemerkt[] {
+  try {
+    const roh = JSON.parse(localStorage.getItem(MERKLISTE) ?? '[]') as unknown;
+    if (!Array.isArray(roh)) return [];
+    return roh
+      .filter(
+        (e): e is Gemerkt =>
+          typeof e === 'object' && e !== null && typeof e.id === 'number' && typeof e.figur?.name === 'string'
+      )
+      .slice(0, 20);
+  } catch {
+    return [];
+  }
+}
+
 export function App() {
   const [figur, setFigur] = useState<Figur | null>(null);
   const [festgehalten, setFestgehalten] = useState<readonly Feld[]>([]);
   const [wuensche, setWuensche] = useState<Wuensche>(STANDARD_WUENSCHE);
-  const [gemerkt, setGemerkt] = useState<Gemerkt[]>([]);
+  // Die Merkliste ueberlebt einen Neustart (Wunsch aus dem Testbericht).
+  const [gemerkt, setGemerkt] = useState<Gemerkt[]>(ladeMerkliste);
+  useEffect(() => {
+    try {
+      localStorage.setItem(MERKLISTE, JSON.stringify(gemerkt));
+    } catch {
+      // Ohne Speicher bleibt sie eben bis zum Schliessen.
+    }
+  }, [gemerkt]);
+  const [vorhanden, setVorhanden] = useState(false);
   const [exportStand, setExportStand] = useState<'ruht' | 'laeuft' | 'fertig' | 'fehler'>('ruht');
   const [exportText, setExportText] = useState('');
   const [, setSprache] = useState<Language>(getLanguage);
@@ -183,15 +210,23 @@ export function App() {
     return () => window.removeEventListener('focus', frage);
   }, []);
 
-  const exportiere = useCallback(async () => {
-    if (!figur) return;
-    setExportStand('laeuft');
-    // Exportiert wird in der Sprache, in der man gerade arbeitet: die Notiz
-    // landet zwischen anderen Notizen derselben Kampagne.
-    const ergebnis = await api.export(figur.name, alsMarkdown(figur, getLanguage()), ziel);
-    setExportStand(ergebnis.ok ? 'fertig' : 'fehler');
-    setExportText(ergebnis.text);
-  }, [figur, ziel]);
+  const exportiere = useCallback(
+    async (ersetzen = false) => {
+      if (!figur) return;
+      setExportStand('laeuft');
+      // Exportiert wird in der Sprache, in der man gerade arbeitet: die Notiz
+      // landet zwischen anderen Notizen derselben Kampagne. Die Spezies geht
+      // zusaetzlich in das Steckbrieffeld, wenn der Notiztyp eins hat.
+      const ergebnis = await api.export(figur.name, alsMarkdown(figur, getLanguage()), ziel, {
+        ersetzen,
+        felder: figur.spezies ? { species: figur.spezies } : {}
+      });
+      setExportStand(ergebnis.ok ? 'fertig' : 'fehler');
+      setExportText(ergebnis.text);
+      setVorhanden(!ergebnis.ok && ergebnis.vorhanden === true);
+    },
+    [figur, ziel]
+  );
 
   // Gewuerfelt wird in der Sprache, in der gearbeitet wird. Eine bereits
   // gewuerfelte Figur wechselt NICHT mit: sie koennte von Hand bearbeitet
@@ -334,7 +369,19 @@ export function App() {
               </button>
             </div>
 
-            {exportStand === 'fehler' ? <p className="stoerung">{exportText}</p> : null}
+            {exportStand === 'fehler' ? (
+              <p className="stoerung">
+                {exportText}
+                {vorhanden ? (
+                  <>
+                    {' '}
+                    <button type="button" data-aktualisieren onClick={() => void exportiere(true)}>
+                      {t('knopf.aktualisieren')}
+                    </button>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
             {kiFehler ? <p className="stoerung">{kiFehler}</p> : null}
           </>
         ) : (

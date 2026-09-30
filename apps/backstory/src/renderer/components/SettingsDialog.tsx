@@ -177,6 +177,19 @@ export function SettingsDialog({
         </>
       )}
 
+      <label className="field">
+        <span className="field__label">{t('spell.language')}</span>
+        <select
+          value={settings.spellcheck}
+          onChange={(event) => onChange({ spellcheck: event.target.value as AppSettings['spellcheck'] })}
+        >
+          <option value="auto">{t('spell.auto')}</option>
+          <option value="de">{t('spell.de')}</option>
+          <option value="en">{t('spell.en')}</option>
+          <option value="off">{t('spell.off')}</option>
+        </select>
+      </label>
+
       {/* Die eigenen Woerter der Rechtschreibpruefung. Aufgenommen wird per
           Rechtsklick im Text; hier kommt man wieder heraus. */}
       <div className="field">

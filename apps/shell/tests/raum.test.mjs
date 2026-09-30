@@ -380,3 +380,90 @@ test('ein geschlossener Raum verschwindet sofort aus der Liste', async () => {
     g.d.beende();
   }
 });
+
+/** Ein Tischschluessel wie der, den die App je Installation anlegt. */
+function tischschluessel() {
+  const { generateKeyPairSync } = require('node:crypto');
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  return { oeffentlich: publicKey.export({ format: 'der', type: 'spki' }).toString('base64'), privat: privateKey };
+}
+
+function dienstMitSchluessel(suchport, schluessel) {
+  const ereignisse = [];
+  const d = new Raumdienst((e) => ereignisse.push(e), { suchport, rufziel: '127.0.0.1', schluessel: () => schluessel });
+  return { d, ereignisse };
+}
+
+test('Rollen: wer eroeffnet leitet, SL kann weitere ernennen, die letzte SL bleibt', async () => {
+  const g = dienst(47911);
+  const a = dienst(47911);
+  const b = dienst(47911);
+  try {
+    const port = await g.d.eroeffne('Runde', 'x', 'Lea');
+    await a.d.trittBei('127.0.0.1', port, 'x', 'Anna');
+    await b.d.trittBei('127.0.0.1', port, 'x', 'Ben');
+    await bis(() => g.d.zustand().personen.length === 3 && b.d.zustand().personen.length === 3);
+    assert.equal(g.d.zustand().ich.sl, true, 'wer eroeffnet, leitet');
+    const anna = a.d.zustand().ich.id;
+    const ben = b.d.zustand().ich.id;
+
+    // Ein Gast ohne SL darf niemanden ernennen.
+    a.d.slRolle(ben, true);
+    await warte(200);
+    assert.equal(g.d.zustand().personen.find((p) => p.id === ben).sl, undefined);
+
+    // Die SL ernennt Anna; Anna (jetzt SL) ernennt Ben: drei SL.
+    assert.equal(g.d.slRolle(anna, true), true);
+    await bis(() => a.d.zustand().ich.sl === true);
+    a.d.slRolle(ben, true);
+    await bis(() => b.d.zustand().ich.sl === true);
+    assert.equal(g.d.zustand().personen.filter((p) => p.sl).length, 3);
+
+    // Abgeben geht, bis nur noch eine uebrig ist.
+    const lea = g.d.zustand().ich.id;
+    assert.equal(g.d.slRolle(lea, false), true);
+    a.d.slRolle(anna, false);
+    await bis(() => a.d.zustand().ich.sl !== true);
+    b.d.slRolle(ben, false);
+    await warte(200);
+    assert.equal(b.d.zustand().ich.sl, true, 'die letzte SL kann nicht abgeben');
+  } finally {
+    a.d.beende();
+    b.d.beende();
+    g.d.beende();
+  }
+});
+
+test('Rollen: ohne SL darf der Gastgeber ernennen; gemerkte Rollen kommen am Schluessel wieder', async () => {
+  const schluesselAnna = tischschluessel();
+  const g = dienst(47912);
+  const a = dienstMitSchluessel(47912, schluesselAnna);
+  const falsch = dienstMitSchluessel(47912, { ...tischschluessel(), oeffentlich: schluesselAnna.oeffentlich });
+  try {
+    let port = await g.d.eroeffne('Runde', 'x', 'Host', { sl: false });
+    await a.d.trittBei('127.0.0.1', port, 'x', 'Anna');
+    await bis(() => g.d.zustand().personen.length === 2);
+    assert.equal(g.d.zustand().ich.sl, undefined, 'wer nicht leiten will, leitet nicht');
+    assert.equal(g.d.slRolle(a.d.zustand().ich.id, true), true, 'ohne SL darf der Gastgeber ernennen');
+    await bis(() => a.d.zustand().ich.sl === true);
+    const rollen = g.ereignisse.filter((e) => e.art === 'rollen').at(-1).rollen;
+    assert.deepEqual(rollen[schluesselAnna.oeffentlich], { name: 'Anna', sl: true });
+
+    // Naechstes Mal: Anna kommt unter anderem Namen und ist wieder SL.
+    a.d.beende();
+    g.d.beende();
+    port = await g.d.eroeffne('Runde', 'x', 'Host', { sl: false, rollen });
+    await a.d.trittBei('127.0.0.1', port, 'x', 'Anna die Zweite');
+    await bis(() => a.d.zustand().ich !== null);
+    assert.equal(a.d.zustand().ich.sl, true, 'die Rolle haengt am Schluessel, nicht am Namen');
+
+    // Wer nur den oeffentlichen Schluessel kennt, kann nicht unterschreiben.
+    await falsch.d.trittBei('127.0.0.1', port, 'x', 'Anna');
+    await bis(() => falsch.d.zustand().ich !== null);
+    assert.equal(falsch.d.zustand().ich.sl, undefined, 'ohne passende Unterschrift keine Rolle');
+  } finally {
+    a.d.beende();
+    falsch.d.beende();
+    g.d.beende();
+  }
+});
