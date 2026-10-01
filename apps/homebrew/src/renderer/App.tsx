@@ -7,7 +7,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
-import { SELTENHEIT_NAME } from '@suite/srd';
+import { SELTENHEITEN, SELTENHEIT_NAME } from '@suite/srd';
+import { ARTEN as MAGIE_ARTEN, ART_NAME as MAGIE_ART_NAME } from '@suite/magie/tabellen';
 import { MEISTERSCHAFTEN, RUESTUNGSARTEN, WAFFEN_EIGENSCHAFTEN, type Meisterschaft, type RuestungsArt } from '@suite/srd/waffen';
 import { api } from './api';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
@@ -21,6 +22,7 @@ import {
   leererEintrag,
   type Art,
   type Eintrag,
+  type Magisch,
   type Ruestung,
   type Schadensart,
   type Waffe,
@@ -39,6 +41,8 @@ import {
 } from '../shared/texte';
 import { eicheRuestung, eicheWaffe, type Eichung } from '../shared/eichung';
 import { eicheZauber } from '../shared/zauberEichung';
+import { eicheMagisch } from '../shared/magischEichung';
+import { alsFoundryDatei, kannFoundry } from '../shared/foundry';
 
 type Sprache = 'de' | 'en';
 
@@ -47,7 +51,7 @@ function sprache(): Sprache {
 }
 
 /** Arten, die schon einen Reiter haben. Die uebrigen folgen (docs/homebrew-creator.md, Schritte). */
-export const BEREIT: readonly Art[] = ['waffe', 'ruestung', 'gegenstand', 'zauber'];
+export const BEREIT: readonly Art[] = ['waffe', 'ruestung', 'gegenstand', 'magisch', 'zauber'];
 
 export function App() {
   const [, neuZeichnen] = useState(0);
@@ -209,6 +213,28 @@ export function App() {
           >
             {offen.imLoot ? t('loot.drin') : t('loot')}
           </button>
+          {kannFoundry(offen) ? (
+            <button
+              type="button"
+              className="knopf"
+              data-foundry
+              onClick={() =>
+                void (async () => {
+                  if (!offen.name.trim()) {
+                    setFehler(t('fehler.name'));
+                    return;
+                  }
+                  const datei = alsFoundryDatei(offen);
+                  if (!datei) return;
+                  const ergebnis = await api.foundry(datei.name, datei.inhalt);
+                  if (ergebnis.ok) setMeldung(t('foundry.fertig', { pfad: ergebnis.text }));
+                  else if (ergebnis.text) setFehler(ergebnis.text);
+                })()
+              }
+            >
+              {t('foundry')}
+            </button>
+          ) : null}
           <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
             {t('speichern')}
           </button>
@@ -235,6 +261,7 @@ export function App() {
             {offen.art === 'waffe' ? <WaffenFelder w={offen} setze={setze} /> : null}
             {offen.art === 'ruestung' ? <RuestungsFelder r={offen} setze={setze} /> : null}
             {offen.art === 'zauber' ? <ZauberFelder z={offen} setze={setze} /> : null}
+            {offen.art === 'magisch' ? <MagischFelder m={offen} setze={setze} /> : null}
 
             <label className="feld feld--hoch">
               <span className="feld__name">{t('feld.beschreibung')}</span>
@@ -640,8 +667,56 @@ function ZauberFelder({ z, setze }: { z: Zauber; setze: (teil: Partial<Zauber>) 
   );
 }
 
+function MagischFelder({ m, setze }: { m: Magisch; setze: (teil: Partial<Magisch>) => void }) {
+  const s = sprache();
+  const wirkungen = m.wirkungen.length ? m.wirkungen : [''];
+  const setzeWirkung = (i: number, text: string) => setze({ wirkungen: wirkungen.map((w, j) => (j === i ? text : w)) });
+  return (
+    <div className="artfelder" data-magisch>
+      <div className="zeile">
+        <Wahl
+          label={t('feld.gegenstandsart')}
+          wert={m.gegenstandsart}
+          feld="gegenstandsart"
+          optionen={MAGIE_ARTEN.map((x) => ({ wert: x, text: MAGIE_ART_NAME[x][s] }))}
+          aendern={(gegenstandsart) => setze({ gegenstandsart })}
+        />
+        <Wahl
+          label={t('feld.seltenheit')}
+          wert={m.seltenheit}
+          feld="seltenheit"
+          optionen={SELTENHEITEN.map((x) => ({ wert: x, text: SELTENHEIT_NAME[x][s] }))}
+          aendern={(seltenheit) => setze({ seltenheit })}
+        />
+        <Haken label={t('feld.einstimmung')} wert={m.einstimmung} feld="einstimmung" aendern={(einstimmung) => setze({ einstimmung })} />
+      </div>
+      <span className="feld__name">{t('feld.wirkungen')}</span>
+      {wirkungen.map((w, i) => (
+        <div key={i} className="wirkung">
+          <textarea className="feld__flaeche" rows={2} value={w} data-wirkung={i} onChange={(e) => setzeWirkung(i, e.target.value)} />
+          {wirkungen.length > 1 ? (
+            <button type="button" className="knopf knopf--klein" aria-label={t('wirkung.weg')} title={t('wirkung.weg')} onClick={() => setze({ wirkungen: wirkungen.filter((_, j) => j !== i) })}>
+              ✕
+            </button>
+          ) : null}
+        </div>
+      ))}
+      {wirkungen.length < 12 ? (
+        <button type="button" className="knopf knopf--klein" data-wirkung-dazu onClick={() => setze({ wirkungen: [...wirkungen, ''] })}>
+          {t('wirkung.dazu')}
+        </button>
+      ) : null}
+      <label className="feld feld--hoch">
+        <span className="feld__name">{t('feld.fluch')}</span>
+        <textarea className="feld__flaeche" rows={2} value={m.fluch} data-feld="fluch" onChange={(e) => setze({ fluch: e.target.value })} />
+      </label>
+    </div>
+  );
+}
+
 function EichungsTafel({ e }: { e: Eintrag }) {
-  if (e.art === 'zauber') return <ZauberEichungsTafel z={e} />;
+  if (e.art === 'zauber') return <EinfacheTafel eichung={eicheZauber(e)} hinweis="eichung.zauberHinweis" />;
+  if (e.art === 'magisch') return <EinfacheTafel eichung={eicheMagisch(e)} hinweis="eichung.magischHinweis" />;
   const s = sprache();
   const eichung: Eichung<{ name: readonly [string, string] }> | null =
     e.art === 'waffe' ? eicheWaffe(e) : e.art === 'ruestung' ? eicheRuestung(e) : null;
@@ -680,9 +755,9 @@ function EichungsTafel({ e }: { e: Eintrag }) {
   );
 }
 
-function ZauberEichungsTafel({ z }: { z: Zauber }) {
+/** Die Tafel fuer Zauber und magische Gegenstaende: Urteil (falls es eines gibt), Satz, Befunde. */
+function EinfacheTafel({ eichung, hinweis }: { eichung: { urteil: Eichung<never>['urteil'] | null; satz: { de: string; en: string }; befunde: readonly { stufe: string; text: { de: string; en: string } }[] }; hinweis: TextKey }) {
   const s = sprache();
-  const eichung = eicheZauber(z);
   return (
     <aside className="karte eichung" data-eichung={eichung.urteil ?? 'keine'}>
       <h2>{t('eichung')}</h2>
@@ -701,7 +776,7 @@ function ZauberEichungsTafel({ z }: { z: Zauber }) {
           ))}
         </ul>
       ) : null}
-      <p className="leise">{t('eichung.zauberHinweis')}</p>
+      <p className="leise">{t(hinweis)}</p>
     </aside>
   );
 }

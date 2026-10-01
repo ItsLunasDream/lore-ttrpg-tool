@@ -7,7 +7,7 @@
  *
  * Aufruf: xvfb-run -a electron scripts/smoke-homebrew.cjs --no-sandbox
  */
-const { app, BaseWindow } = require('electron');
+const { app, BaseWindow, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -88,6 +88,16 @@ app.whenReady().then(async () => {
   pruefe(await js(`Boolean(document.querySelector('[data-befund="warnung"]'))`), 'leicht und zweihaendig: eine Warnung');
   await js(`document.querySelector('[data-eigenschaft="leicht"]').click(); document.querySelector('[data-eigenschaft="zweihaendig"]').click(); true`);
   await waehle('bonus', '2');
+  // Ein Bild: ein kleines Canvas als PNG, ueber das Dateifeld wie von Hand gewaehlt.
+  await js(`(async () => {
+    const c = document.createElement('canvas'); c.width = 40; c.height = 20;
+    const g = c.getContext('2d'); g.fillStyle = '#c33'; g.fillRect(0, 0, 40, 20);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    const dt = new DataTransfer(); dt.items.add(new File([blob], 'klinge.png', { type: 'image/png' }));
+    const e = document.querySelector('[data-bild-datei]'); e.files = dt.files;
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await warte(800);
+  pruefe(await js(`Boolean(document.querySelector('[data-bild] img'))`), 'ein Bild ist gewaehlt');
   await warte(200);
   pruefe(/Selten/.test(await js(`document.querySelector('[data-eichung-seltenheit]')?.textContent ?? ''`)), 'Bonus +2: Seltenheit selten (SRD)');
   await js(`document.querySelector('[data-speichern]').click(); true`);
@@ -155,6 +165,36 @@ app.whenReady().then(async () => {
   await warte(400);
   pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung');
 
+  // --- Magischer Gegenstand ------------------------------------------------------
+  await js(`document.querySelector('[data-neu="magisch"]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-magisch]'))`), 'Neu: magischer Gegenstand oeffnet seine Felder');
+  await tippe('name', 'Glutamulett');
+  const wirkung = (i, text) =>
+    js(`(() => { const e = document.querySelector('[data-wirkung="${i}"]');
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(e, ${JSON.stringify('x')}.replace('x', ${JSON.stringify(text)}));
+      e.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  await wirkung(0, 'Du erhältst +1 Bonus auf Angriffswürfe.');
+  await warte(200);
+  pruefe((await urteil()) === 'im_rahmen', 'ungewoehnlich, +1: im Rahmen');
+  await wirkung(0, 'Du erhältst +3 Bonus auf Angriffswürfe.');
+  await warte(200);
+  pruefe((await urteil()) === 'ueber' && (await js(`Boolean(document.querySelector('[data-befund="warnung"]'))`)), 'ungewoehnlich, +3: ueber der Grenze, mit Warnung');
+  await waehle('seltenheit', 'veryRare');
+  await warte(200);
+  pruefe((await urteil()) === 'im_rahmen', 'sehr selten, +3: im Rahmen');
+  await js(`document.querySelector('[data-speichern]').click(); true`);
+  await warte(800);
+  const ziel = path.join(tmp, 'glutamulett.json');
+  dialog.showSaveDialog = async () => ({ canceled: false, filePath: ziel });
+  await js(`document.querySelector('[data-foundry]').click(); true`);
+  await warte(800);
+  const foundry = fs.existsSync(ziel) ? JSON.parse(fs.readFileSync(ziel, 'utf8')) : null;
+  pruefe(foundry?.name === 'Glutamulett' && foundry?.system?.rarity === 'veryRare', 'Foundry-Export: JSON mit Name und Seltenheit');
+  await js(`document.querySelector('[data-zurueck]').click(); true`);
+  await warte(400);
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 4, 'vier Kacheln in der Sammlung');
+
   // --- Suche der Huelle ----------------------------------------------------------
   const eintraege = (await hjs('window.shell.suche.eintraege()')) ?? [];
   pruefe(eintraege.some((e) => e.werkzeug === 'homebrew' && e.name === 'Sturmklinge'), 'Strg+K kennt die Sturmklinge');
@@ -182,6 +222,9 @@ app.whenReady().then(async () => {
   pruefe(await loot(`Boolean(document.querySelector('[data-id="mi-homebrew"]'))`), 'Loot Generator: Tabelle „Homebrew"');
   const nsw = await oeffneWerkzeug('nachschlagewerk');
   pruefe(await nsw(`Boolean(document.querySelector('[data-regel="homebrew/sturmklinge"]'))`), 'Nachschlagewerk: die Sturmklinge steht unter Homebrew');
+  await nsw(`document.querySelector('[data-regel="homebrew/sturmklinge"]')?.click(); true`);
+  await warte(500);
+  pruefe(await nsw(`Boolean(document.querySelector('[data-regel-bild]'))`), 'Nachschlagewerk: mit ihrem Bild');
   const cb = await oeffneWerkzeug('charakterbogen');
   await cb(`window.confirm = () => true; document.querySelector('[data-neu]').click(); true`);
   await warte(900);
@@ -201,6 +244,9 @@ app.whenReady().then(async () => {
   await warte(400);
   // Neue Figur: alle Attribute 10, also nur der magische Bonus +2.
   const schaden = await cb(`[...document.querySelectorAll('[data-angriff-schaden]')].map((e) => e.textContent.trim()).join('|')`);
+  await cb(`(() => { const k = [...document.querySelectorAll('[data-gegenstand-titel]')].find((e) => /Sturmklinge/.test(e.textContent)); k?.click(); return Boolean(k); })()`);
+  await warte(400);
+  pruefe(await cb(`Boolean(document.querySelector('[data-gegenstand-bild]'))`), 'Charakterbogen: die Iteminfo zeigt ihr Bild');
   pruefe(/1d8\+2 Hieb/.test(schaden), `ausgerüstet wird sie zum Angriff: 1W8+2 Hieb (${schaden})`);
 
   // Der eigene Zauber steht in der Zaubersuche des Bogens.

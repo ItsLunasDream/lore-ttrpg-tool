@@ -307,6 +307,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
             </div>
             {offen === g.id ? (
               <div className="gegenstand__detail">
+                {g.bild ? <img className="gegenstand__bild" src={g.bild} alt="" data-gegenstand-bild={g.id} /> : null}
                 <textarea
                   rows={3}
                   aria-label={t('gegenstand.beschreibung')}

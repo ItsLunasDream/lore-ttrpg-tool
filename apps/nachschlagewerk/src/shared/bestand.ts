@@ -81,6 +81,8 @@ export interface Regel {
   readonly bloecke: readonly Glossarblock[];
   /** Die Kennungen (`<art>/<kennung>`) der Eintraege, auf die er verweist. */
   readonly verweise: readonly string[];
+  /** Bild eines Homebrew-Eintrags, als data:-Adresse. */
+  readonly bild?: string;
 }
 
 function flach(bloecke: readonly Glossarblock[], sprache: 'de' | 'en'): string {
@@ -130,6 +132,7 @@ export interface HomebrewEintrag {
   readonly unterzeile: Paar;
   /** Beschreibung, Wirkungen usw. je Sprache, Absatz fuer Absatz. */
   readonly absaetze: { readonly de: readonly string[]; readonly en: readonly string[] };
+  readonly bild?: string;
 }
 
 export function homebrewAlsRegel(h: HomebrewEintrag): Regel {
@@ -145,7 +148,9 @@ export function homebrewAlsRegel(h: HomebrewEintrag): Regel {
     unterzeile: h.unterzeile,
     text: { de: h.absaetze.de.join('\n\n'), en: h.absaetze.en.join('\n\n') },
     bloecke,
-    verweise: []
+    verweise: [],
+    // Nur ein Bild als data:-Adresse; alles andere laesst die CSP ohnehin nicht zu.
+    ...(h.bild && /^data:image\/(png|jpeg|webp);base64,/.test(h.bild) ? { bild: h.bild } : {})
   };
 }
 

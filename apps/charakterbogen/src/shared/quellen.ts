@@ -10,7 +10,7 @@
  */
 import { AUSRUESTUNG } from '@suite/srd/ausruestung';
 import { MAGISCHE_GEGENSTAENDE } from '@suite/srd/magische-gegenstaende';
-import { neueKennung, type EigeneWaffe, type Gegenstand } from './inventar';
+import { istBild, neueKennung, type EigeneWaffe, type Gegenstand } from './inventar';
 import { WAFFEN } from './waffen';
 
 export type Quellart = 'srd' | 'srd-magie' | 'magicitem' | 'homebrew' | 'loot';
@@ -27,6 +27,8 @@ export interface Quelleintrag {
   readonly wert: number | null;
   readonly beschreibung: string;
   readonly einstimmung?: boolean;
+  /** Bild aus dem Homebrew Creator, als data:-Adresse (verkleinert). */
+  readonly bild?: string;
   readonly waffe?: { readonly id: string; readonly magie: number; readonly geuebt: boolean; readonly eigen?: EigeneWaffe };
 }
 
@@ -237,6 +239,7 @@ export function alsGegenstand(e: Quelleintrag, anzahl = 1): Gegenstand {
     ausgeruestet: false,
     eingestimmt: false,
     quelle: { art, kennung: e.kennung.slice(0, 120) },
+    ...(istBild(e.bild) ? { bild: e.bild } : {}),
     ...(e.waffe ? { waffe: { ...e.waffe, ...(e.waffe.eigen ? { eigen: { ...e.waffe.eigen, art: [...e.waffe.eigen.art] as [string, string] } } : {}) } } : {})
   };
 }

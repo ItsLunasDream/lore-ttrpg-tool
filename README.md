@@ -23,6 +23,8 @@ connection you set up yourself.
 - **Encounter Creator**: encounters from 331 SRD monsters and your own,
   difficulty per the rules, one click into the tracker.
 - **Magic Item Generator**: magic items by type and rarity, values per the SRD.
+- **Homebrew Creator**: your own weapons, armor, items, magic items and spells,
+  calibrated against the SRD; they show up in the sheet, loot and reference.
 - **Loot Generator**: your own nested random tables.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
@@ -78,6 +80,7 @@ apps/zustaende/       Status Effect Creator
 apps/encounter/       Encounter Creator
 apps/nachschlagewerk/ Reference
 apps/magicitems/      Magic Item Generator
+apps/homebrew/        Homebrew Creator
 apps/loot/            Loot Generator
 packages/dice/        Dice expressions
 packages/i18n/        Language and text substitution
@@ -86,6 +89,7 @@ packages/ki/          Language models (Ollama, Claude, OpenAI-compatible)
 packages/umgebungen/  Environments
 packages/einstellungen/ Tool settings described for the shell
 packages/foundry/     Foundry VTT JSON export
+packages/magie/       Magic item tables and calibration (shared)
 packages/farben/      Colour roles and themes
 packages/eintraege/   Entries every tool understands (search, sharing)
 packages/tabellen/    Random tables
@@ -366,6 +370,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `austausch.md` | Sharing and rooms |
 | `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
 | `magicitems.md` | Magic Item Generator |
+| `homebrew-creator.md` | Homebrew Creator |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |

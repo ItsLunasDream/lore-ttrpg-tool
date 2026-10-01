@@ -66,6 +66,17 @@ const TEXTE = {
     'Verglichen mit SRD-Zaubern desselben Grads, die sofort Schaden machen (Schaden bei misslungenem Rettungswurf oder Treffer). Ab 25 % über dem stärksten gilt „stärker". Die Grenzen sind eine Schätzung, keine Regel.',
     'Compared with SRD spells of the same level that deal damage at once (damage on a failed save or a hit). From 25 % above the strongest it counts as “stronger”. The limits are an estimate, not a rule.'
   ],
+  'eichung.magischHinweis': [
+    'Dieselben Grenzen wie im Magic Item Generator, geeicht an SRD-Gegenständen. Gelesen werden nur Zahlen in festen Mustern („+2 Bonus", „2W6 Schaden", „SG 15", „(Grad 3)"); frei Formuliertes sieht die Eichung nicht.',
+    'The same limits as in the Magic Item Generator, calibrated against SRD items. Only numbers in fixed patterns are read (“+2 bonus”, “2d6 damage”, “DC 15”, “(level 3)”); free wording is not checked.'
+  ],
+  'feld.gegenstandsart': ['Art', 'Kind'],
+  'feld.seltenheit': ['Seltenheit', 'Rarity'],
+  'feld.einstimmung': ['Einstimmung nötig', 'Requires attunement'],
+  'feld.wirkungen': ['Wirkungen', 'Properties'],
+  'wirkung.dazu': ['+ Wirkung', '+ Property'],
+  'wirkung.weg': ['Wirkung entfernen', 'Remove property'],
+  'feld.fluch': ['Fluch (leer = keiner)', 'Curse (empty = none)'],
   'feld.grad': ['Grad', 'Level'],
   'grad.trick': ['Zaubertrick', 'Cantrip'],
   'feld.schule': ['Schule', 'School'],

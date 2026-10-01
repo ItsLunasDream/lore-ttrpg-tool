@@ -71,3 +71,15 @@ test('Loot: eigener Gegenstand aus dem Magic Item Generator wird erkannt', () =>
   assert.equal(e.wert, 800);
   assert.match(e.beschreibung, /^Leuchtet im Morgengrauen\./);
 });
+
+test('Bild eines eigenen Gegenstands: nur data:-Bilder bleiben, auch beim Uebernehmen aus der Quelle', () => {
+  const gut = 'data:image/jpeg;base64,AAAA';
+  const [a, b] = B.bereinigeGegenstaende([
+    { name: 'Klinge', bild: gut },
+    { name: 'Falle', bild: 'https://example.invalid/x.png' }
+  ]);
+  assert.equal(a.bild, gut);
+  assert.equal(b.bild, undefined);
+  const g = B.alsGegenstand({ quelle: 'homebrew', kennung: 'k', name: 'Klinge', art: 'x', gewicht: null, wert: null, beschreibung: '', bild: gut });
+  assert.equal(g.bild, gut);
+});

@@ -105,7 +105,7 @@ export async function leseZauberFuerBogen(datenordner: string, sprache: 'de' | '
 
 /** Alle Eintraege fuer das Nachschlagewerk: Name, Kurzzeile und Text je Sprache. */
 export async function leseFuerNachschlagewerk(datenordner: string): Promise<
-  { id: string; name: string; unterzeile: { de: string; en: string }; absaetze: { de: string[]; en: string[] } }[]
+  { id: string; name: string; unterzeile: { de: string; en: string }; absaetze: { de: string[]; en: string[] }; bild?: string }[]
 > {
   const absaetze = (e: Eintrag, s: 'de' | 'en'): string[] => {
     const teile = e.beschreibung.split(/\n{2,}/).map((x) => x.trim()).filter(Boolean);
@@ -121,7 +121,8 @@ export async function leseFuerNachschlagewerk(datenordner: string): Promise<
     id: e.id,
     name: e.name,
     unterzeile: { de: `Homebrew · ${kurzzeile(e, 'de')}`, en: `Homebrew · ${kurzzeile(e, 'en')}` },
-    absaetze: { de: absaetze(e, 'de'), en: absaetze(e, 'en') }
+    absaetze: { de: absaetze(e, 'de'), en: absaetze(e, 'en') },
+    ...(e.bild ? { bild: e.bild } : {})
   }));
 }
 

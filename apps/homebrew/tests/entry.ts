@@ -6,3 +6,5 @@ export * from '../src/shared/inventar';
 export * from '../src/shared/zauberEichung';
 export * from '../src/shared/texte';
 export { ZAUBER } from '@suite/srd/zauber';
+export * from '../src/shared/magischEichung';
+export * from '../src/shared/foundry';

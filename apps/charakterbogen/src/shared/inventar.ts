@@ -27,6 +27,15 @@ export interface Gegenstand {
    * ihre Kampfwerte mit (`eigen`), weil der Bogen jene Sammlung nicht kennt.
    */
   waffe?: { id: string; magie: number; geuebt: boolean; eigen?: EigeneWaffe };
+  /** Bild eines eigenen Gegenstands (Homebrew Creator), als data:-Adresse. */
+  bild?: string;
+}
+
+/** Hoechstens so viele Zeichen; ein verkleinertes Bild (480 px, JPEG) braucht deutlich weniger. */
+export const BILD_HOECHSTENS = 600_000;
+
+export function istBild(x: unknown): x is string {
+  return typeof x === 'string' && x.length <= BILD_HOECHSTENS && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(x);
 }
 
 /** Die Kampfwerte einer eigenen Waffe, so viel wie der Bogen zum Rechnen braucht. */
@@ -260,6 +269,7 @@ export function bereinigeGegenstaende(roh: unknown): Gegenstand[] {
         wert: zahlOderNull(r.wert, 100_000_000),
         ausgeruestet: r.ausgeruestet === true,
         eingestimmt: r.eingestimmt === true,
+        ...(istBild(r.bild) ? { bild: r.bild } : {}),
         ...(quelle ? { quelle } : {}),
         ...(waffe ? { waffe } : {})
       }

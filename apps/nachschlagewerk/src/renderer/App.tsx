@@ -695,6 +695,7 @@ function Blatt({
           <span className="regel__art">{ART_NAME[regel.art][spr]}</span>
           <h2>{regel.name[spr]}</h2>
           {zweitName(regel, spr) ? <p className="regel__anders">{zweitName(regel, spr)}</p> : null}
+          {regel.bild ? <img className="regel__bild" src={regel.bild} alt="" data-regel-bild /> : null}
           {regel.unterzeile ? (
             <p className="regel__unterzeile" data-unterzeile>
               {regel.unterzeile[spr]}

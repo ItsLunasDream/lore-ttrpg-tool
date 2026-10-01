@@ -847,3 +847,13 @@ textarea {
   color: var(--betont);
   border-bottom: 1px solid var(--rand);
 }
+
+/* Bild eines Homebrew-Eintrags, ueber der Unterzeile. */
+.regel__bild {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  margin: 8px 0;
+  border-radius: 6px;
+  object-fit: contain;
+}
