@@ -74,3 +74,15 @@ test('bereinige: Unsinn wird zu gueltigen Werten', () => {
   assert.equal(e.bild, null);
   assert.equal(H.bereinige({ art: 'gibtsnicht' }, 'y').art, 'gegenstand');
 });
+
+test('Inventar: eine eigene Waffe bringt ihre Kampfwerte mit, Zauber kommen nicht ins Inventar', () => {
+  const w = { ...H.leererEintrag('waffe'), id: 'sturmklinge', name: 'Sturmklinge', wuerfel: '1d8', eigenschaften: ['finesse', 'vielseitig'], vielseitig: '1d10', schadensart: 'blitz', bonus: 1 };
+  const x = H.inventarEintrag(w, 'de');
+  assert.equal(x.quelle, 'homebrew');
+  assert.equal(x.waffe.magie, 1);
+  assert.deepEqual(x.waffe.eigen.art, ['Blitz', 'Lightning']);
+  assert.equal(x.waffe.eigen.vielseitig, '1d10');
+  assert.equal(x.waffe.eigen.finesse, true);
+  assert.match(x.waffe.eigen.eigenschaften[0], /Vielseitig \(1W10\)/);
+  assert.equal(H.inventarEintrag({ ...H.leererEintrag('zauber'), name: 'Z' }, 'de'), null);
+});

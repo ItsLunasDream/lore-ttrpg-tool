@@ -44,7 +44,12 @@ import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
-import { mountHomebrew } from '../../../homebrew/src/main/embed';
+import {
+  leseFuerInventar as leseHomebrewFuerInventar,
+  leseFuerLoot as leseHomebrewFuerLoot,
+  leseFuerNachschlagewerk as leseHomebrewFuerNachschlagewerk,
+  mountHomebrew
+} from '../../../homebrew/src/main/embed';
 import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
 import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
@@ -1422,7 +1427,9 @@ async function montiereNachschlagewerk(id: string, haken: MontageHaken): Promise
     datenordner: datenordner(id),
     devServerUrl: process.env.NACHSCHLAGEWERK_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Eintraege aus dem Homebrew Creator, neben dem SRD (docs/homebrew-creator.md).
+    homebrew: () => leseHomebrewFuerNachschlagewerk(app.getPath('userData'))
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1602,7 +1609,10 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken),
     // Der Bestand des Magic Item Generators, gelesen wie fuer die Suche: die
     // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
-    gegenstaende: () => leseNamenUndSeltenheit(app.getPath('userData'))
+    gegenstaende: async () => [
+      ...(await leseNamenUndSeltenheit(app.getPath('userData'))),
+      ...(await leseHomebrewFuerLoot(app.getPath('userData')))
+    ]
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1674,6 +1684,7 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     // einander nicht; die Huelle liest fuer den Charakterbogen mit.
     quellen: {
       magicitems: (sprache) => leseFuerInventar(app.getPath('userData'), sprache),
+      homebrew: async (sprache) => [...(await leseHomebrewFuerInventar(app.getPath('userData'), sprache))],
       lootTabellen: async (sprache) => (await alleLootTabellen(sprache)).map((x) => ({ id: x.id, name: x.name })),
       lootWuerfle: async (tabellenId, sprache) => {
         const alle = await alleLootTabellen(sprache);

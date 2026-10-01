@@ -14,6 +14,7 @@ import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
 import { alsKachel, alsMarkdown, freieKennung, leseEintrag, zuId, type Kachel } from '../shared/ablage';
 import type { Eintrag } from '../shared/modell';
+import { inventarEintrag, type InventarEintrag } from '../shared/inventar';
 import { ART_NAME, kurzzeile } from '../shared/texte';
 
 export const WERKZEUG = 'homebrew';
@@ -84,6 +85,48 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
     art: `Homebrew · ${ART_NAME[e.art][sprache]}`,
     stichworte: ['Homebrew', ART_NAME[e.art].de, ART_NAME[e.art].en, kurzzeile(e, 'en'), e.beschreibung.slice(0, 200)].join(' ')
   }));
+}
+
+/**
+ * Alles ausser Zaubern, so wie der Charakterbogen es ins Inventar nimmt;
+ * eigene Waffen mit ihren Kampfwerten. Die Huelle reicht es durch.
+ */
+export async function leseFuerInventar(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<InventarEintrag[]> {
+  return (await leseAlle(datenordner)).flatMap((e) => {
+    const x = inventarEintrag(e, sprache);
+    return x ? [x] : [];
+  });
+}
+
+/** Alle Eintraege fuer das Nachschlagewerk: Name, Kurzzeile und Text je Sprache. */
+export async function leseFuerNachschlagewerk(datenordner: string): Promise<
+  { id: string; name: string; unterzeile: { de: string; en: string }; absaetze: { de: string[]; en: string[] } }[]
+> {
+  const absaetze = (e: Eintrag, s: 'de' | 'en'): string[] => {
+    const teile = e.beschreibung.split(/\n{2,}/).map((x) => x.trim()).filter(Boolean);
+    if (e.art === 'magisch') {
+      teile.push(...e.wirkungen.filter((w) => w.trim()));
+      if (e.fluch.trim()) teile.push(`${s === 'de' ? 'Fluch' : 'Curse'}: ${e.fluch.trim()}`);
+    }
+    if (e.art === 'zauber' && e.hoehererGrad.trim()) teile.push(`${s === 'de' ? 'Höhere Grade' : 'Higher levels'}: ${e.hoehererGrad.trim()}`);
+    return teile;
+  };
+  return (await leseAlle(datenordner)).map((e) => ({
+    id: e.id,
+    name: e.name,
+    unterzeile: { de: `Homebrew · ${kurzzeile(e, 'de')}`, en: `Homebrew · ${kurzzeile(e, 'en')}` },
+    absaetze: { de: absaetze(e, 'de'), en: absaetze(e, 'en') }
+  }));
+}
+
+/**
+ * Was in den Loot Generator geschickt wurde: Name, bei magischen Gegenstaenden
+ * die Seltenheit. Der Loot Generator legt daraus die Tabelle „Homebrew" an.
+ */
+export async function leseFuerLoot(datenordner: string): Promise<{ name: string; seltenheit: string; herkunft: 'homebrew' }[]> {
+  return (await leseAlle(datenordner))
+    .filter((e) => e.imLoot && e.art !== 'zauber')
+    .map((e) => ({ name: e.name, seltenheit: e.art === 'magisch' ? e.seltenheit : '', herkunft: 'homebrew' as const }));
 }
 
 export async function mountHomebrew(options: HomebrewEmbedOptions): Promise<HomebrewEmbed> {

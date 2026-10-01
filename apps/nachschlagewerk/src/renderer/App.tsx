@@ -17,6 +17,8 @@ import {
   alleRegeln,
   alsRegel,
   glossarId,
+  homebrewAlsRegel,
+  type HomebrewEintrag,
   regelFuerGlossar,
   regelMitNamen,
   unterpunkt,
@@ -89,6 +91,8 @@ function andere(spr: Sprache): Sprache {
  * spielen.
  */
 function zweitName(regel: Regel, spr: Sprache): string | null {
+  // Selbst geschriebenes (Hausregel, Homebrew) hat nur einen Namen.
+  if (regel.art === 'hausregel' || regel.art === 'homebrew') return null;
   return spr === 'de' ? regel.name.en : null;
 }
 
@@ -150,9 +154,22 @@ export function App() {
     void ladeHausregeln();
   }, []);
 
+  /*
+   * Eintraege aus dem Homebrew Creator. Neu gelesen, wenn das Fenster den
+   * Fokus bekommt: wer dort etwas speichert und hierher wechselt, soll es
+   * sehen, ohne neu zu starten.
+   */
+  const [homebrew, setHomebrew] = useState<readonly HomebrewEintrag[]>([]);
+  useEffect(() => {
+    const lade = () => void api.homebrew.liste().then(setHomebrew, () => setHomebrew([]));
+    lade();
+    window.addEventListener('focus', lade);
+    return () => window.removeEventListener('focus', lade);
+  }, []);
+
   const regeln = useMemo(
-    () => [...hausregeln.map(alsRegel), ...alleRegeln()],
-    [hausregeln]
+    () => [...hausregeln.map(alsRegel), ...homebrew.map(homebrewAlsRegel), ...alleRegeln()],
+    [hausregeln, homebrew]
   );
   const regelnRef = useRef(regeln);
   regelnRef.current = regeln;
@@ -360,7 +377,7 @@ export function App() {
                       }}
                     >
                       <span className="eintrag__name">{regel.name[spr]}</span>
-                      {regel.art === 'hausregel' || !zweitName(regel, spr) ? null : (
+                      {regel.art === 'hausregel' || regel.art === 'homebrew' || !zweitName(regel, spr) ? null : (
                         <span className="eintrag__anders">{zweitName(regel, spr)}</span>
                       )}
                       {/* Die Fundstelle, wenn es nicht am Namen lag: sie ist

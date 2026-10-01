@@ -9,7 +9,7 @@
 import { rollExpression, type RandomSource } from '@suite/dice';
 import { ATTRIBUTE, FERTIGKEITEN, fertigkeitsBonus, modifikator, uebungsbonus, type Attribut, type Uebung } from './regeln';
 import { bereinigeZauberei, fuellePlaetze, type Zauberei } from './zauber';
-import { bereinigeGegenstaende, type Gegenstand } from './inventar';
+import { bereinigeGegenstaende, type EigeneWaffe, type Gegenstand } from './inventar';
 import { bereinigeTiergestalt, rasteTiergestalt, type Tiergestalt } from './tiergestalt';
 
 export const SCHEMA = 1;
@@ -62,6 +62,8 @@ export interface Angriff {
   zweihaendig?: boolean;
   /** Nur gerechnet, nie gespeichert: der Angriff kommt von diesem Gegenstand. */
   ausInventar?: string;
+  /** Nur gerechnet, nie gespeichert: die Werte einer eigenen Waffe (Homebrew Creator). */
+  eigeneWaffe?: EigeneWaffe;
 }
 
 export interface Werte {

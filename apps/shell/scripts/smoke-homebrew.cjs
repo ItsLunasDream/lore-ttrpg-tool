@@ -132,6 +132,47 @@ app.whenReady().then(async () => {
   await warte(600);
   pruefe((await js(`document.querySelector('[data-feld="name"]')?.value ?? ''`)) === 'Sturmklinge', 'ein Treffer oeffnet den Eintrag');
 
+  // --- Anbindung (docs/homebrew-creator.md, „Wohin die Ergebnisse gehen") ---------
+  await js(`document.querySelector('[data-loot]').click(); true`);
+  await warte(800);
+  pruefe(/Loot/.test(await js(`document.querySelector('[data-meldung]')?.textContent ?? ''`)), 'In den Loot Generator geschickt');
+  const finde = (id) => fenster.contentView.children.find((v) => v.webContents?.getURL().includes(`/apps/${id}/`));
+  const oeffneWerkzeug = async (id) => {
+    await hjs(`document.querySelector('[data-schiene="${id}"]').click(); true`);
+    const ende = Date.now() + 15000;
+    while (Date.now() < ende) {
+      const v = finde(id);
+      if (v && (await v.webContents.executeJavaScript('document.readyState')) === 'complete') break;
+      await warte(200);
+    }
+    await warte(1500);
+    return (a) => finde(id).webContents.executeJavaScript(a);
+  };
+  const loot = await oeffneWerkzeug('loot');
+  pruefe(await loot(`Boolean(document.querySelector('[data-id="mi-homebrew"]'))`), 'Loot Generator: Tabelle „Homebrew"');
+  const nsw = await oeffneWerkzeug('nachschlagewerk');
+  pruefe(await nsw(`Boolean(document.querySelector('[data-regel="homebrew/sturmklinge"]'))`), 'Nachschlagewerk: die Sturmklinge steht unter Homebrew');
+  const cb = await oeffneWerkzeug('charakterbogen');
+  await cb(`window.confirm = () => true; document.querySelector('[data-neu]').click(); true`);
+  await warte(900);
+  await cb(`document.querySelector('[data-aus-quelle]').click(); true`);
+  await warte(300);
+  await cb(`document.querySelector('[data-quelle-reiter="eigene"]').click(); true`);
+  let da = false;
+  for (let i = 0; i < 30 && !da; i += 1) {
+    da = await cb(`Boolean(document.querySelector('[data-quelle-dazu="sturmklinge"]'))`);
+    if (!da) await warte(200);
+  }
+  pruefe(da, 'Charakterbogen: die Sturmklinge steht unter „Eigene"');
+  await cb(`document.querySelector('[data-quelle-dazu="sturmklinge"]').click(); true`);
+  await warte(300);
+  // Ausruesten: dann wird sie zum Angriff, gerechnet mit ihren eigenen Werten.
+  await cb(`(() => { const k = document.querySelector('[data-ausgeruestet]'); if (k && !k.checked) k.click(); return true; })()`);
+  await warte(400);
+  // Neue Figur: alle Attribute 10, also nur der magische Bonus +2.
+  const schaden = await cb(`[...document.querySelectorAll('[data-angriff-schaden]')].map((e) => e.textContent.trim()).join('|')`);
+  pruefe(/1d8\+2 Hieb/.test(schaden), `ausgerüstet wird sie zum Angriff: 1W8+2 Hieb (${schaden})`);
+
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log(fehler.length === 0 ? '\nHomebrew Creator bestanden.' : `\n${fehler.length} Fehler.`);

@@ -101,14 +101,14 @@ const TEXTE = {
   'quelle.oeffnen': ['+ Aus Quelle …', '+ From a source …'],
   'quelle.srd': ['SRD-Ausrüstung', 'SRD equipment'],
   'quelle.magie': ['SRD magisch', 'SRD magic items'],
-  'quelle.eigene': ['Eigene (Magic Item Generator)', 'Own (Magic Item Generator)'],
+  'quelle.eigene': ['Eigene (Homebrew, Magic Items)', 'Own (Homebrew, magic items)'],
   'quelle.loot': ['Loot-Tabelle', 'Loot table'],
   'quelle.suche': ['Suchen …', 'Search …'],
   'quelle.nehmen': ['Nehmen', 'Add'],
   'quelle.dazu': ['„{name}“ liegt im Inventar.', '“{name}” is in the inventory.'],
   'quelle.eigene.leer': [
-    'Noch keine eigenen Gegenstände. Im Magic Item Generator gebaute und gespeicherte stehen hier.',
-    'No own items yet. Items built and saved in the Magic Item Generator show up here.'
+    'Noch keine eigenen Gegenstände. Im Homebrew Creator oder Magic Item Generator gespeicherte stehen hier.',
+    'No own items yet. Items saved in the Homebrew Creator or the Magic Item Generator show up here.'
   ],
   'quelle.loot.leer': ['Keine Loot-Tabellen gefunden.', 'No loot tables found.'],
   'quelle.loot.wuerfeln': ['Würfeln', 'Roll'],

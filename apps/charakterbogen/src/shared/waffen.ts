@@ -58,9 +58,37 @@ export function leseBonus(text: string): number | null {
 }
 
 /** Werte eines Angriffs: mit Waffe gerechnet, sonst aus den freien Feldern. */
+/**
+ * Die Waffe eines Angriffs: eine SRD-Waffe nach Kennung oder die
+ * mitgebrachten Werte einer eigenen (Homebrew Creator).
+ */
+export function waffeFuer(a: Pick<Angriff, 'waffe' | 'eigeneWaffe'> & { name?: string }): Waffe | null {
+  if (a.eigeneWaffe) {
+    const e = a.eigeneWaffe;
+    return {
+      id: a.waffe ?? 'eigen',
+      name: [a.name ?? '', a.name ?? ''],
+      kategorie: e.kategorie,
+      fern: e.fern,
+      wuerfel: e.wuerfel,
+      vielseitig: e.vielseitig,
+      art: e.art,
+      finesse: e.finesse,
+      eigenschaften: e.eigenschaften[0] || e.eigenschaften[1] ? e.eigenschaften : ['—', '—'],
+      merkmale: [],
+      reichweiteFern: null,
+      meisterschaft: e.meisterschaft,
+      meister: 'vex',
+      gewicht: null,
+      wert: null
+    };
+  }
+  return waffeNach(a.waffe);
+}
+
 export function angriffswerte(w: Werte, a: Angriff, sprache: 'de' | 'en'): Angriffswerte {
   const i = sprache === 'de' ? 0 : 1;
-  const waffe = waffeNach(a.waffe);
+  const waffe = waffeFuer(a);
   if (!waffe) {
     return { bonus: leseBonus(a.bonus), schaden: a.schaden.trim().toLowerCase().replace(/w/g, 'd').split(/\s+/)[0] ?? '', art: '', waffe: null };
   }
@@ -167,7 +195,7 @@ export function wurfZeile(name: string, werte: Angriffswerte, wurf: Angriffswurf
  */
 export function angriffeAusInventar(b: Bogen): Angriff[] {
   return b.gegenstaende.flatMap((g) =>
-    g.waffe && g.ausgeruestet && waffeNach(g.waffe.id)
+    g.waffe && g.ausgeruestet && (g.waffe.eigen || waffeNach(g.waffe.id))
       ? [
           {
             name: g.name,
@@ -178,7 +206,8 @@ export function angriffeAusInventar(b: Bogen): Angriff[] {
             magie: g.waffe.magie,
             geuebt: g.waffe.geuebt,
             attribut: 'auto' as const,
-            ausInventar: g.id
+            ausInventar: g.id,
+            ...(g.waffe.eigen ? { eigeneWaffe: g.waffe.eigen } : {})
           }
         ]
       : []

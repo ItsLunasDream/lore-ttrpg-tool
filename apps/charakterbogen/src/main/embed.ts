@@ -12,6 +12,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
+import type { Quelleintrag } from '../shared/quellen';
 import { alsKachel, alsMarkdown, storyBlock, storyText, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
@@ -37,6 +38,8 @@ export interface BogenEmbedOptions {
     magicitems(sprache: 'de' | 'en'): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]>;
     lootTabellen(sprache: 'de' | 'en'): Promise<{ id: string; name: string }[]>;
     lootWuerfle(tabellenId: string, sprache: 'de' | 'en'): Promise<string | null>;
+    /** Eigene Waffen, Ruestungen und Gegenstaende aus dem Homebrew Creator (Quelleintraege). */
+    homebrew?(sprache: 'de' | 'en'): Promise<Quelleintrag[]>;
   };
   /** Notizen im Story Creator (ueber die Huelle). */
   readonly story?: {
@@ -260,6 +263,14 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
    * Quellen fuers Inventar. Eigene magische Gegenstaende und Loot kommen
    * ueber die Huelle; fehlt sie (Tests), bleiben die Listen leer.
    */
+  handle('quellen:homebrew', async () => {
+    try {
+      return (await options.quellen?.homebrew?.(sprache)) ?? [];
+    } catch {
+      return [];
+    }
+  });
+
   handle('quellen:magicitems', async () => {
     try {
       return (await options.quellen?.magicitems(sprache)) ?? [];
@@ -521,7 +532,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene', 'nachschlagen']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:homebrew', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene', 'nachschlagen']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

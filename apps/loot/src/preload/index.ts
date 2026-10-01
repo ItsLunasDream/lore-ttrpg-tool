@@ -34,7 +34,7 @@ const api = {
     weitergeben: (id: string) => ipcRenderer.invoke(kanal('weitergeben'), id) as Promise<Antwort>,
     einlesen: () => ipcRenderer.invoke(kanal('einlesen')) as Promise<Antwort & { namen: string[] }>
   },
-  gegenstaende: () => ipcRenderer.invoke(kanal('gegenstaende')) as Promise<{ name: string; seltenheit: string }[]>,
+  gegenstaende: () => ipcRenderer.invoke(kanal('gegenstaende')) as Promise<{ name: string; seltenheit: string; herkunft?: string }[]>,
   story: (titel: string, markdown: string) => ipcRenderer.invoke(kanal('story'), titel, markdown) as Promise<Antwort>,
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);

@@ -10,10 +10,10 @@
  */
 import { AUSRUESTUNG } from '@suite/srd/ausruestung';
 import { MAGISCHE_GEGENSTAENDE } from '@suite/srd/magische-gegenstaende';
-import { neueKennung, type Gegenstand } from './inventar';
+import { neueKennung, type EigeneWaffe, type Gegenstand } from './inventar';
 import { WAFFEN } from './waffen';
 
-export type Quellart = 'srd' | 'srd-magie' | 'magicitem' | 'loot';
+export type Quellart = 'srd' | 'srd-magie' | 'magicitem' | 'homebrew' | 'loot';
 
 export interface Quelleintrag {
   readonly quelle: Quellart;
@@ -27,7 +27,7 @@ export interface Quelleintrag {
   readonly wert: number | null;
   readonly beschreibung: string;
   readonly einstimmung?: boolean;
-  readonly waffe?: { readonly id: string; readonly magie: number; readonly geuebt: boolean };
+  readonly waffe?: { readonly id: string; readonly magie: number; readonly geuebt: boolean; readonly eigen?: EigeneWaffe };
 }
 
 type Reihe = readonly string[];
@@ -226,7 +226,7 @@ export function sucheQuellen(liste: readonly Quelleintrag[], anfrage: string, ho
 
 /** Ein Quelleintrag als Gegenstand im Inventar. */
 export function alsGegenstand(e: Quelleintrag, anzahl = 1): Gegenstand {
-  const art = e.quelle === 'magicitem' ? 'magicitem' : e.quelle === 'loot' ? 'loot' : 'srd';
+  const art = e.quelle === 'magicitem' ? 'magicitem' : e.quelle === 'homebrew' ? 'homebrew' : e.quelle === 'loot' ? 'loot' : 'srd';
   return {
     id: neueKennung(),
     name: e.name.slice(0, 120),
@@ -237,6 +237,6 @@ export function alsGegenstand(e: Quelleintrag, anzahl = 1): Gegenstand {
     ausgeruestet: false,
     eingestimmt: false,
     quelle: { art, kennung: e.kennung.slice(0, 120) },
-    ...(e.waffe ? { waffe: { ...e.waffe } } : {})
+    ...(e.waffe ? { waffe: { ...e.waffe, ...(e.waffe.eigen ? { eigen: { ...e.waffe.eigen, art: [...e.waffe.eigen.art] as [string, string] } } : {}) } } : {})
   };
 }

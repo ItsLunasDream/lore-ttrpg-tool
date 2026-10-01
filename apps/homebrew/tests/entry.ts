@@ -2,3 +2,4 @@
 export * from '../src/shared/modell';
 export * from '../src/shared/eichung';
 export * from '@suite/srd/waffen';
+export * from '../src/shared/inventar';

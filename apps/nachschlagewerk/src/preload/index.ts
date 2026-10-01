@@ -9,6 +9,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Hausregel } from '../shared/hausregeln';
 import type { Notiz } from '../shared/notizen';
+import type { HomebrewEintrag } from '../shared/bestand';
 
 const api = {
   /**
@@ -29,6 +30,10 @@ const api = {
   notizen: {
     liste: () => ipcRenderer.invoke(kanal('notizen:liste')) as Promise<Notiz[]>,
     schreiben: (notizen: Notiz[]) => ipcRenderer.invoke(kanal('notizen:schreiben'), notizen) as Promise<boolean>
+  },
+  /** Eintraege aus dem Homebrew Creator (ueber die Huelle). */
+  homebrew: {
+    liste: () => ipcRenderer.invoke(kanal('homebrew:liste')) as Promise<HomebrewEintrag[]>
   },
   hausregeln: {
     liste: () => ipcRenderer.invoke(kanal('hausregeln:liste')) as Promise<Hausregel[]>,

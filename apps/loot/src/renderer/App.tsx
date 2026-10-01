@@ -101,7 +101,7 @@ export function App() {
   const [, neuZeichnen] = useState(0);
   const [kacheln, setKacheln] = useState<readonly Kachel[]>([]);
   const [eigene, setEigene] = useState<readonly Gespeichert[]>([]);
-  const [gegenstaende, setGegenstaende] = useState<readonly { name: string; seltenheit: string }[]>([]);
+  const [gegenstaende, setGegenstaende] = useState<readonly { name: string; seltenheit: string; herkunft?: string }[]>([]);
   const [suche, setSuche] = useState('');
   const [offen, setOffen] = useState<Entwurf | null>(null);
   const [istNeu, setIstNeu] = useState(false);

@@ -8,6 +8,7 @@ import type { Figur, Kachel } from '../shared/ablage';
 import type { Bogen } from '../shared/bogen';
 import type { Uebergabe } from '../shared/uebergabe';
 import type { Anfrage } from '../shared/live';
+import type { Quelleintrag } from '../shared/quellen';
 import type { LiveZustand } from '../main/live';
 
 type Antwort = { ok: boolean; text: string };
@@ -60,6 +61,7 @@ const api = {
       ipcRenderer.invoke(kanal('quellen:magicitems')) as Promise<
         { id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]
       >,
+    homebrew: () => ipcRenderer.invoke(kanal('quellen:homebrew')) as Promise<Quelleintrag[]>,
     lootTabellen: () => ipcRenderer.invoke(kanal('quellen:lootTabellen')) as Promise<{ id: string; name: string }[]>,
     lootWuerfle: (id: string) => ipcRenderer.invoke(kanal('quellen:lootWuerfle'), id) as Promise<string | null>
   },

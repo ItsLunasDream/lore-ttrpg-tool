@@ -31,19 +31,24 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
   useEffect(() => {
     // Auch fuer Loot: ein gewuerfelter eigener Gegenstand bringt so seine Werte mit.
     if ((reiter === 'eigene' || reiter === 'loot') && eigene === null) {
-      void api.quellen.magicitems().then((liste) =>
-        setEigene(
-          liste.map((g) => ({
-            quelle: 'magicitem',
-            kennung: g.id,
-            name: g.name,
-            art: g.art,
-            gewicht: null,
-            wert: g.wert,
-            beschreibung: g.beschreibung,
-            einstimmung: g.einstimmung
-          }))
-        )
+      // Beides unter „Eigene": was im Homebrew Creator gebaut und was im
+      // Magic Item Generator gewuerfelt wurde.
+      void Promise.all([api.quellen.homebrew().catch(() => []), api.quellen.magicitems()]).then(([homebrew, magie]) =>
+        setEigene([
+          ...homebrew,
+          ...magie.map(
+            (g): Quelleintrag => ({
+              quelle: 'magicitem',
+              kennung: g.id,
+              name: g.name,
+              art: g.art,
+              gewicht: null,
+              wert: g.wert,
+              beschreibung: g.beschreibung,
+              einstimmung: g.einstimmung
+            })
+          )
+        ])
       );
     }
     if (reiter === 'loot' && tabellen === null) {
