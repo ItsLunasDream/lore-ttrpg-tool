@@ -556,7 +556,7 @@ Notiert, noch nicht geplant:
 - **Zauber-Homebrew:** eigene Zauber anlegen, die in der Zauberliste des
   Bogens neben den SRD-Zaubern stehen.
 
-  Beides ist als Konzept ausgearbeitet: `docs/item-creator.md`.
+  Beides ist als Konzept ausgearbeitet: `docs/homebrew-creator.md`.
 
 ## Zu klären
 

@@ -1,13 +1,14 @@
-# Konzept: Item Creator (Homebrew mit Eichung)
+# Konzept: Homebrew Creator (mit Eichung)
 
 Rückmeldung: „Spell/Weapon Creator", dann entschieden: **ein Werkzeug
-„Item Creator"**, **mit Eichung**. Der bisherige Magic Item Creator heißt
+„Homebrew Creator"** (zuerst „Homebrew Creator"; umbenannt, weil auch Zauber
+hineingehören), **Zauber als Reiter**, **mit Eichung**. Der bisherige Magic Homebrew Creator heißt
 künftig **Magic Item Generator**, damit der Unterschied klar ist:
 
 | Werkzeug | Macht | Wer entscheidet |
 | --- | --- | --- |
 | Magic Item Generator (heute „Creator") | würfelt magische Gegenstände aus Tabellen | der Zufall, die SL wählt aus |
-| Item Creator (neu) | baut einen Gegenstand Feld für Feld | die Person am Werkzeug, die Eichung warnt |
+| Homebrew Creator (neu) | baut einen Gegenstand Feld für Feld | die Person am Werkzeug, die Eichung warnt |
 
 **Stand:** Konzept, nichts gebaut.
 
@@ -15,14 +16,14 @@ künftig **Magic Item Generator**, damit der Unterschied klar ist:
 
 - Sichtbare Namen: Kachel, Schiene, Einführung, Suche, Doku
   (`app.magicitems.name`, `einfuehrung.ts`, `docs/magicitems.md`, README).
-  Gefunden: 27 Dateien mit „Magic Item Creator".
+  Gefunden: 27 Dateien mit „Magic Homebrew Creator".
 - **Intern bleibt `magicitems`** (Ordner, IPC-Kanäle, Datenordner,
   Kennungen in Bögen und Loot-Tabellen). Eine interne Umbenennung bricht
   gespeicherte Daten und bringt keinen Nutzen.
 - Deutsch: „Magic Item Generator" bleibt englisch wie die anderen
   Werkzeugnamen (Loot Generator, Story Creator).
 
-## Was der Item Creator baut
+## Was der Homebrew Creator baut
 
 Reiter, je mit eigener Eichung:
 
@@ -42,7 +43,7 @@ Reiter, je mit eigener Eichung:
    Teile maschinenlesbar: Schaden (Würfel, Art), Ziel (Einzelziel oder
    Fläche mit Form und Größe), Rettungswurf oder Angriffswurf, Wirkung bei
    Erfolg (halber/kein Schaden), Zustand, Skalierung pro höherem Grad.
-   **Offene Frage 1** unten: Zauber sind keine Items.
+   Entschieden: Zauber als Reiter im selben Werkzeug.
 
 ## Eichung: wie, und was ich dazu nicht weiß
 
@@ -99,7 +100,7 @@ nächsten SRD-Vergleiche. Es verbietet nichts.
   (`apps/charakterbogen/src/shared/waffen.ts` bekommt eine zweite
   Quelle); eigene Zauber stehen in der Zauberliste neben den SRD-Zaubern;
   eigene Rüstung als Gegenstand (die RK bleibt im Bogen ein eigenes Feld).
-  Inventarquelle „Eigene" um den Item Creator erweitert.
+  Inventarquelle „Eigene" um den Homebrew Creator erweitert.
 - **Loot Generator**: eigene Gegenstände als Tabelleneinträge, wie heute
   die aus dem Generator.
 - **Nachschlagewerk**: eigene Einträge in der Liste, als „Homebrew"
@@ -116,7 +117,7 @@ wie heute bei den Inventarquellen.
 1. Umbenennung „Magic Item Generator" (nur sichtbare Namen).
 2. Gemeinsames Paket für die Punkteskala magischer Gegenstände (aus dem
    Generator herausgelöst, Tests mitnehmen).
-3. Item Creator: Gerüst, Ablage, Reiter Waffe und Rüstung mit Eichung
+3. Homebrew Creator: Gerüst, Ablage, Reiter Waffe und Rüstung mit Eichung
    und Tests gegen die SRD-Tabellen.
 4. Anbindung Charakterbogen (Waffenangriffe, Inventar), Loot,
    Nachschlagewerk, Suche.
@@ -126,11 +127,7 @@ wie heute bei den Inventarquellen.
 
 ## Offene Fragen
 
-1. **Zauber im Item Creator?** Ein Zauber ist kein Gegenstand. Optionen:
-   Reiter im Item Creator (ein Werkzeug weniger, Name passt nicht ganz),
-   eigenes Werkzeug „Spell Creator" (gleicher Unterbau), oder den Item
-   Creator „Homebrew Creator" nennen. Ich würde nach deiner Wahl bauen.
-2. **Deutscher Name**: bleiben „Item Creator" / „Magic Item Generator"
+1. **Deutscher Name**: bleiben „Homebrew Creator" / „Magic Item Generator"
    auch in der deutschen Oberfläche englisch (wie die übrigen
    Werkzeugnamen)?
-3. **Eigene Waffen auch mit Bild** (wie Monster), oder reicht Text?
+2. **Eigene Waffen auch mit Bild** (wie Monster), oder reicht Text?
