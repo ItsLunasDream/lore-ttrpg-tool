@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import '@suite/motion/motion.css';
+import '@suite/magie/formular.css';
 import './styles.css';
 import { installierePfeile } from '@suite/tastatur';
 

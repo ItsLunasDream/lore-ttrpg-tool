@@ -7,8 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
-import { SELTENHEITEN, SELTENHEIT_NAME } from '@suite/srd';
-import { ARTEN as MAGIE_ARTEN, ART_NAME as MAGIE_ART_NAME } from '@suite/magie/tabellen';
+import { SELTENHEIT_NAME } from '@suite/srd';
 import { MEISTERSCHAFTEN, RUESTUNGSARTEN, WAFFEN_EIGENSCHAFTEN, type Meisterschaft, type RuestungsArt } from '@suite/srd/waffen';
 import { api } from './api';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
@@ -47,6 +46,7 @@ import {
   SCHULE_TEXT
 } from '../shared/texte';
 import { ZUSTAENDE as SRD_ZUSTAENDE } from '@suite/srd/zustaende';
+import { MagieFelder } from '@suite/magie/formular';
 import { eicheRuestung, eicheWaffe, type Eichung } from '../shared/eichung';
 import { eicheZauber } from '../shared/zauberEichung';
 import { eicheMagisch } from '../shared/magischEichung';
@@ -983,53 +983,23 @@ function ZauberFelder({ z, setze }: { z: Zauber; setze: (teil: Partial<Zauber>) 
   );
 }
 
+/** Das gemeinsame Formular aus @suite/magie, wie im Magic Item Generator. */
 function MagischFelder({ m, setze }: { m: Magisch; setze: (teil: Partial<Magisch>) => void }) {
   const s = sprache();
-  const wirkungen = m.wirkungen.length ? m.wirkungen : [''];
-  const setzeWirkung = (i: number, text: string) => setze({ wirkungen: wirkungen.map((w, j) => (j === i ? text : w)) });
+  const felder = { art: m.gegenstandsart, seltenheit: m.seltenheit, einstimmung: m.einstimmung, wirkungen: m.wirkungen, fluch: m.fluch };
   return (
     <div className="artfelder" data-magisch>
-      <Abschnitt titel={t('abschnitt.grund')} kennung="grund">
-      <div className="zeile">
-        <Wahl
-          label={t('feld.gegenstandsart')}
-          wert={m.gegenstandsart}
-          feld="gegenstandsart"
-          optionen={MAGIE_ARTEN.map((x) => ({ wert: x, text: MAGIE_ART_NAME[x][s] }))}
-          aendern={(gegenstandsart) => setze({ gegenstandsart })}
-        />
-        <Wahl
-          label={t('feld.seltenheit')}
-          wert={m.seltenheit}
-          feld="seltenheit"
-          optionen={SELTENHEITEN.map((x) => ({ wert: x, text: SELTENHEIT_NAME[x][s] }))}
-          aendern={(seltenheit) => setze({ seltenheit })}
-        />
-        <Haken label={t('feld.einstimmung')} wert={m.einstimmung} feld="einstimmung" aendern={(einstimmung) => setze({ einstimmung })} />
-      </div>
-      </Abschnitt>
-      <Abschnitt titel={t('abschnitt.wirkungen')} kennung="wirkungen">
-      <span className="feld__name">{t('feld.wirkungen')}</span>
-      {wirkungen.map((w, i) => (
-        <div key={i} className="wirkung">
-          <textarea className="feld__flaeche" rows={2} value={w} data-wirkung={i} onChange={(e) => setzeWirkung(i, e.target.value)} />
-          {wirkungen.length > 1 ? (
-            <button type="button" className="knopf knopf--klein" aria-label={t('wirkung.weg')} title={t('wirkung.weg')} onClick={() => setze({ wirkungen: wirkungen.filter((_, j) => j !== i) })}>
-              ✕
-            </button>
-          ) : null}
-        </div>
-      ))}
-      {wirkungen.length < 12 ? (
-        <button type="button" className="knopf knopf--klein" data-wirkung-dazu onClick={() => setze({ wirkungen: [...wirkungen, ''] })}>
-          {t('wirkung.dazu')}
-        </button>
-      ) : null}
-      <label className="feld feld--hoch">
-        <span className="feld__name">{t('feld.fluch')}</span>
-        <textarea className="feld__flaeche" rows={2} value={m.fluch} data-feld="fluch" onChange={(e) => setze({ fluch: e.target.value })} />
-      </label>
-      </Abschnitt>
+      <MagieFelder
+        g={felder}
+        sprache={s}
+        setze={(teil) => {
+          const { art, wirkungen, ...rest } = teil;
+          const neu: Partial<Magisch> = { ...rest, ...(art ? { gegenstandsart: art } : {}), ...(wirkungen ? { wirkungen: [...wirkungen] } : {}) };
+          // Tränke und Schriftrollen verlangen nie Einstimmung (wie im Generator).
+          if (art === 'trank' || art === 'schriftrolle') neu.einstimmung = false;
+          setze(neu);
+        }}
+      />
     </div>
   );
 }

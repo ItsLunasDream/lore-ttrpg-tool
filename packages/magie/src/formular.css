@@ -1,0 +1,69 @@
+/* Das gemeinsame Formular magischer Gegenstände (Formular.tsx), für Magic Item Generator und Homebrew Creator. */
+.magiefelder .kopfzeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.magiefelder .kopfzeile .feld {
+  flex: 1 1 180px;
+}
+
+.magiefelder .feld--haken {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.magiefelder .wirkungsliste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.magiefelder .wirkungsliste li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.magiefelder .wirkungsliste textarea {
+  flex: 1;
+}
+
+/* Würfeln, KI und Löschen nebeneinander rechts neben dem Feld. */
+.magiefelder .zeilenknoepfe {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.magiefelder .knopfreihe {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.magiefelder .knopfreihe__titel {
+  font-size: 13px;
+  color: var(--text-leise);
+  margin-right: 2px;
+}
+
+.magiefelder .fluch__titel {
+  margin-top: 28px;
+}
+
+.magiefelder .fluch textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.magiefelder .fluch textarea:not(:placeholder-shown) {
+  border-color: color-mix(in srgb, var(--gefahr) 60%, var(--rand));
+}

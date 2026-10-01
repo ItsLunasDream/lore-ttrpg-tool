@@ -15,7 +15,13 @@ const os = require('node:os');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'homebrew-smoke-'));
 const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
-fs.writeFileSync(path.join(userData, 'einstellungen.json'), JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'homebrew'] }));
+fs.writeFileSync(path.join(userData, 'einstellungen.json'), JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'homebrew', 'magicitems'] }));
+// Ein magischer Eintrag von früher, noch in der eigenen Ablage: zieht beim Start in die gemeinsame um.
+fs.mkdirSync(path.join(userData, 'homebrew', 'eintraege'), { recursive: true });
+fs.writeFileSync(
+  path.join(userData, 'homebrew', 'eintraege', 'altring.md'),
+  `# Altring\n\n\`\`\`homebrew\n${JSON.stringify({ art: 'magisch', name: 'Altring', gegenstandsart: 'ring', seltenheit: 'rare', einstimmung: true, wirkungen: ['Leuchtet schwach.'], fluch: '', beschreibung: 'Von früher.', preis: 1234, gewicht: null, bild: null, geaendert: '2026-01-01T00:00:00Z' })}\n\`\`\`\n`
+);
 
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -58,6 +64,12 @@ app.whenReady().then(async () => {
     if (l >= 2) konsole.push(t.slice(0, 160));
   });
   pruefe(/Homebrew Creator/.test(await js('document.body.innerText')), 'mit seiner Ueberschrift');
+  const magieOrdner = path.join(userData, 'magicitems', 'gegenstaende');
+  pruefe(
+    fs.existsSync(path.join(magieOrdner, 'altring.md')) && !fs.existsSync(path.join(userData, 'homebrew', 'eintraege', 'altring.md')),
+    'ein alter magischer Eintrag ist in die gemeinsame Ablage umgezogen'
+  );
+  pruefe(/wert: 1234/.test(fs.readFileSync(path.join(magieOrdner, 'altring.md'), 'utf8')), 'mit seinem Preis als Wert');
 
   const tippe = (feld, wert) =>
     js(`(() => { const e = document.querySelector('[data-feld="${feld}"]');
@@ -153,7 +165,7 @@ app.whenReady().then(async () => {
   await warte(800);
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
-  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 2, 'zwei Kacheln in der Sammlung');
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung (mit dem Altring)');
   await js(`document.querySelector('[data-filter="ruestung"]').click(); true`);
   await warte(200);
   pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 1, 'Filter Ruestung: eine Kachel');
@@ -201,12 +213,16 @@ app.whenReady().then(async () => {
   );
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
-  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung');
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 4, 'vier Kacheln in der Sammlung');
 
   // --- Magischer Gegenstand ------------------------------------------------------
   await js(`document.querySelector('[data-neu="magisch"]').click(); true`);
   await warte(300);
   pruefe(await js(`Boolean(document.querySelector('[data-magisch]'))`), 'Neu: magischer Gegenstand oeffnet seine Felder');
+  pruefe(
+    await js(`Boolean(document.querySelector('[data-magisch] [data-magiefelder] [data-wirkung-neu="0"]') && document.querySelector('[data-fluch-wuerfeln]'))`),
+    'dasselbe Formular wie im Generator: Würfel je Wirkung und für den Fluch'
+  );
   await tippe('name', 'Glutamulett');
   const wirkung = (i, text) =>
     js(`(() => { const e = document.querySelector('[data-wirkung="${i}"]');
@@ -231,7 +247,8 @@ app.whenReady().then(async () => {
   pruefe(foundry?.name === 'Glutamulett' && foundry?.system?.rarity === 'veryRare', 'Foundry-Export: JSON mit Name und Seltenheit');
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
-  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 4, 'vier Kacheln in der Sammlung');
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 5, 'fünf Kacheln in der Sammlung');
+  pruefe(fs.existsSync(path.join(magieOrdner, 'glutamulett.md')), 'das Glutamulett liegt in der gemeinsamen Ablage');
 
   // --- Suche der Huelle ----------------------------------------------------------
   const eintraege = (await hjs('window.shell.suche.eintraege()')) ?? [];
@@ -258,6 +275,12 @@ app.whenReady().then(async () => {
   };
   const loot = await oeffneWerkzeug('loot');
   pruefe(await loot(`Boolean(document.querySelector('[data-id="mi-homebrew"]'))`), 'Loot Generator: Tabelle „Homebrew"');
+  // Eine Sammlung: was der Homebrew Creator an magischen Gegenständen hat, steht auch im Generator.
+  const mig = await oeffneWerkzeug('magicitems');
+  pruefe(
+    await mig(`Boolean(document.querySelector('[data-id="glutamulett"]') && document.querySelector('[data-id="altring"]'))`),
+    'Magic Item Generator: Glutamulett und Altring stehen auch dort'
+  );
   const nsw = await oeffneWerkzeug('nachschlagewerk');
   pruefe(await nsw(`Boolean(document.querySelector('[data-regel="homebrew/sturmklinge"]'))`), 'Nachschlagewerk: die Sturmklinge steht unter Homebrew');
   await nsw(`document.querySelector('[data-regel="homebrew/sturmklinge"]')?.click(); true`);

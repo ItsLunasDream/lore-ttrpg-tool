@@ -3,3 +3,4 @@ export * from '../src/tabellen';
 export * from '../src/eichpunkte';
 export * from '../src/erzeuge';
 export * from '../src/pruefung';
+export * from '../src/ablage';

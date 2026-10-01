@@ -53,6 +53,10 @@ export interface Gegenstand {
    * Gegenstand soll als Beute auftauchen.
    */
   readonly imLoot?: boolean;
+  /** Bild als data:-Adresse (aus dem Homebrew Creator), sonst nichts. */
+  readonly bild?: string | null;
+  /** Gewicht in lb, sonst nichts. */
+  readonly gewicht?: number | null;
 }
 
 function eins<T>(liste: readonly T[], zufall: Zufall): T {

@@ -42,3 +42,12 @@ test('Boni und Heilung stimmen mit dem SRD ueberein', () => {
   }
   assert.deepEqual(falsch, []);
 });
+
+test('Ablage: Bild und Gewicht gehen hin und zurück, ein falsches Bild nicht', () => {
+  const g = { id: 'x', name: 'Ring', art: 'ring', seltenheit: 'rare', einstimmung: true, wirkungen: ['Leuchtet.'], fluch: '', wert: 4000, notiz: '', geaendert: '', imLoot: false, bild: 'data:image/png;base64,AAAA', gewicht: 0.5 };
+  const zurueck = M.leseGegenstand(M.alsMarkdown(g), 'x');
+  assert.equal(zurueck.bild, g.bild);
+  assert.equal(zurueck.gewicht, 0.5);
+  const boese = M.leseGegenstand(M.alsMarkdown({ ...g, bild: 'javascript:alert(1)' }), 'x');
+  assert.equal('bild' in boese, false);
+});

@@ -10,7 +10,7 @@ künftig **Magic Item Generator**, damit der Unterschied klar ist:
 | Magic Item Generator (heute „Creator") | würfelt magische Gegenstände aus Tabellen | der Zufall, die SL wählt aus |
 | Homebrew Creator (neu) | baut Waffen, Rüstungen, Gegenstände und Zauber Feld für Feld | die Person am Werkzeug, die Eichung warnt |
 
-**Stand:** Konzept fertig, nichts gebaut.
+**Stand:** gebaut, siehe „Stand" unten.
 
 ## Umbenennung
 
@@ -140,6 +140,31 @@ Alle sechs Schritte sind umgesetzt (Rauchtest `apps/shell/scripts/smoke-homebrew
 Bild je Eintrag: auf der Kachel, in der aufgeklappten Iteminfo des Bogens
 und im Nachschlagewerk.
 
+### Rückmeldungen danach (Oktober 2026)
+
+- **Zauber:** Zeitaufwand, Reichweite, Komponenten und Dauer als Auswahl im
+  Wortlaut der SRD-Zauber, mit „Eigener Text …" für alles andere. Eigene
+  Klassen und Unterklassen frei schreibbar. Wirkung: Schaden, Heilung,
+  Zustand (SRD und eigene aus dem Status Effect Creator) oder nichts davon
+  (z. B. Magierhand). Geeicht wird weiterhin nur Schaden; zu Heilung und
+  Zuständen stehen Vergleiche als Hinweis da (Wunden heilen 2W8, Heilendes
+  Wort 2W4, Person festhalten: Gelähmt; im SRD-Paket nachgeprüft). Ein Satz
+  zu jeder Schule.
+- **Waffe:** Schaden als Anzahl, Würfel und Plus; weitere Schadenszeilen für
+  gemischten Schaden; Reichweite im Nahkampf (5 Fuß, mit „Weitreichend" 10).
+  Plus und Zusatzschaden zählen in der Eichung. Je ein Satz zu Eigenschaften
+  und Meisterschaften (eigene Kurzfassungen, kein SRD-Zitat).
+- **Abschnitte zuklappbar** in allen Arten.
+- **Strg+S** speichert, in allen Werkzeugen mit Speichern-Knopf
+  (`packages/tastatur`).
+- **Magischer Gegenstand = eine Sammlung mit dem Generator.** Er liegt in
+  der Ablage des Magic Item Generators (`magicitems/gegenstaende`, Format aus
+  `@suite/magie/ablage`, jetzt mit Bild und Gewicht). Das Formular für Art,
+  Seltenheit, Einstimmung, Wirkungen und Fluch ist dasselbe
+  (`@suite/magie/formular`); der Generator steckt seine KI-Knöpfe hinein.
+  Ältere magische Einträge des Homebrew Creators ziehen beim Öffnen um.
+  Im Homebrew Creator tragen sie eine Kennung mit „@".
+
 ### Was fehlt oder unsicher ist
 
 - **Foundry-Export nur für magische Gegenstände.** Für Waffen, Rüstungen,
@@ -153,8 +178,11 @@ und im Nachschlagewerk.
   sieht die Eichung nicht; die Oberfläche sagt das.
 - **Gegenstand:** keine Eichung (geplant war nur ein Hinweis zu Preis und
   Gewicht).
-- **Zauber ohne Schaden:** keine Eichung, nur der Hinweis auf das
-  Nachschlagewerk.
+- **Zauber ohne Schaden:** keine Eichung, nur Hinweise.
+- **Zusatzschaden im Charakterbogen:** der Bogen rechnet mit einem Würfel;
+  Plus und weitere Schadenszeilen stehen dort nur im Text der Schadensart.
+- **Magische Gegenstände im Nachschlagewerk:** dort stehen jetzt alle aus
+  der gemeinsamen Sammlung, auch gewürfelte aus dem Generator.
 
 ## Entschieden
 

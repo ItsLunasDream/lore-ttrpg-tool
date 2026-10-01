@@ -1616,7 +1616,9 @@ async function montiereHomebrew(id: string, haken: MontageHaken): Promise<Montie
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
     onEreignis: haken.onEreignis,
     eigeneZustaende: async () =>
-      (await leseZustaendeEintraege(app.getPath('userData'), sammlungssprache === 'de' ? 'de' : 'en')).map((e) => e.name)
+      (await leseZustaendeEintraege(app.getPath('userData'), sammlungssprache === 'de' ? 'de' : 'en')).map((e) => e.name),
+    // Eine Sammlung magischer Gegenstände für Generator und Homebrew Creator.
+    magieOrdner: join(datenordner('magicitems'), 'gegenstaende')
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

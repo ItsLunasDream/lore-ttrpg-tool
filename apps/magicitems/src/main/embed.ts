@@ -105,7 +105,7 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
 export async function leseFuerInventar(
   datenordner: string,
   sprache: 'de' | 'en' = 'de'
-): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]> {
+): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number; gewicht?: number; bild?: string }[]> {
   const alle = await leseAlle(path.join(datenordner, WERKZEUG, ORDNER_NAME));
   const de = sprache === 'de';
   return alle.map((g) => ({
@@ -118,7 +118,9 @@ export async function leseFuerInventar(
       ...(g.fluch ? [`${de ? 'Fluch' : 'Curse'}: ${g.fluch}`] : []),
       ...(g.notiz ? [g.notiz] : [])
     ].join('\n\n'),
-    wert: g.wert
+    wert: g.wert,
+    ...(typeof g.gewicht === 'number' ? { gewicht: g.gewicht } : {}),
+    ...(g.bild ? { bild: g.bild } : {})
   }));
 }
 
