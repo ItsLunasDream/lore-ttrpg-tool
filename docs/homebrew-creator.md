@@ -1,14 +1,14 @@
 # Konzept: Homebrew Creator (mit Eichung)
 
 Rückmeldung: „Spell/Weapon Creator", dann entschieden: **ein Werkzeug
-„Homebrew Creator"** (zuerst „Homebrew Creator"; umbenannt, weil auch Zauber
-hineingehören), **Zauber als Reiter**, **mit Eichung**. Der bisherige Magic Homebrew Creator heißt
+„Homebrew Creator"** (zuerst „Item Creator"; umbenannt, weil auch Zauber
+hineingehören), **Zauber als Reiter**, **mit Eichung**. Der bisherige Magic Item Creator heißt
 künftig **Magic Item Generator**, damit der Unterschied klar ist:
 
 | Werkzeug | Macht | Wer entscheidet |
 | --- | --- | --- |
 | Magic Item Generator (heute „Creator") | würfelt magische Gegenstände aus Tabellen | der Zufall, die SL wählt aus |
-| Homebrew Creator (neu) | baut einen Gegenstand Feld für Feld | die Person am Werkzeug, die Eichung warnt |
+| Homebrew Creator (neu) | baut Waffen, Rüstungen, Gegenstände und Zauber Feld für Feld | die Person am Werkzeug, die Eichung warnt |
 
 **Stand:** Konzept, nichts gebaut.
 
@@ -16,7 +16,7 @@ künftig **Magic Item Generator**, damit der Unterschied klar ist:
 
 - Sichtbare Namen: Kachel, Schiene, Einführung, Suche, Doku
   (`app.magicitems.name`, `einfuehrung.ts`, `docs/magicitems.md`, README).
-  Gefunden: 27 Dateien mit „Magic Homebrew Creator".
+  Gefunden: 27 Dateien mit „Magic Item Creator".
 - **Intern bleibt `magicitems`** (Ordner, IPC-Kanäle, Datenordner,
   Kennungen in Bögen und Loot-Tabellen). Eine interne Umbenennung bricht
   gespeicherte Daten und bringt keinen Nutzen.
