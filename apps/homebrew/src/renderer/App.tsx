@@ -16,6 +16,7 @@ import {
   FLAECHEN,
   RETTUNGSWUERFE,
   SCHADENSARTEN,
+  HOECHSTENS_WUERFEL,
   HOECHSTENS_ZUSATZ,
   ZAUBERKLASSEN,
   ZAUBERSCHULEN,
@@ -261,6 +262,11 @@ export function App() {
                   <div className="zeile">
                     <Zahlfeld label={t('feld.preis')} wert={offen.preis} feld="preis" aendern={(preis) => setze({ preis })} />
                     <Zahlfeld label={t('feld.gewicht')} wert={offen.gewicht} feld="gewicht" aendern={(gewicht) => setze({ gewicht })} />
+                    {offen.art === 'waffe' || offen.art === 'ruestung' || offen.art === 'gegenstand' ? (
+                      <label className="feld feld--haken" title={t('feld.magischHinweis')}>
+                        <input type="checkbox" checked={Boolean(offen.magisch)} data-feld="magisch" onChange={(e) => setze({ magisch: e.target.checked })} /> {t('feld.magisch')}
+                      </label>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -399,7 +405,7 @@ function Wahl<T extends string>({ label, wert, optionen, feld, aendern }: { labe
 }
 
 const WUERFEL = ['1', '1d4', '1d6', '1d8', '1d10', '1d12', '2d4', '2d6', '2d8', '2d10', '2d12', '3d6', '3d8'];
-const SEITEN = [4, 6, 8, 10, 12] as const;
+const SEITEN = [4, 6, 8, 10, 12, 20] as const;
 
 function wuerfelName(w: string, s: Sprache): string {
   return s === 'de' ? w.replace('d', 'W') : w;
@@ -436,11 +442,11 @@ function SchadenWahl({ wuerfel, plus, feld, aendern }: { wuerfel: string; plus: 
         className="feld__eingabe feld__eingabe--kurz"
         type="number"
         min={seiten ? 1 : 0}
-        max={20}
+        max={HOECHSTENS_WUERFEL}
         value={anzahl}
         aria-label={t('feld.anzahl')}
         data-feld={`${feld}Anzahl`}
-        onChange={(e) => aendern(setzeZusammen(Math.min(20, Math.round(Number(e.target.value) || 0)), seiten), plus)}
+        onChange={(e) => aendern(setzeZusammen(Math.min(HOECHSTENS_WUERFEL, Math.round(Number(e.target.value) || 0)), seiten), plus)}
       />
       <select className="feld__wahl" value={seiten} aria-label={t('feld.wuerfelArt')} data-feld={`${feld}Seiten`} onChange={(e) => aendern(setzeZusammen(anzahl, Number(e.target.value)), plus)}>
         {SEITEN.map((w) => (
@@ -538,13 +544,13 @@ function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) =>
               optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
               aendern={(art: Schadensart) => setzeZusatz(i, { art })}
             />
-            <button type="button" className="knopf knopf--klein" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={() => setze({ zusatz: w.zusatz.filter((_, j) => j !== i) })}>
+            <button type="button" className="knopf zusatz__weg" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={() => setze({ zusatz: w.zusatz.filter((_, j) => j !== i) })}>
               ✕
             </button>
           </div>
         ))}
         {w.zusatz.length < HOECHSTENS_ZUSATZ ? (
-          <button type="button" className="knopf knopf--klein" data-zusatz-dazu onClick={() => setze({ zusatz: [...w.zusatz, { wuerfel: '1d6', plus: 0, art: 'feuer' }] })}>
+          <button type="button" className="knopf zusatz__dazu" data-zusatz-dazu onClick={() => setze({ zusatz: [...w.zusatz, { wuerfel: '1d6', plus: 0, art: 'feuer' }] })}>
             {t('schaden.dazu')}
           </button>
         ) : null}
@@ -591,16 +597,28 @@ function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) =>
             label={t('feld.meisterschaft')}
             wert={w.meisterschaft}
             feld="meisterschaft"
-            optionen={MEISTERSCHAFTEN.map((x) => ({ wert: x, text: MEISTERSCHAFT_NAME[x][s] }))}
-            aendern={(meisterschaft: Meisterschaft) => setze({ meisterschaft })}
+            optionen={[{ wert: '' as const, text: t('meisterschaft.keine') }, ...MEISTERSCHAFTEN.map((x) => ({ wert: x, text: MEISTERSCHAFT_NAME[x][s] }))]}
+            aendern={(meisterschaft: Meisterschaft | '') => setze({ meisterschaft })}
           />
         </div>
-        <p className="erklaerung" data-meisterschaft-text>
-          {MEISTERSCHAFT_TEXT[w.meisterschaft][s]}
-        </p>
+        {w.meisterschaft ? (
+          <p className="erklaerung" data-meisterschaft-text>
+            {MEISTERSCHAFT_TEXT[w.meisterschaft][s]}
+          </p>
+        ) : null}
       </Abschnitt>
       <Abschnitt titel={t('abschnitt.reichweite')} kennung="reichweite">
         <div className="zeile">
+          <Wahl
+            label={t('feld.nahFern')}
+            wert={w.fern ? 'fern' : 'nah'}
+            feld="fernReichweite"
+            optionen={[
+              { wert: 'nah', text: t('nah') },
+              { wert: 'fern', text: t('fern') }
+            ]}
+            aendern={(x) => setze({ fern: x === 'fern' })}
+          />
           {!w.fern ? (
             <label className="feld">
               <span className="feld__name">{t('feld.reichweiteNah')}</span>
@@ -859,7 +877,7 @@ function ZauberFelder({ z, setze }: { z: Zauber; setze: (teil: Partial<Zauber>) 
             <label className="feld">
               <span className="feld__name">{t('feld.schaden')}</span>
               <span className="paar">
-                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={40} value={z.schadenAnzahl} data-feld="schadenAnzahl" onChange={(e) => setze({ schadenAnzahl: Math.max(0, Math.min(40, Math.round(Number(e.target.value) || 0))) })} />
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={HOECHSTENS_WUERFEL} value={z.schadenAnzahl} data-feld="schadenAnzahl" onChange={(e) => setze({ schadenAnzahl: Math.max(0, Math.min(HOECHSTENS_WUERFEL, Math.round(Number(e.target.value) || 0))) })} />
                 <select className="feld__wahl" value={String(z.schadenSeiten)} data-feld="schadenSeiten" onChange={(e) => setze({ schadenSeiten: Number(e.target.value) })}>
                   {SEITEN.map((w) => (
                     <option key={w} value={w}>
@@ -886,7 +904,7 @@ function ZauberFelder({ z, setze }: { z: Zauber; setze: (teil: Partial<Zauber>) 
             <label className="feld">
               <span className="feld__name">{t('feld.heilung')}</span>
               <span className="paar">
-                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={40} value={z.heilAnzahl} data-feld="heilAnzahl" onChange={(e) => setze({ heilAnzahl: Math.max(0, Math.min(40, Math.round(Number(e.target.value) || 0))) })} />
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={HOECHSTENS_WUERFEL} value={z.heilAnzahl} data-feld="heilAnzahl" onChange={(e) => setze({ heilAnzahl: Math.max(0, Math.min(HOECHSTENS_WUERFEL, Math.round(Number(e.target.value) || 0))) })} />
                 <select className="feld__wahl" value={String(z.heilSeiten)} data-feld="heilSeiten" onChange={(e) => setze({ heilSeiten: Number(e.target.value) })}>
                   {SEITEN.map((w) => (
                     <option key={w} value={w}>

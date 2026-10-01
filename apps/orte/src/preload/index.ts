@@ -6,6 +6,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Gespeichert, Kachel } from '../shared/ablage';
+import type { Ort } from '../shared/erzeuge';
+import type { KiFeld } from '../shared/kiAufgaben';
 
 const api = {
   /**
@@ -20,6 +22,19 @@ const api = {
       ipcRenderer.on('huelle:ort-springe', lauscher);
       return () => {
         ipcRenderer.off('huelle:ort-springe', lauscher);
+      };
+    }
+  },
+  /** Die KI der Sammlung: Texte für Name, Herrschaft, Gerüchte und Co. */
+  ki: {
+    da: () => ipcRenderer.invoke(kanal('ki:da')) as Promise<boolean>,
+    frage: (ort: Ort, felder: KiFeld[], wunsch: string, sprache: 'de' | 'en') =>
+      ipcRenderer.invoke(kanal('ki:frage'), ort, felder, wunsch, sprache) as Promise<{ ok: boolean; wert: Partial<Ort> | null; grund: string }>,
+    beiWechsel: (hoerer: () => void) => {
+      const lauscher = () => hoerer();
+      ipcRenderer.on(kanal('ki:gewechselt'), lauscher);
+      return () => {
+        ipcRenderer.off(kanal('ki:gewechselt'), lauscher);
       };
     }
   },

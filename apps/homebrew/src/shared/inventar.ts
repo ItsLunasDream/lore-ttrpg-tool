@@ -50,7 +50,7 @@ export function inventarEintrag(e: Eintrag, s: 'de' | 'en'): InventarEintrag | n
   const art =
     e.art === 'magisch'
       ? `${ART_NAME.magisch[s]}, ${SELTENHEIT_NAME[e.seltenheit][s]}${e.einstimmung ? (de ? ' (Einstimmung)' : ' (attunement)') : ''}`
-      : `Homebrew · ${ART_NAME[e.art][s]}`;
+      : `Homebrew · ${ART_NAME[e.art][s]}${e.magisch ? (de ? ', magisch' : ', magical') : ''}`;
   const beschreibung = [
     e.art === 'gegenstand' || e.art === 'magisch' ? '' : kurzzeile(e, s),
     e.beschreibung.trim(),
@@ -86,7 +86,7 @@ export function inventarEintrag(e: Eintrag, s: 'de' | 'en'): InventarEintrag | n
         art: [artMitZusatz(e, 'de'), artMitZusatz(e, 'en')],
         finesse: e.eigenschaften.includes('finesse'),
         eigenschaften: [eigenschaftenText(e, 'de') || '—', eigenschaftenText(e, 'en') || '—'],
-        meisterschaft: [MEISTERSCHAFT_NAME[e.meisterschaft].de, MEISTERSCHAFT_NAME[e.meisterschaft].en]
+        meisterschaft: e.meisterschaft ? [MEISTERSCHAFT_NAME[e.meisterschaft].de, MEISTERSCHAFT_NAME[e.meisterschaft].en] : ['—', '—']
       }
     }
   };

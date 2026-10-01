@@ -30,6 +30,18 @@ function notify(): void {
   for (const fn of changeListeners) fn();
 }
 
+/**
+ * Grundgröße beim Platzieren, je Prop. Gebäude sind als Draufsicht so groß
+ * gezeichnet, dass sie neben Möbeln und Bäumen viel zu wuchtig wirken
+ * (Rückmeldung); sie starten deshalb bei 20 %. Die Größe im Werkzeug und im
+ * Inspector multipliziert sich darauf.
+ */
+export const GEBAEUDE_SKALA = 0.2;
+
+export function grundSkala(propId: string): number {
+  return getProp(propId)?.category === 'gebaeude' ? GEBAEUDE_SKALA : 1;
+}
+
 export function getProp(id: string): PropDef | undefined {
   return registry.get(id);
 }

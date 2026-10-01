@@ -36,3 +36,24 @@ test('Bereinigen: unbekannte Notizen, Anschluss an sich selbst, Ringe', () => {
   const ring = ordneStraenge(bereinigeStraenge([{ ...A, von: { strang: 'b', notiz: 'm1' } }, B]));
   assert.ok(ring.knoten.length === 5);
 });
+
+test('Mündung wie bei Git: das Ziel liegt rechts von der letzten Notiz der Quelle', () => {
+  // B ist lang, A mündet in die zweite Notiz von A-los-gelöstem Strang B.
+  const straenge = [
+    { id: 'a', name: 'A', farbe: 0, notizen: ['a1', 'a2', 'a3', 'a4'], von: null, nach: { strang: 'b', notiz: 'b2' } },
+    { id: 'b', name: 'B', farbe: 1, notizen: ['b1', 'b2', 'b3'], von: null, nach: null }
+  ];
+  const { knoten, kanten } = ordneStraenge(straenge);
+  const spalte = (n) => knoten.find((k) => k.notiz === n).spalte;
+  assert.ok(spalte('b2') > spalte('a4'), `b2 (${spalte('b2')}) muss rechts von a4 (${spalte('a4')}) liegen`);
+  const m = kanten.find((k) => k.art === 'muendung');
+  assert.ok(m.nach.spalte > m.von.spalte);
+  // Abzweig und Mündung zusammen: C zweigt von A ab und mündet zurück in A.
+  const ring = [
+    { id: 'a', name: 'A', farbe: 0, notizen: ['a1', 'a2', 'a3', 'a4', 'a5'], von: null, nach: null },
+    { id: 'c', name: 'C', farbe: 2, notizen: ['c1', 'c2'], von: { strang: 'a', notiz: 'a1' }, nach: { strang: 'a', notiz: 'a5' } }
+  ];
+  const r = ordneStraenge(ring);
+  const sp = (n) => r.knoten.find((k) => k.notiz === n).spalte;
+  assert.ok(sp('c1') > sp('a1') && sp('a5') > sp('c2'));
+});

@@ -101,3 +101,13 @@ Unternotizen) im Story Creator.
 3. **Ortsplan** im Map Maker: gewünscht, oder reicht Text?
 4. **Auch Orte außerhalb von Siedlungen** (Dungeon-Eingang, Ruine,
    Lichtung)? Dann eher „Ortsgenerator“ als „Siedlungsgenerator“.
+
+## KI (Rückmeldung „Ask AI wieder einbauen")
+
+- „KI fragen" schreibt Name, Herrschaft, Wirtschaft, Besonderheit,
+  Problem, Gerüchte und Gasthaus (Name, Spezialität) neu; festgehaltene
+  Teile bleiben. Dazu ein freier Wunsch.
+- ✦ an einem Teil schreibt nur dieses.
+- Läden, Waren, Preise und Personen bleiben bei Tabellen und SRD.
+- Rauchtest `smoke-orte-ki.cjs` gegen ein nachgebautes Ollama.
+

@@ -339,3 +339,10 @@ select,
   font-weight: 600;
   font-size: 15px;
 }
+
+/* Wunsch an die KI über dem Ort. */
+.ki__wunsch {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+}

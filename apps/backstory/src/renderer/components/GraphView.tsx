@@ -25,7 +25,12 @@ interface Props {
   /** Handlungsstraenge der Kampagne. */
   plots: Strang[];
   onSavePlots: (plots: Strang[]) => void;
+  /** Welcher Reiter offen ist; liegt bei der App, damit der Verlauf (Zurück) ihn kennt. */
+  ansicht: GraphAnsicht;
+  onAnsicht: (ansicht: GraphAnsicht) => void;
 }
+
+export type GraphAnsicht = 'graph' | 'zeit' | 'straenge';
 
 const WIDTH = 1200;
 const HEIGHT = 780;
@@ -82,13 +87,12 @@ const LABEL_SIDE = 2.4;
 
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 
-export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose, campaignId, plots, onSavePlots }: Props) {
+export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose, campaignId, plots, onSavePlots, ansicht, onAnsicht: setAnsicht }: Props) {
   const t = useT();
   const [mode, setMode] = useState<GraphMode>('both');
   const [seed, setSeed] = useState(42);
   const [hovered, setHovered] = useState<string | null>(null);
   /** Graph oder Zeitstrahl (Rueckmeldung: Ereignisse in zeitlicher Folge). */
-  const [ansicht, setAnsicht] = useState<'graph' | 'zeit' | 'straenge'>('graph');
   /*
    * Kurzinfo beim Ueberfahren (Rueckmeldung), leicht verzoegert: sonst
    * flackerten beim Ueberstreichen des Graphen Karten auf.

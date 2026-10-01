@@ -64,7 +64,7 @@ import {
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
-  setzeSuchtaste, setzeFokustaste, setzeHilfetaste,
+  setzeSuchtaste, setzeFokustaste, setzeHilfetaste, setzeHuellenFenster,
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
@@ -310,12 +310,13 @@ let protokoll: Protokollfuehrer | null = null;
 function meldeOrt(appId: string, ort: string | null): void {
   huelle?.webContents.send('verlauf:ort', appId, ort);
   // Sitzungsprotokoll: welche Notizen waehrend der Sitzung offen waren.
-  if (appId === 'backstory' && ort && ort !== 'entwurf' && protokoll?.laeuft()) {
+  if (appId === 'backstory' && ort && ort !== 'entwurf' && !ort.startsWith('#') && protokoll?.laeuft()) {
     void notizTitelVon(ort).then((titel) => {
       if (titel) protokoll?.notiz(titel);
     });
   }
-  if (ort && ort !== 'entwurf') {
+  // „#…" sind Ansichten (Graph, Zeitstrahl im Story Creator), keine Einträge zum Teilen.
+  if (ort && ort !== 'entwurf' && !ort.startsWith('#')) {
     const alt = zuletztGeoeffnet.findIndex((z) => z.werkzeug === appId && z.ort === ort);
     if (alt >= 0) zuletztGeoeffnet.splice(alt, 1);
     zuletztGeoeffnet.unshift({ werkzeug: appId, ort });
@@ -661,6 +662,7 @@ async function erzeugeFenster(): Promise<void> {
     show: false,
     title: 'LORE'
   });
+  setzeHuellenFenster(fenster);
 
   huelle = new WebContentsView({
     webPreferences: {

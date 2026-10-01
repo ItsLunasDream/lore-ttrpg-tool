@@ -834,3 +834,15 @@ textarea {
 .wirkung .feld__flaeche {
   flex: 1;
 }
+
+/* Schadenszeilen: das ✕ auf Höhe der Felder (die haben 14px Abstand nach unten). */
+.zusatz__weg {
+  margin-bottom: 14px;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.zusatz__dazu {
+  align-self: flex-start;
+  padding: 9px 16px;
+}

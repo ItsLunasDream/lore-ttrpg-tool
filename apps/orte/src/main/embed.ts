@@ -13,7 +13,11 @@ import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
 import { alsDatei, alsKachel, alsLootTabellen, alsNotizen, freieKennung, kurzzeile, leseDatei, zuId, type Gespeichert, type Kachel, type Notiz } from '../shared/ablage';
-import { GROESSE_NAME } from '../shared/tabellen';
+import { GROESSE_NAME, type Sprache } from '../shared/tabellen';
+import { baueAnbieter, KiFehler, leseJsonAntwort } from '@suite/ki';
+import type { KiEinstellungen } from '@suite/ki/einstellungen';
+import { anweisung, KI_FELDER, systemAnweisung, uebernehme, type KiFeld } from '../shared/kiAufgaben';
+import { lageName, type Ort } from '../shared/erzeuge';
 
 export const WERKZEUG = 'orte';
 export const ORDNER_NAME = 'orte';
@@ -34,6 +38,8 @@ export interface OrteEmbedOptions {
   readonly onEreignis?: (appId: string) => void;
   readonly anlegen?: Anleger;
   readonly kampagnen?: () => Promise<{ liste: { id: string; name: string }[]; aktuell: string | null }>;
+  /** Die KI der Sammlung, bei jedem Aufruf frisch gelesen. Fehlt sie, gibt es hier keine KI. */
+  readonly kiQuelle?: () => { einstellungen: KiEinstellungen; schluessel: string };
 }
 
 export interface OrteEmbed {
@@ -44,6 +50,7 @@ export interface OrteEmbed {
   flush(): Promise<void>;
   setLanguage(webContents: WebContents, language: string): Promise<void>;
   zeigeEintrag(webContents: WebContents, kennung: string): Promise<boolean>;
+  meldeKiWechsel(webContents: WebContents): void;
 }
 
 const CSP = [
@@ -183,6 +190,34 @@ export async function mountOrte(options: OrteEmbedOptions): Promise<OrteEmbed> {
     }
   });
 
+  // --- KI (nur Texte; Läden, Preise und Personen bleiben bei den Tabellen) ---
+  const anbieter = () => {
+    if (!options.kiQuelle) return null;
+    const q = options.kiQuelle();
+    return baueAnbieter(q.einstellungen, q.schluessel);
+  };
+  handle('ki:da', () => anbieter() !== null);
+  handle(
+    'ki:frage',
+    async (_e: never, ort: Ort, felderRoh: unknown, wunsch: unknown, sprache: Sprache): Promise<{ ok: boolean; wert: Partial<Ort> | null; grund: string }> => {
+      const gewaehlt = anbieter();
+      if (!gewaehlt) return { ok: false, wert: null, grund: 'error.aiNoProvider' };
+      const felder = (Array.isArray(felderRoh) ? felderRoh : []).filter((f): f is KiFeld => (KI_FELDER as readonly string[]).includes(f as string));
+      if (!felder.length) return { ok: false, wert: null, grund: 'error.aiKeinJson' };
+      const s: Sprache = sprache === 'de' ? 'de' : 'en';
+      try {
+        const antwort = await gewaehlt.frage(
+          { system: systemAnweisung(s), nachrichten: [{ rolle: 'user', inhalt: anweisung(ort, felder, typeof wunsch === 'string' ? wunsch : '', s, lageName(ort.lage, s)) }] },
+          () => {}
+        );
+        const wert = uebernehme(ort, felder, leseJsonAntwort(antwort));
+        return Object.keys(wert).length ? { ok: true, wert, grund: '' } : { ok: false, wert: null, grund: 'error.aiKeinJson' };
+      } catch (fehler) {
+        return { ok: false, wert: null, grund: fehler instanceof KiFehler ? fehler.schluessel : 'error.aiOther' };
+      }
+    }
+  );
+
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
   ipcMain.on(kanal('sprache:gewechselt'), (_event, language: string) => {
     options.onLanguageChange?.(language);
@@ -203,11 +238,14 @@ export async function mountOrte(options: OrteEmbedOptions): Promise<OrteEmbed> {
       if (webContents.isDestroyed()) return false;
       webContents.send(kanal('suche:zeigen'), kennung);
       return true;
+    },
+    meldeKiWechsel: (webContents) => {
+      if (!webContents.isDestroyed()) webContents.send(kanal('ki:gewechselt'));
     }
   };
 }
 
 export function unmountOrte(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'ausDemLoot', 'loeschen', 'kampagnen', 'export']) ipcMain.removeHandler(kanal(name));
+  for (const name of ['liste', 'lesen', 'speichern', 'inDenLoot', 'ausDemLoot', 'loeschen', 'kampagnen', 'export', 'ki:da', 'ki:frage']) ipcMain.removeHandler(kanal(name));
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
 }
