@@ -659,3 +659,191 @@ textarea {
   padding: 0 4px;
   font-size: 0.9em;
 }
+
+/* ==========================================================================
+   Ansicht: Regeln oder Gestalten (docs/tiergestalt.md)
+   ========================================================================== */
+
+.kopf__ansicht {
+  display: flex;
+  gap: 4px;
+  margin: -6px 0 14px;
+  border-bottom: 1px solid var(--rand);
+}
+
+.reiter {
+  padding: 6px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-leise);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.reiter:hover {
+  color: var(--text);
+}
+
+.reiter--an {
+  color: var(--text);
+  border-bottom-color: var(--betont);
+}
+
+.gestalten__liste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gestalten__figur {
+  margin: 0;
+  font-weight: 600;
+}
+
+.gestalten__feld {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.gestalten__feld select,
+.gestalten__feld input {
+  padding: 5px 8px;
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  background: var(--grund-tief);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.gestalten__zeile {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.gestalten__haken {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.gestalten__regel {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--lasur);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-leise);
+}
+
+.gestalten__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gestalten__chips legend {
+  margin-bottom: 3px;
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.chip {
+  padding: 3px 10px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip--an {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.gestalten__eintraege {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gestalten__eintrag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gestalten__eintrag .eintrag {
+  flex: 1;
+  min-width: 0;
+}
+
+.gestalten__vergleich {
+  padding: 4px;
+  cursor: pointer;
+}
+
+.gestalten__stern {
+  color: var(--betont);
+}
+
+.gestalten__marke {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--lasur);
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+.gestalten__best {
+  font-weight: 700;
+  color: var(--betont);
+}
+
+.gestalten__weg {
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.wertekasten {
+  padding: 8px 4px 12px;
+  line-height: 1.45;
+}
+
+.wertekasten p {
+  margin: 0 0 4px;
+}
+
+.wertekasten__art {
+  font-style: italic;
+  color: var(--text-leise);
+}
+
+.wertekasten__attribute {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0;
+}
+
+.wertekasten__abschnitt h5 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--betont);
+  border-bottom: 1px solid var(--rand);
+}

@@ -10,6 +10,7 @@ import { rollExpression, type RandomSource } from '@suite/dice';
 import { ATTRIBUTE, FERTIGKEITEN, fertigkeitsBonus, modifikator, uebungsbonus, type Attribut, type Uebung } from './regeln';
 import { bereinigeZauberei, fuellePlaetze, type Zauberei } from './zauber';
 import { bereinigeGegenstaende, type Gegenstand } from './inventar';
+import { bereinigeTiergestalt, rasteTiergestalt, type Tiergestalt } from './tiergestalt';
 
 export const SCHEMA = 1;
 
@@ -89,6 +90,8 @@ export interface Werte {
   angriffe: Angriff[];
   /** Nur bei Figuren, die zaubern. */
   zauber?: Zauberei;
+  /** Nur bei Druiden (docs/tiergestalt.md). */
+  tiergestalt?: Tiergestalt;
   // --- Was ein Bogen sonst noch hat (Spielerbogen 2024) ---
   ep: number;
   gesinnung: string;
@@ -330,7 +333,8 @@ export function langeRast(w: Werte): Werte {
     ressourcen: fuelleRessourcen(w.ressourcen, 'lang'),
     // Zauberplaetze kommen nach einer langen Rast zurueck (Klassenmerkmal
     // aller Zauberklassen im SRD).
-    ...(w.zauber ? { zauber: fuellePlaetze(w.zauber) } : {})
+    ...(w.zauber ? { zauber: fuellePlaetze(w.zauber) } : {}),
+    ...(w.tiergestalt ? { tiergestalt: { ...w.tiergestalt, verbraucht: 0 } } : {})
   };
 }
 
@@ -363,7 +367,7 @@ export function kurzeRast(
   // Paktmagie: die Plaetze kommen auch nach einer kurzen Rast zurueck.
   const zauber = w.zauber?.kurzeRast ? fuellePlaetze(w.zauber) : w.zauber;
   const geheilt = wendeBetragAn(
-    { ...w, trefferwuerfel, ressourcen: fuelleRessourcen(w.ressourcen, 'kurz'), ...(zauber ? { zauber } : {}) },
+    rasteTiergestalt({ ...w, trefferwuerfel, ressourcen: fuelleRessourcen(w.ressourcen, 'kurz'), ...(zauber ? { zauber } : {}) }, 'kurz'),
     summe
   );
   return { werte: geheilt, wuerfe };
@@ -487,6 +491,7 @@ export function bereinige(roh: unknown, id: string): Bogen {
         })
       : [],
     ...(bereinigeZauberei(w.zauber) ? { zauber: bereinigeZauberei(w.zauber) } : {}),
+    ...(bereinigeTiergestalt(w.tiergestalt) ? { tiergestalt: bereinigeTiergestalt(w.tiergestalt) } : {}),
     ep: zahl(w.ep, 0, 0, 10_000_000),
     gesinnung: text(w.gesinnung, 60),
     groesse: text(w.groesse, 40),

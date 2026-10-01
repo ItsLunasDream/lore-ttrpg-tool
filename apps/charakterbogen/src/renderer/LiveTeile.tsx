@@ -9,6 +9,7 @@ import { getLanguage, hatText, t } from './i18n';
 import type { Kachel } from '../shared/ablage';
 import type { Bogen } from '../shared/bogen';
 import { FREIGABEN, type LiveEintrag, type SlAenderung } from '../shared/live';
+import { gestaltNach } from '@suite/srd/gestalten';
 import type { LiveZustand } from '../main/live';
 
 // --- Marken an Feldern ------------------------------------------------------
@@ -154,6 +155,11 @@ function LiveKopf({ e, ich }: { e: LiveEintrag; ich: string | null }) {
         {u.rk !== null ? ` · ${t('rk')} ${u.rk}` : ''}
         {u.zustaende.length ? ` · ${u.zustaende.length} ${t('zustaende')}` : ''}
       </span>
+      {u.gestalt && gestaltNach(u.gestalt) ? (
+        <span className="kachel__gestalt" data-live-gestalt={u.gestalt}>
+          {t('tg.inGestalt')}: {gestaltNach(u.gestalt)?.monster.name[getLanguage() === 'de' ? 'de' : 'en']}
+        </span>
+      ) : null}
       {e.sicht === 'voll' && e.bogen?.werte ? <KompaktZeilen w={e.bogen.werte} /> : null}
     </>
   );

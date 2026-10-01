@@ -804,6 +804,21 @@ textarea {
   border-color: color-mix(in srgb, var(--rand) 60%, transparent);
 }
 
+/* `.blatt button` oben ist spezifischer als einfache Klassen: Punkte
+   (Zauberplaetze, Tiergestalt) und Chip-Knoepfe holen sich ihre Fuellung
+   hier zurueck, sonst sehen volle und verbrauchte Punkte gleich aus. */
+.blatt .punkt {
+  background: var(--betont);
+}
+
+.blatt .punkt--weg {
+  background: transparent;
+}
+
+.blatt .chip button {
+  background: transparent;
+}
+
 .blatt input:focus,
 .blatt textarea:focus {
   border-color: var(--betont);
@@ -2039,4 +2054,120 @@ textarea {
 }
 .kachel__zeile {
   opacity: 0.85;
+}
+
+/* --- Tiergestalt (docs/tiergestalt.md) ------------------------------------ */
+
+.tiergestalt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tiergestalt__regel {
+  margin: 0;
+}
+
+.tiergestalt__nutzungen,
+.tiergestalt__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tiergestalt__knoepfe {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.tiergestalt__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tiergestalt__zeile {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 2fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.tiergestalt__zeile--aktiv {
+  background: color-mix(in srgb, var(--betont) 16%, transparent);
+}
+
+.tiergestalt__name {
+  font-weight: 600;
+}
+
+.tiergestalt__warnung {
+  color: #d9a441;
+}
+
+/* Der Kasten der Gestalt liegt neben dem Bogen, solange er breit genug ist. */
+.mit-gestalt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.mit-gestalt__bogen {
+  min-width: 0;
+}
+
+.mit-gestalt > .gestaltkasten {
+  position: sticky;
+  top: 8px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+@media (max-width: 1100px) {
+  .mit-gestalt {
+    grid-template-columns: 1fr;
+  }
+
+  .mit-gestalt > .gestaltkasten {
+    order: -1;
+    position: static;
+    max-height: none;
+  }
+}
+
+.gestaltkasten p {
+  margin: 0 0 4px;
+  line-height: 1.45;
+}
+
+.gestaltkasten__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gestaltkasten__attribute {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0;
+}
+
+.gestaltkasten__zeile,
+.gestaltkasten__hinweis {
+  font-size: 0.92em;
+}
+
+.kachel__gestalt {
+  font-size: 12px;
+  color: var(--betont);
 }

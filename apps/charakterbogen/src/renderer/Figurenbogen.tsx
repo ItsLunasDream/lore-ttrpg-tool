@@ -13,6 +13,8 @@ import { api } from './api';
 import { getLanguage, t } from './i18n';
 import { ZauberBlock } from './ZauberBlock';
 import { AngriffeBlock } from './AngriffeBlock';
+import { GestaltKasten, TiergestaltBlock } from './TiergestaltBlock';
+import { druidenstufe } from '../shared/tiergestalt';
 import { SlMarke } from './LiveTeile';
 import { Portraet } from './Portraet';
 import { Pips, Segment, Suchwahl, Uebungspunkt, type Wahlpunkt } from './Bedienung';
@@ -54,6 +56,8 @@ export interface FigurProps {
   /** Das Bild haengt am Bogen, nicht an den Werten. */
   readonly bild?: Bogen['bild'];
   readonly setzeBild?: (b: Bogen['bild'] | undefined) => void;
+  /** Name der Figur (fuer den Aufruf des Nachschlagewerks). */
+  readonly name?: string;
 }
 
 function zahlAus(text: string, ersatz: number): number {
@@ -61,7 +65,7 @@ function zahlAus(text: string, ersatz: number): number {
   return Number.isFinite(n) ? Math.round(n) : ersatz;
 }
 
-export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRaum, bild, setzeBild }: FigurProps) {
+export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRaum, bild, setzeBild, name }: FigurProps) {
   const stufe = gesamtstufe(w);
   const pb = uebungsbonus(stufe);
 
@@ -196,6 +200,13 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
         <ZauberBlock w={w} pb={pb} aendere={aendere} setMeldung={setMeldung} />
       </section>
 
+      {druidenstufe(w) > 0 || w.tiergestalt ? (
+        <section className="kasten" data-block="tiergestalt">
+          <h2>{t('tiergestalt')}</h2>
+          <TiergestaltBlock w={w} aendere={aendere} name={name ?? ''} />
+        </section>
+      ) : null}
+
       <section className="kasten">
         <h2>{t('merkmale')}</h2>
         <div className="texte">
@@ -242,6 +253,7 @@ export function Kompaktbogen({ werte: w, aendere, setMeldung }: Pick<FigurProps,
         <Trefferwuerfel w={w} aendere={aendere} />
         <Rasten w={w} aendere={aendere} setMeldung={setMeldung} />
       </section>
+      <GestaltKasten w={w} aendere={aendere} />
       {plaetze.length ? (
         <section className="kasten" data-kompakt-plaetze>
           <h2>{t('zauber.plaetze')}</h2>

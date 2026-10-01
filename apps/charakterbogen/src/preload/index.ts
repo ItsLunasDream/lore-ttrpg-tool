@@ -71,6 +71,8 @@ const api = {
     jetzt: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:jetzt'), bogen) as Promise<boolean>,
     oeffne: (kennung: string) => ipcRenderer.invoke(kanal('story:oeffne'), kennung) as Promise<boolean>
   },
+  /** Das Nachschlagewerk mit einem Eintrag oder Filter oeffnen (`gestalten?…`). */
+  nachschlagen: (kennung: string) => ipcRenderer.invoke(kanal('nachschlagen'), kennung) as Promise<boolean>,
   /** Eigene Zustaende aus dem Status Effect Creator. */
   eigeneZustaende: () => ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<{ name: string; text: string }[]>,
   /** Figuren in den Initiative Tracker. */

@@ -57,8 +57,9 @@ app.whenReady().then(async () => {
   const eintraege = await hjs('window.shell.suche.eintraege()');
   const regeln = (eintraege ?? []).filter((e) => e.werkzeug === 'nachschlagewerk');
   pruefe(
-    regeln.length === 155 + 180 + 51 + 339 + 258,
-    `die Suche der Huelle kennt Glossar, Ausruestung, Zauber und magische Gegenstaende (${regeln.length})`
+    // + 1: die Ansicht „Tiergestalten" (docs/tiergestalt.md).
+    regeln.length === 155 + 180 + 51 + 339 + 258 + 1,
+    `die Suche der Huelle kennt Glossar, Ausruestung, Zauber, magische Gegenstaende und Tiergestalten (${regeln.length})`
   );
   pruefe(
     regeln.some(
@@ -406,6 +407,36 @@ app.whenReady().then(async () => {
     const bild = await sicht.webContents.capturePage();
     fs.writeFileSync(process.env.BILD, bild.toPNG());
   }
+
+  // --- Gestalten (docs/tiergestalt.md) --------------------------------------
+  await js(`document.querySelector('[data-ansicht="gestalten"]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-gestalten]'))`), 'Reiter Gestalten oeffnet den Filter');
+  const gestalten = () => js(`[...document.querySelectorAll('[data-gestalt]')].map((e) => e.dataset.gestalt)`);
+  let ids = await gestalten();
+  pruefe(ids.includes('wolf') && ids.includes('rat') && !ids.includes('owl') && !ids.includes('brown-bear'), `Druidenstufe 2: Wolf und Ratte, keine Eule, kein Braunbaer (${ids.length})`);
+  await js(`document.querySelector('[data-gestalt-bewegung="schwimmen"]').click(); true`);
+  await warte(200);
+  ids = await gestalten();
+  pruefe(ids.length > 0 && !ids.includes('wolf') && ids.includes('frog'), `Filter Schwimmen: Frosch ja, Wolf nein (${ids.join(', ')})`);
+  await js(`document.querySelector('[data-gestalt-bewegung="schwimmen"]').click(); true`);
+  await warte(200);
+  await js(`document.querySelector('[data-gestalt-vergleich="wolf"]').click(); document.querySelector('[data-gestalt-vergleich="rat"]').click(); true`);
+  await warte(200);
+  pruefe(await js(`document.querySelectorAll('[data-gestalt-vergleichsblatt] thead th').length === 3`), 'zwei Gestalten stehen im Vergleich nebeneinander');
+  await js(`document.querySelector('[data-gestalt="wolf"]').click(); true`);
+  await warte(200);
+  // Ein Klick auf eine Gestalt zeigt bei laufendem Vergleich weiter den Vergleich; Haken weg, dann der Kasten.
+  await js(`document.querySelector('[data-gestalt-vergleich="wolf"]').click(); document.querySelector('[data-gestalt-vergleich="rat"]').click(); true`);
+  await warte(200);
+  pruefe(await js(`Boolean(document.querySelector('[data-gestalt-blatt="wolf"] .wertekasten'))`), 'der Wolf zeigt seinen ganzen Wertekasten');
+  await hjs(`window.shell.suche.zeige('nachschlagewerk', 'gestalten?vorgabe=vertrauter')`);
+  await warte(600);
+  pruefe((await js(`document.querySelector('[data-gestalt-vorgabe]').value`)) === 'vertrauter', 'ein Aufruf von aussen setzt die Vorgabe (Vertrauter)');
+  ids = await gestalten();
+  pruefe(ids.includes('owl') && !ids.includes('wolf'), 'Vertrauter: HG 0, die Eule ja, der Wolf nicht');
+  await js(`document.querySelector('[data-ansicht="regeln"]').click(); true`);
+  await warte(200);
 
   // --- Die Namensnennung ---------------------------------------------------
   pruefe(

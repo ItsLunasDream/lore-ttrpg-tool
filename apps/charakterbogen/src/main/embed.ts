@@ -46,6 +46,8 @@ export interface BogenEmbedOptions {
     /** Schreibt den Abschnitt des Bogens in die Notiz; `false`, wenn es sie nicht mehr gibt. */
     aktualisiere?(kennung: string, block: string): Promise<boolean>;
   };
+  /** Das Nachschlagewerk nach vorn holen und dort etwas zeigen (Gestalten-Filter). */
+  readonly nachschlagen?: (kennung: string) => void;
   /** Eigene Zustaende aus dem Status Effect Creator. */
   readonly eigeneZustaende?: () => Promise<{ name: string; text: string }[]>;
   /** Der Raum der Huelle, wenn es einen gibt: Boegen live teilen. */
@@ -301,6 +303,12 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
       return false;
     }
   });
+  handle('nachschlagen', async (_e: never, kennung: unknown) => {
+    if (typeof kennung !== 'string' || kennung.length > 2000 || !options.nachschlagen) return false;
+    options.nachschlagen(kennung);
+    return true;
+  });
+
   handle('story:oeffne', async (_e: never, kennung: string) => {
     try {
       return (await options.story?.oeffne(String(kennung))) ?? false;
@@ -513,7 +521,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene', 'nachschlagen']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

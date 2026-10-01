@@ -4,9 +4,46 @@ Rückmeldung: „Druid Wildshape List. Hier soll man mögliche Druid Wildshapes
 sehen, auch Moon Druid. Gibt es vielleicht für andere Klassen einen
 ähnlichen Bedarf?"
 
-**Stand:** Konzept, nichts gebaut. Die Regelangaben unten stammen aus dem
-Gedächtnis und sind **vor dem Bau gegen das SRD 5.2.1 (PDF) zu prüfen**,
-besonders die Stufentabelle der Tiergestalt. Ich kann mich dort irren.
+**Stand:** Umgesetzt (Schritte 1 bis 4). Die Regelangaben sind gegen das
+SRD 5.2.1 geprüft (`packages/srd/quelle/SRD_CC_v5.2.1.pdf`, Druide S. 42 f.,
+Zauber Find Familiar, Polymorph, Animal Shapes) und stehen als Tests in
+`packages/srd/tests/gestalten.test.mjs`.
+
+Entschieden: Verwandeln setzt temporäre TP; nur SRD-Tiere, keine eigenen
+aus dem Monster Creator.
+
+## Was gebaut ist
+
+- `packages/srd/src/gestalten.ts`: Bewegungsarten und Sinne aus dem Text
+  gelesen, Stufentabelle, Grenzen der Voreinstellungen.
+- **Nachschlagewerk**, Reiter „Gestalten": Voreinstellung (Tiergestalt,
+  Vertrauter, Verwandlung, Tiergestalten, eigene Grenze, alle), Filter
+  Bewegung, Sinne, Größe, Schwärme, Suche, Sortierung nach HG/Name/TP/RK,
+  Vergleich von bis zu drei Gestalten (bester Wert hervorgehoben), ganzer
+  Wertekasten. In Strg+K unter „Tiergestalten" / „Wild Shape".
+- **Charakterbogen**, Block „Tiergestalt" (sobald eine Klasse „Druide"
+  oder „Druid" heißt): Regelzeile der Stufe, Nutzungen als Punkte (kurze
+  Rast 1 zurück, lange Rast alle), bekannte Gestalten wählen (nur erlaubte),
+  Verwandeln (Nutzung weg, temporäre TP = Druidenstufe, die höheren
+  bleiben), Kasten der Gestalt neben dem Bogen, Zurückverwandeln (temporäre
+  TP bleiben stehen). „Nachschlagen und vergleichen" öffnet das
+  Nachschlagewerk mit Stufe und bekannten Gestalten der Figur.
+- **Raum**: Die Karte der Figur zeigt „In Gestalt: Wolf".
+
+## Bewusste Abweichungen und offene Punkte
+
+- Der Kasten zeigt die TP der Figur, nicht die des Tiers, und INT/WEI/CHA
+  der Figur: so steht es im SRD 5.2.1 („Rules While Shape-Shifted").
+- Temporäre TP addieren sich nicht; nach SRD wählt man, welche man behält.
+  Der Bogen nimmt automatisch die höheren.
+- Ob **Schwärme** (z. B. Rattenschwarm) als Tiergestalt zählen, lässt das
+  SRD offen: Ihr Typ ist „Swarm of Tiny Beasts". Sie stehen in der Liste,
+  markiert und abschaltbar; der Tisch entscheidet.
+- Gestalt endet bei Kampfunfähigkeit oder Tod (SRD). Das macht der Bogen
+  nicht von selbst; Zurückverwandeln per Knopf.
+- Die Dauer (halbe Druidenstufe in Stunden) wird angezeigt, nicht gezählt.
+
+## Ursprüngliches Konzept
 
 ## Kurz
 

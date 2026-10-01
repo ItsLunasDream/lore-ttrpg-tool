@@ -14,6 +14,7 @@ import { api } from './api';
 import { setLanguage, t } from './i18n';
 import { InventarBlock } from './InventarBlock';
 import { Figurenbogen, Kompaktbogen } from './Figurenbogen';
+import { GestaltKasten } from './TiergestaltBlock';
 import { DesignWahl } from './DesignWahl';
 import { angriffeAusInventar } from '../shared/waffen';
 import { LiveLeiste, LiveListe, SlHinweis, SlMarke, SlMarkenKontext, markenAus } from './LiveTeile';
@@ -652,7 +653,11 @@ export function App() {
           {offen.werte && kompakt[offen.id] ? (
             <Kompaktbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} />
           ) : offen.werte ? (
+            // In Tiergestalt liegt der Kasten der Gestalt neben dem Bogen.
+            <div className={offen.werte.tiergestalt?.aktiv ? 'mit-gestalt' : 'ohne-gestalt'}>
+            <div className="mit-gestalt__bogen">
             <Figurenbogen
+              name={offen.name}
               werte={offen.werte}
               aendere={aendereWerte}
               setMeldung={setMeldung}
@@ -667,6 +672,9 @@ export function App() {
                 })
               }
             />
+            </div>
+            <GestaltKasten w={offen.werte} aendere={aendereWerte} />
+            </div>
           ) : null}
 
           <section className="kasten" data-block="inventar">

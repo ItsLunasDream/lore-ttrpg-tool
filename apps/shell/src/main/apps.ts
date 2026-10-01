@@ -230,6 +230,8 @@ export interface MontageHaken {
   readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
   /** Holt den Story Creator nach vorn und zeigt eine Notiz (`<Kampagne>/<Notiz>`). */
   readonly zeigeInStory?: (kennung: string) => void;
+  /** Holt das Nachschlagewerk nach vorn und zeigt einen Eintrag oder Filter. */
+  readonly zeigeImNachschlagewerk?: (kennung: string) => void;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -1624,6 +1626,7 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
       aktualisiere: (kennung, block) => aktualisiereStoryNotiz(kennung, block, haken)
     },
     eigeneZustaende: async () => (await leseEigeneZustaende()).map((z) => ({ name: z.name, text: z.text })),
+    nachschlagen: (kennung) => haken.zeigeImNachschlagewerk?.(kennung),
     // Quellen fuers Inventar aus anderen Werkzeugen. Die Werkzeuge kennen
     // einander nicht; die Huelle liest fuer den Charakterbogen mit.
     quellen: {

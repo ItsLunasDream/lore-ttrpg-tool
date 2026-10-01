@@ -200,7 +200,15 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
       stichworte: ['Note', notiz.stelle, notiz.text.slice(0, 300), regel?.name.en ?? ''].join(' ')
     };
   });
-  return [...eigene, ...notizEintraege, ...alleRegeln().map((regel) => ({
+  // Die Ansicht „Gestalten" (docs/tiergestalt.md) als ein Treffer.
+  const gestalten: Eintrag = {
+    werkzeug: WERKZEUG,
+    kennung: 'gestalten?vorgabe=tiergestalt',
+    name: sprache === 'de' ? 'Tiergestalten' : 'Beast forms',
+    art: sprache === 'de' ? 'Gestalten' : 'Forms',
+    stichworte: 'Tiergestalt Wild Shape Gestalten Beast forms Druide Druid Vertrauter Familiar Verwandlung Polymorph Animal Shapes SRD'
+  };
+  return [gestalten, ...eigene, ...notizEintraege, ...alleRegeln().map((regel) => ({
     werkzeug: WERKZEUG,
     kennung: regel.id,
     // Name und Art in der Sprache der Sammlung; der andere Name bleibt als

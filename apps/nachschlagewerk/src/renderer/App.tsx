@@ -28,6 +28,7 @@ import { verlinke } from '../shared/verweise';
 import { zerlege, type Hausregel } from '../shared/hausregeln';
 import { findetStelle, markiere, nteStelle, vorkommenBei, type Notiz } from '../shared/notizen';
 import { Verweisfeld } from './Verweisfeld';
+import { Gestalten, LEERER_AUFRUF, leseAufruf, type Gestaltaufruf } from './Gestalten';
 
 /**
  * Die Notizen am Text: welche es gibt, und wie man eine oeffnet. Als Kontext
@@ -112,6 +113,17 @@ export function App() {
   const [notizen, setNotizen] = useState<readonly Notiz[]>([]);
   /** Die Notiz im kleinen Fenster: eine neue oder eine, die man bearbeitet. */
   const [notizfenster, setNotizfenster] = useState<{ notiz: Notiz; rect: DOMRect; neu: boolean } | null>(null);
+  /**
+   * Regeln oder Gestalten (docs/tiergestalt.md). Ein neuer Aufruf von aussen
+   * (Charakterbogen) zaehlt `nr` hoch, damit die Ansicht mit seinen Werten
+   * neu anfaengt statt die alten Filter zu behalten.
+   */
+  const [ansicht, setAnsicht] = useState<'regeln' | 'gestalten'>('regeln');
+  const [gestaltaufruf, setGestaltaufruf] = useState<{ aufruf: Gestaltaufruf; nr: number }>({ aufruf: LEERER_AUFRUF, nr: 0 });
+  const zeigeGestalten = (aufruf: Gestaltaufruf) => {
+    setAnsicht('gestalten');
+    setGestaltaufruf((alt) => ({ aufruf, nr: alt.nr + 1 }));
+  };
 
   useEffect(() => {
     void api.notizen.liste().then(setNotizen, () => setNotizen([]));
@@ -219,11 +231,16 @@ export function App() {
    * zum vorigen Eintrag oder zur Liste, nicht zum vorigen Werkzeug
    * (Rueckmeldung).
    */
-  useEffect(() => api.ort.melde(offenId), [offenId]);
+  useEffect(() => api.ort.melde(ansicht === 'gestalten' ? 'gestalten' : offenId), [offenId, ansicht]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         setBearbeitung(null);
+        if (ziel === 'gestalten') {
+          setAnsicht('gestalten');
+          return;
+        }
+        setAnsicht('regeln');
         setOffenId(ziel);
       }),
     []
@@ -238,6 +255,12 @@ export function App() {
         // der leere Hinweis.
         setBearbeitung(null);
         setSuche('');
+        const aufruf = leseAufruf(kennung);
+        if (aufruf) {
+          zeigeGestalten(aufruf);
+          return;
+        }
+        setAnsicht('regeln');
         // Eine Hausregel kann gerade erst angekommen sein (Austausch).
         if (kennung.startsWith('hausregel/')) void ladeHausregeln();
         if (!kennung.startsWith('notiz/')) {
@@ -279,8 +302,26 @@ export function App() {
       <header className="kopf">
         <h1>{t('titel')}</h1>
         <p>{t('untertitel')}</p>
+        <div className="kopf__ansicht" role="tablist">
+          {(['regeln', 'gestalten'] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              role="tab"
+              className={ansicht === a ? 'reiter reiter--an' : 'reiter'}
+              aria-selected={ansicht === a}
+              data-ansicht={a}
+              onClick={() => setAnsicht(a)}
+            >
+              {t(a === 'regeln' ? 'ansicht.regeln' : 'ansicht.gestalten')}
+            </button>
+          ))}
+        </div>
       </header>
 
+      {ansicht === 'gestalten' ? (
+        <Gestalten key={gestaltaufruf.nr} aufruf={gestaltaufruf.aufruf} spr={spr} />
+      ) : (
       <div className="spalten">
         <nav className="liste" data-pfeile="liste" aria-label={t('titel')}>
           <input
@@ -368,6 +409,7 @@ export function App() {
           )}
         </main>
       </div>
+      )}
 
       {/*
         Die Namensnennung, woertlich und in der Sprache der Huelle. Sie steht

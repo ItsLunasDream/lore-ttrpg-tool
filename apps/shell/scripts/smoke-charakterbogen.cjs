@@ -339,6 +339,54 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
 
+  // --- Tiergestalt (docs/tiergestalt.md) ------------------------------------
+  pruefe(!(await js(`Boolean(document.querySelector('[data-block="tiergestalt"]'))`)), 'ohne Druidenstufe kein Tiergestalt-Block');
+  await js(tippe('[data-feld="klasse-0"]', 'Druide'));
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-block="tiergestalt"]'))`), 'als Druide erscheint der Block Tiergestalt');
+  pruefe(/HG bis 1\/2/.test(await js(`document.querySelector('[data-tg-regel]').textContent`)), 'Stufe 5: HG bis 1/2 (SRD-Tabelle)');
+  await js(`document.querySelector('[data-tg-lernen] .suchwahl__knopf').click(); true`);
+  await warte(200);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-tg-lernen] [data-wert="owl"]'))`)), 'die Eule (fliegt) steht nicht zur Wahl');
+  pruefe(!(await js(`Boolean(document.querySelector('[data-tg-lernen] [data-wert="brown-bear"]'))`)), 'der Braunbaer (HG 1) auch nicht');
+  await js(`document.querySelector('[data-tg-lernen] [data-wert="wolf"]').click(); true`);
+  await warte(200);
+  pruefe(await js(`Boolean(document.querySelector('[data-tg-gestalt="wolf"]'))`), 'der Wolf ist als Gestalt bekannt');
+  const tempVorher = Number(await js(`document.querySelector('[data-feld="tp-temp"]').value`));
+  await js(`document.querySelector('[data-tg-verwandeln="wolf"]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-gestaltkasten="wolf"]'))`), 'Verwandeln: der Kasten des Wolfs liegt neben dem Bogen');
+  pruefe(
+    Number(await js(`document.querySelector('[data-feld="tp-temp"]').value`)) === Math.max(tempVorher, 5),
+    'und gibt 5 temporaere TP (Druidenstufe)'
+  );
+  pruefe((await js(`document.querySelector('[data-tg-nutzungen]').dataset.tgNutzungen`)) === '1', 'eine Nutzung ist verbraucht');
+  await js(`document.querySelector('[data-gestaltkasten] [data-tg-zurueck]').click(); true`);
+  await warte(300);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-gestaltkasten]'))`)), 'Zurueckverwandeln nimmt den Kasten weg');
+  // Nachschlagen: das Nachschlagewerk oeffnet sich mit dem Filter der Figur.
+  await js(`document.querySelector('[data-tg-nachschlagen]').click(); true`);
+  const nachschlage = () => fenster.contentView.children.find((v) => v.webContents?.getURL().includes('/apps/nachschlagewerk/'));
+  pruefe(
+    await bis(async () => {
+      const v = nachschlage();
+      return Boolean(v) && (await v.webContents.executeJavaScript(`Boolean(document.querySelector('[data-gestalten]'))`));
+    }),
+    'Nachschlagen oeffnet die Ansicht Gestalten'
+  );
+  const njs = (a) => nachschlage().webContents.executeJavaScript(a);
+  pruefe(await bis(async () => njs(`Boolean(document.querySelector('[data-gestalt="wolf"] [data-gestalt-bekannt]'))`)), 'der Wolf ist dort als bekannt markiert');
+  pruefe(!(await njs(`Boolean(document.querySelector('[data-gestalt="brown-bear"]'))`)), 'und nur Gestalten bis HG 1/2 stehen da');
+  // Zurueck zum Bogen.
+  await hjs(`document.querySelector('[data-schiene="charakterbogen"]').click(); true`);
+  pruefe(await bis(async () => js(`document.hasFocus() || document.visibilityState === 'visible'`)), 'der Bogen ist wieder vorn');
+  await warte(500);
+
+  await js(tippe('[data-feld="tp-temp"]', '0'));
+  await js(`document.querySelector('[data-feld="tp-temp"]').blur(); true`);
+  await js(tippe('[data-feld="klasse-0"]', 'Schurkin'));
+  await warte(300);
+
   // --- Waffenangriffe ----------------------------------------------------------
   const waehle = (auswahl, wert) =>
     js(`(async () => {
