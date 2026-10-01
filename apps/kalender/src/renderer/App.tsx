@@ -13,16 +13,18 @@ import { getLanguage, setLanguage, t } from './i18n';
 import {
   belegung,
   besteTermine,
-  feld,
+  erfuellt,
   gewicht,
   leereUmfrage,
   mitAntwort,
+  sichtbareAntworten,
   tageZwischen,
   uhrzeit,
-  zeiten,
+  type Filter,
   type Stufe,
   type Umfrage
 } from '../shared/modell';
+import { alleZonen, ansicht, eigeneZone, istZone, zeitraum } from '../shared/zeitzone';
 import type { RaumLage } from '../main/embed';
 
 type Sprache = 'de' | 'en';
@@ -32,6 +34,7 @@ function sprache(): Sprache {
 }
 
 const NAME_SPEICHER = 'kalender.name';
+const ZONE_SPEICHER = 'kalender.zone';
 const KEIN_RAUM: RaumLage = { rolle: 'aus', ich: null, personen: [] };
 
 function heute(): string {
@@ -55,6 +58,15 @@ const WOCHE: readonly { tag: number; de: string; en: string }[] = [
   { tag: 0, de: 'So', en: 'Sun' }
 ];
 
+function leseZone(): string {
+  try {
+    const z = localStorage.getItem(ZONE_SPEICHER) ?? '';
+    return istZone(z) ? z : eigeneZone();
+  } catch {
+    return eigeneZone();
+  }
+}
+
 function leseName(): string {
   try {
     return localStorage.getItem(NAME_SPEICHER) ?? '';
@@ -69,6 +81,14 @@ export function App() {
   const [offen, setOffen] = useState<Umfrage | null>(null);
   const [lage, setLage] = useState<RaumLage>(KEIN_RAUM);
   const [name, setName] = useState(leseName);
+  const [zone, setZone] = useState(leseZone);
+  useEffect(() => {
+    try {
+      localStorage.setItem(ZONE_SPEICHER, zone);
+    } catch {
+      // ohne Speicher gilt die Zone des Rechners
+    }
+  }, [zone]);
   const [modus, setModus] = useState<Stufe>('kann');
   const [meldung, setMeldung] = useState('');
   const [fehler, setFehler] = useState('');
@@ -178,6 +198,8 @@ export function App() {
         lage={lage}
         name={name}
         setName={setName}
+        zone={zone}
+        setZone={setZone}
         modus={modus}
         setModus={setModus}
         aendere={aendere}
@@ -220,7 +242,7 @@ export function App() {
           className="knopf knopf--haupt"
           data-neu
           onClick={() => {
-            const u = { ...leereUmfrage(`u-${Date.now().toString(36)}`, heute()) };
+            const u = leereUmfrage(`u-${Date.now().toString(36)}`, heute(), eigeneZone());
             setOffen(u);
             void api.sammlung.speichern(u).then(() => ladeListe());
           }}
@@ -251,13 +273,16 @@ export function App() {
         <section className="karte" data-naechste>
           <h2>{t('naechste')}</h2>
           <ul className="termine">
-            {kommende.map((u) => (
-              <li key={u.id}>
-                <button type="button" className="verweis" onClick={() => void oeffne(u.id)}>
-                  <strong>{tagText(u.termin!.tag, spr, true)}</strong>, {uhrzeit(u.termin!.von)}–{uhrzeit(u.termin!.bis)} · {u.titel || t('ohneTitel')}
-                </button>
-              </li>
-            ))}
+            {kommende.map((u) => {
+              const z = zeitraum(u, u.termin!, zone);
+              return (
+                <li key={u.id}>
+                  <button type="button" className="verweis" onClick={() => void oeffne(u.id)}>
+                    <strong>{tagText(z.tag, spr, true)}</strong>, {uhrzeit(z.von)}–{uhrzeit(z.bis)} · {u.titel || t('ohneTitel')}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
@@ -275,7 +300,7 @@ export function App() {
               <span className="leise">{t('antworten', { n: u.antworten.length })}</span>
               {u.termin ? (
                 <span className="marke marke--an">
-                  📅 {tagText(u.termin.tag, spr)}, {uhrzeit(u.termin.von)}
+                  📅 {tagText(zeitraum(u, u.termin, zone).tag, spr)}, {uhrzeit(zeitraum(u, u.termin, zone).von)}
                 </span>
               ) : null}
             </button>
@@ -299,6 +324,8 @@ interface AnsichtProps {
   readonly lage: RaumLage;
   readonly name: string;
   readonly setName: (n: string) => void;
+  readonly zone: string;
+  readonly setZone: (z: string) => void;
   readonly modus: Stufe;
   readonly setModus: (m: Stufe) => void;
   readonly aendere: (u: Umfrage) => void;
@@ -311,12 +338,14 @@ interface AnsichtProps {
   readonly speichereSofort: () => Promise<void>;
 }
 
-function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meldung, fehler, setMeldung, setFehler, zurueck, loesche, speichereSofort }: AnsichtProps) {
+function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus, aendere, meldung, fehler, setMeldung, setFehler, zurueck, loesche, speichereSofort }: AnsichtProps) {
   const spr = sprache();
-  const zs = zeiten(u);
+  const sichtRaster = useMemo(() => ansicht(u, zone), [u, zone]);
   const ich = u.antworten.find((a) => a.person.trim().toLowerCase() === name.trim().toLowerCase());
   const meine = ich?.felder ?? {};
-  const zieht = useRef<{ setzen: boolean } | null>(null);
+  /** Beim Ziehen: Startzelle (Spalte, Zeile), setzen oder entfernen, und der Stand vor dem Ziehen. */
+  const zieht = useRef<{ setzen: boolean; spalte: number; zeile: number; basis: Record<string, Stufe> } | null>(null);
+  const [filter, setFilter] = useState<{ aus: readonly string[]; mindestens: number | null; pflicht: readonly string[] }>({ aus: [], mindestens: null, pflicht: [] });
   const [entwurf, setEntwurfZustand] = useState<Record<string, Stufe> | null>(null);
   // Der Entwurf auch als Ref: `ende` liest ihn sofort, ohne auf das nächste
   // Zeichnen zu warten (Tastatur: beginne und ende im selben Ereignis).
@@ -334,26 +363,37 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
 
   const setzeTage = (start: string, ende: string, wt: readonly number[]) => aendere({ ...u, tage: tageZwischen(start, ende, wt) });
 
-  // Ziehen: das erste Feld entscheidet, ob gesetzt oder entfernt wird.
-  const beginne = (f: string) => {
+  /*
+   * Ziehen markiert ein Rechteck von der Startzelle bis zur Zelle unter dem
+   * Zeiger. Die Startzelle entscheidet: war sie leer, wird gesetzt, sonst
+   * entfernt. So wählt ein Klick auf ein markiertes Feld es wieder ab.
+   */
+  const rechteck = (basis: Record<string, Stufe>, a: { spalte: number; zeile: number }, b: { spalte: number; zeile: number }, setzen: boolean) => {
+    const neu = { ...basis };
+    for (let sp = Math.min(a.spalte, b.spalte); sp <= Math.max(a.spalte, b.spalte); sp += 1) {
+      for (let ze = Math.min(a.zeile, b.zeile); ze <= Math.max(a.zeile, b.zeile); ze += 1) {
+        const f = sichtRaster.feldAn(sichtRaster.tage[sp], sichtRaster.minuten[ze]);
+        if (!f) continue;
+        if (setzen) neu[f] = modus;
+        else delete neu[f];
+      }
+    }
+    return neu;
+  };
+  const beginne = (f: string, spalte: number, zeile: number) => {
     if (!name.trim()) {
       setFehler(t('ich.fehlt'));
       return;
     }
     setFehler('');
-    const setzen = sicht[f] !== modus;
-    zieht.current = { setzen };
-    setEntwurf({ ...sicht, ...einzel(sicht, f, setzen) });
+    const setzen = !sicht[f];
+    zieht.current = { setzen, spalte, zeile, basis: { ...sicht } };
+    setEntwurf(rechteck(sicht, { spalte, zeile }, { spalte, zeile }, setzen));
   };
-  const einzel = (basis: Record<string, Stufe>, f: string, setzen: boolean): Record<string, Stufe> => {
-    const neu = { ...basis };
-    if (setzen) neu[f] = modus;
-    else delete neu[f];
-    return neu;
-  };
-  const ueber = (f: string) => {
-    if (!zieht.current || !entwurfRef.current) return;
-    setEntwurf(einzel(entwurfRef.current, f, zieht.current.setzen));
+  const ueber = (spalte: number, zeile: number) => {
+    const z = zieht.current;
+    if (!z) return;
+    setEntwurf(rechteck(z.basis, z, { spalte, zeile }, z.setzen));
   };
   const ende = useCallback(() => {
     if (!zieht.current) return;
@@ -371,10 +411,17 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
     return () => window.removeEventListener('pointerup', ende);
   }, [ende]);
 
-  const vorschlaege = besteTermine(u);
+  const sichtbar = u.antworten.filter((a) => !filter.aus.includes(a.person));
+  const aktiverFilter: Filter = {
+    personen: sichtbar.map((a) => a.person),
+    mindestens: filter.mindestens,
+    pflicht: filter.pflicht.filter((p) => sichtbar.some((a) => a.person === p))
+  };
+  const gefiltert = filter.aus.length > 0 || filter.mindestens !== null || aktiverFilter.pflicht!.length > 0;
+  const vorschlaege = besteTermine(u, 3, aktiverFilter);
   const fehlen = lage.personen.filter((p) => !u.antworten.some((a) => a.person.trim().toLowerCase() === p.name.trim().toLowerCase())).map((p) => p.name);
 
-  const meineZelle = (f: string) => {
+  const meineZelle = (f: string, spalte: number, zeile: number) => {
     const s = sicht[f];
     return (
       <button
@@ -389,21 +436,22 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
           // Bei Fingern hält der Browser den Zeiger am ersten Feld fest; ohne
           // Freigabe kämen die übrigen Felder beim Ziehen nie an.
           if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-          beginne(f);
+          beginne(f, spalte, zeile);
         }}
-        onPointerEnter={() => ueber(f)}
+        onPointerEnter={() => ueber(spalte, zeile)}
         onKeyDown={(e) => {
           if (e.key !== ' ' && e.key !== 'Enter') return;
           e.preventDefault();
-          beginne(f);
+          beginne(f, spalte, zeile);
           ende();
         }}
       />
     );
   };
   const alleZelle = (f: string) => {
-    const b = belegung(u, f);
-    const anteil = u.antworten.length ? gewicht(b) / u.antworten.length : 0;
+    const b = belegung({ ...u, antworten: sichtbareAntworten(u, aktiverFilter) }, f);
+    const passt = erfuellt([...b.kann, ...b.notfalls], aktiverFilter);
+    const anteil = sichtbar.length && passt ? gewicht(b) / sichtbar.length : 0;
     const titel = [
       b.kann.length ? `✓ ${b.kann.join(', ')}` : '',
       b.notfalls.length ? `~ ${b.notfalls.join(', ')}` : '',
@@ -417,27 +465,42 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
         className="zelle zelle--heat"
         data-heat={f}
         data-anzahl={b.kann.length}
+        data-passt={passt ? '1' : '0'}
         title={titel}
         style={{ background: `color-mix(in srgb, var(--betont) ${Math.round(anteil * 100)}%, var(--grund-tief))` }}
       />
     );
   };
-  const rasterMit = (zelle: (f: string) => JSX.Element, art: string) => (
-    <div className="raster" style={{ gridTemplateColumns: `4.2em repeat(${u.tage.length}, minmax(2.6em, 1fr))` }} data-raster={art}>
+  const rasterMit = (zelle: (f: string, spalte: number, zeile: number) => JSX.Element, art: string) => (
+    <div className="raster" style={{ gridTemplateColumns: `4.2em repeat(${sichtRaster.tage.length}, minmax(2.6em, 1fr))` }} data-raster={art}>
       <span />
-      {u.tage.map((tag) => (
+      {sichtRaster.tage.map((tag) => (
         <span key={tag} className="raster__kopf">
           {tagText(tag, spr)}
         </span>
       ))}
-      {zs.flatMap((m) => [
+      {sichtRaster.minuten.flatMap((m, zeile) => [
         <span key={`z${m}`} className="raster__zeit">
           {uhrzeit(m)}
         </span>,
-        ...u.tage.map((tag) => zelle(feld(tag, m)))
+        ...sichtRaster.tage.map((tag, spalte) => {
+          const f = sichtRaster.feldAn(tag, m);
+          // Durch die Umrechnung kann eine Zelle zu keinem Feld der Umfrage gehören.
+          return f ? zelle(f, spalte, zeile) : <span key={`${tag}-${m}`} className="zelle zelle--leer" />;
+        })
       ])}
     </div>
   );
+  const zonen = useMemo(() => alleZonen(), []);
+  const zonenListe = (wert: string) => (zonen.includes(wert) || !wert ? zonen : [wert, ...zonen]);
+  const zeigeZeitraum = (x: { tag: string; von: number; bis: number }) => {
+    const z = zeitraum(u, x, zone);
+    return (
+      <>
+        <strong>{tagText(z.tag, spr, true)}</strong>, {uhrzeit(z.von)}–{uhrzeit(z.bis)}
+      </>
+    );
+  };
 
   return (
     <div className="rahmen">
@@ -568,7 +631,8 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
           </label>
           <label className="wahl">
             <span>{t('feld.dauer')}</span>
-            <select value={u.dauer} data-dauer onChange={(e) => aendere({ ...u, dauer: Number(e.target.value) })}>
+            <select value={u.dauer ?? ''} data-dauer onChange={(e) => aendere({ ...u, dauer: e.target.value === '' ? null : Number(e.target.value) })}>
+              <option value="">{t('dauer.offen')}</option>
               {[1, 2, 3, 4, 5, 6, 8].map((h) => (
                 <option key={h} value={h * 60}>
                   {t('stunden', { n: h })}
@@ -577,7 +641,20 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
             </select>
           </label>
         </div>
-        <p className="leise klein">{t('zeitzone')}</p>
+        <div className="leiste">
+          <label className="wahl">
+            <span>{t('zone.umfrage')}</span>
+            <select value={u.zone} data-zone-umfrage onChange={(e) => aendere({ ...u, zone: e.target.value })}>
+              <option value="">{t('zone.ohne')}</option>
+              {zonenListe(u.zone).map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="leise klein">{u.zone ? t('zone.hinweis') : t('zeitzone')}</p>
       </details>
 
       <div className="leiste">
@@ -592,6 +669,18 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
             </button>
           ))}
         </div>
+        {u.zone ? (
+          <label className="wahl">
+            <span>{t('zone.ich')}</span>
+            <select value={zone} data-zone-ich onChange={(e) => setZone(e.target.value)}>
+              {zonenListe(zone).map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         {imRaum && fehlen.length ? <span className="leise">{t('fehlen', { namen: fehlen.join(', ') })}</span> : null}
       </div>
 
@@ -605,7 +694,64 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
           <h2>
             {t('alle')} <span className="leise">({u.antworten.length})</span>
           </h2>
-          {u.antworten.length === 0 ? <p className="leise klein">{t('alle.leer')}</p> : <p className="leise klein">{u.antworten.map((a) => a.person).join(', ')}</p>}
+          {u.antworten.length === 0 ? (
+            <p className="leise klein">{t('alle.leer')}</p>
+          ) : (
+            <div className="filter" data-filter>
+              <div className="leiste" role="group" aria-label={t('filter.personen')}>
+                <span className="leise klein">{t('filter.personen')}:</span>
+                {u.antworten.map((a) => {
+                  const an = !filter.aus.includes(a.person);
+                  return (
+                    <button
+                      key={a.person}
+                      type="button"
+                      className={an ? 'chip chip--an' : 'chip'}
+                      aria-pressed={an}
+                      data-person={a.person}
+                      onClick={() => setFilter({ ...filter, aus: an ? [...filter.aus, a.person] : filter.aus.filter((x) => x !== a.person) })}
+                    >
+                      {a.person}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="leiste">
+                <label className="wahl">
+                  <span>{t('filter.mindestens')}</span>
+                  <select
+                    value={filter.mindestens ?? ''}
+                    data-mindestens
+                    onChange={(e) => setFilter({ ...filter, mindestens: e.target.value === '' ? null : Number(e.target.value) })}
+                  >
+                    <option value="">{t('filter.alle')}</option>
+                    {sichtbar.map((_, i) => (
+                      <option key={i} value={i + 1}>
+                        {t('filter.personenZahl', { n: i + 1 })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="leise klein">{t('filter.pflicht')}:</span>
+                {sichtbar.map((a) => {
+                  const an = filter.pflicht.includes(a.person);
+                  return (
+                    <button
+                      key={a.person}
+                      type="button"
+                      className={an ? 'chip chip--an' : 'chip'}
+                      aria-pressed={an}
+                      data-pflicht={a.person}
+                      onClick={() => setFilter({ ...filter, pflicht: an ? filter.pflicht.filter((x) => x !== a.person) : [...filter.pflicht, a.person] })}
+                    >
+                      {a.person}
+                    </button>
+                  );
+                })}
+              </div>
+              {gefiltert ? <p className="leise klein">{t('filter.hinweis')}</p> : null}
+            </div>
+          )}
           {rasterMit(alleZelle, 'alle')}
         </section>
       </div>
@@ -614,7 +760,7 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
         <h2>{t('beste')}</h2>
         {u.termin ? (
           <p className="termin" data-termin>
-            📅 <strong>{tagText(u.termin.tag, spr, true)}</strong>, {uhrzeit(u.termin.von)}–{uhrzeit(u.termin.bis)}{' '}
+            📅 {zeigeZeitraum(u.termin)}{' '}
             <button
               type="button"
               className="knopf knopf--klein"
@@ -634,11 +780,11 @@ function UmfrageAnsicht({ u, lage, name, setName, modus, setModus, aendere, meld
             </button>
           </p>
         ) : null}
-        {vorschlaege.length === 0 ? <p className="leise">{t('beste.leer')}</p> : null}
+        {vorschlaege.length === 0 ? <p className="leise">{u.dauer === null ? t('beste.leer.offen') : t('beste.leer')}</p> : null}
         <ol className="vorschlaege">
           {vorschlaege.map((v) => (
             <li key={`${v.tag}-${v.von}`} data-vorschlag={`${v.tag}-${v.von}`}>
-              <strong>{tagText(v.tag, spr, true)}</strong>, {uhrzeit(v.von)}–{uhrzeit(v.bis)}
+              {zeigeZeitraum(v)}
               <span className="leise">
                 {' · '}
                 {t('beste.kann', { namen: v.kann.join(', ') || '—' })}

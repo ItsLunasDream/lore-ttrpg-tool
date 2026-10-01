@@ -6,8 +6,8 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 const TEXTE = {
   titel: ['Campaign Calendar', 'Campaign Calendar'],
   untertitel: [
-    'Termine finden wie bei Crab.fit: alle markieren, wann sie können, die Heatmap zeigt die besten Abende.',
-    'Find dates like on Crab.fit: everyone marks when they can, the heatmap shows the best evenings.'
+    'Termine finden: alle markieren, wann sie können, die Heatmap zeigt die besten Abende.',
+    'Find dates: everyone marks when they can, the heatmap shows the best evenings.'
   ],
   'neu': ['Neue Umfrage', 'New poll'],
   'einlesen': ['Datei einlesen', 'Import file'],
@@ -38,7 +38,25 @@ const TEXTE = {
   'modus.kann': ['Kann', 'Available'],
   'modus.notfalls': ['Notfalls', 'If need be'],
   'meine': ['Meine Zeiten', 'My availability'],
-  'meine.hinweis': ['Ziehen markiert, nochmal ziehen entfernt.', 'Drag to mark, drag again to remove.'],
+  'meine.hinweis': [
+    'Klicken oder ein Rechteck ziehen markiert; auf Markiertem klicken oder ziehen entfernt.',
+    'Click or drag a rectangle to mark; click or drag on marked cells to remove.'
+  ],
+  'dauer.offen': ['offen', 'open'],
+  'beste.leer.offen': ['Noch keine Zeit, in der jemand kann.', 'No time yet at which anyone is free.'],
+  'filter.personen': ['Anzeigen', 'Show'],
+  'filter.mindestens': ['Mindestens', 'At least'],
+  'filter.alle': ['alle', 'any'],
+  'filter.personenZahl': ['{n} Personen', '{n} people'],
+  'filter.pflicht': ['Muss dabei sein', 'Must attend'],
+  'filter.hinweis': ['Felder, die den Filter nicht erfüllen, sind ausgegraut.', 'Cells that do not match the filter are greyed out.'],
+  'zone.umfrage': ['Zeitzone der Umfrage', 'Poll time zone'],
+  'zone.ohne': ['ohne (keine Umrechnung)', 'none (no conversion)'],
+  'zone.ich': ['Meine Zeitzone', 'My time zone'],
+  'zone.hinweis': [
+    'Alle sehen die Zeiten in ihrer eigenen Zeitzone; umgerechnet wird von selbst.',
+    'Everyone sees the times in their own time zone; conversion is automatic.'
+  ],
   'alle': ['Alle', 'Everyone'],
   'alle.leer': ['Noch niemand hat geantwortet.', 'No one has answered yet.'],
   'beste': ['Beste Termine', 'Best dates'],
@@ -60,8 +78,8 @@ const TEXTE = {
   ],
   'fehlen': ['Im Raum, noch ohne Antwort: {namen}', 'In the room, no answer yet: {namen}'],
   'zeitzone': [
-    'Uhrzeiten ohne Zeitzone: gedacht für eine Gruppe in derselben Zeitzone.',
-    'Times without time zone: meant for a group in the same time zone.'
+    'Diese Umfrage hat keine Zeitzone: Uhrzeiten gelten für alle gleich. Wähle oben eine, damit umgerechnet wird.',
+    'This poll has no time zone: times are the same for everyone. Pick one above to enable conversion.'
   ],
   'notiz': ['Notiz', 'Note']
 } as const;

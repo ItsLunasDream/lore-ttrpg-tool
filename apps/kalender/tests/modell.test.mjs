@@ -72,3 +72,51 @@ test('Nachrichten: Unsinn wird verworfen, Antworten treffen nur bekannte Umfrage
   const neu = K.leseNachricht(JSON.stringify({ art: 'umfrage', umfrage: { ...basis(), id: 'runde' } }));
   assert.equal(K.wendeAn(null, neu).titel, 'Runde 12');
 });
+
+test('Filter: Personen ausblenden, Mindestzahl, Pflichtperson', () => {
+  let u = basis();
+  u = K.mitAntwort(u, { person: 'SL', felder: alle('2026-10-02', 18 * 60, 21 * 60), zeit: '1' });
+  u = K.mitAntwort(u, { person: 'Mira', felder: { ...alle('2026-10-02', 18 * 60, 21 * 60), ...alle('2026-10-03', 18 * 60, 21 * 60) }, zeit: '1' });
+  u = K.mitAntwort(u, { person: 'Jo', felder: alle('2026-10-03', 18 * 60, 21 * 60), zeit: '1' });
+  // Ohne Filter: beide Tage mit je zwei Leuten.
+  assert.equal(K.besteTermine(u).length, 2);
+  // Die SL muss dabei sein: nur Freitag.
+  assert.deepEqual(K.besteTermine(u, 3, { pflicht: ['sl'] }).map((v) => v.tag), ['2026-10-02']);
+  // Mindestens drei: niemand.
+  assert.deepEqual(K.besteTermine(u, 3, { mindestens: 3 }), []);
+  // Jo ausgeblendet: am Samstag nur noch Mira.
+  const ohneJo = K.besteTermine(u, 3, { personen: ['SL', 'Mira'] });
+  assert.deepEqual(ohneJo[0].kann, ['SL', 'Mira']);
+  assert.deepEqual(ohneJo.find((v) => v.tag === '2026-10-03').kann, ['Mira']);
+});
+
+test('Ohne Dauer: der längste Block mit den meisten Leuten', () => {
+  let u = { ...basis(), dauer: null };
+  u = K.mitAntwort(u, { person: 'A', felder: alle('2026-10-02', 18 * 60, 23 * 60), zeit: '1' });
+  u = K.mitAntwort(u, { person: 'B', felder: alle('2026-10-02', 19 * 60, 22 * 60), zeit: '1' });
+  const [v] = K.besteTermine(u);
+  assert.equal(v.von, 19 * 60);
+  assert.equal(v.bis, 22 * 60);
+  assert.deepEqual(v.kann, ['A', 'B']);
+  // Bleibt beim Einlesen offen.
+  assert.equal(K.bereinige(u, 'x').dauer, null);
+});
+
+test('Zeitzonen: Raster und Termin umgerechnet, .ics in UTC', () => {
+  const u = { ...basis(), zone: 'Europe/Berlin', tage: ['2026-10-02'], von: 18 * 60, bis: 20 * 60, termin: { tag: '2026-10-02', von: 19 * 60, bis: 23 * 60 } };
+  // Berlin ist im Oktober UTC+2, New York UTC-4: sechs Stunden früher.
+  const a = K.ansicht(u, 'America/New_York');
+  assert.deepEqual(a.tage, ['2026-10-02']);
+  assert.deepEqual(a.minuten, [12 * 60, 13 * 60]);
+  assert.equal(a.feldAn('2026-10-02', 12 * 60), K.feld('2026-10-02', 18 * 60));
+  assert.equal(a.feldAn('2026-10-02', 18 * 60), null);
+  // Tokio (UTC+9): sieben Stunden später, über Mitternacht in den nächsten Tag.
+  const z = K.zeitraum(u, u.termin, 'Asia/Tokyo');
+  assert.deepEqual(z, { tag: '2026-10-03', von: 2 * 60, bis: 6 * 60 });
+  assert.match(K.alsIcs(u, new Date('2026-10-01T08:00:00Z')), /DTSTART:20261002T170000Z\r\nDTEND:20261002T210000Z/);
+  // Ohne Zone: keine Umrechnung.
+  assert.equal(K.ansicht({ ...u, zone: '' }, 'Asia/Tokyo').feldAn('2026-10-02', 18 * 60), K.feld('2026-10-02', 18 * 60));
+  // Zeitumstellung: 25. Oktober 2026 endet die Sommerzeit in Berlin.
+  assert.equal(new Date(K.zuUtc('2026-10-25', 12 * 60, 'Europe/Berlin')).toISOString(), '2026-10-25T11:00:00.000Z');
+  assert.equal(new Date(K.zuUtc('2026-10-24', 12 * 60, 'Europe/Berlin')).toISOString(), '2026-10-24T10:00:00.000Z');
+});

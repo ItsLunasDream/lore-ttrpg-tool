@@ -26,7 +26,7 @@ connection you set up yourself.
 - **Homebrew Creator**: your own weapons, armor, items, magic items and spells,
   calibrated against the SRD; they show up in the sheet, loot and reference.
 - **Loot Generator**: your own nested random tables.
-- **Campaign Calendar**: find a session date like on Crab.fit, answers via the room or as a file, export as .ics.
+- **Campaign Calendar**: find a session date with a shared availability grid, filters and time zones; answers via the room or as a file, export as .ics.
 - **Settlement Generator**: villages, towns and cities with inn, shops at SRD prices, people and rumours.
 - **Session log** (button in the title bar): records rolls, combat, loot,
   encounters, rests and handovers during a session and turns them into a note

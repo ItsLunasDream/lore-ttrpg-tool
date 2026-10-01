@@ -4,8 +4,7 @@ Rückmeldung: „Kampagnenkalender gut wie Crabfit.“
 
 **Stand:** Gebaut als `apps/kalender` („Campaign Calendar"), Schritte 1–4.
 Antworten über den Raum und als Datei; der Server-Weg folgt mit dem Server
-(`docs/server.md`). Nicht gebaut: Ingame-Kalender, wiederkehrende Termine,
-Zeitzonen.
+(`docs/server.md`). Nicht gebaut: Ingame-Kalender, wiederkehrende Termine.
 
 ## Vorbild
 
@@ -74,8 +73,19 @@ woher sie kamen.
 - **Datei:** „Als Datei weitergeben" speichert die Umfrage mit allen
   Antworten; wer sie einliest, markiert und zurückschickt, wird beim
   Einlesen zusammengeführt.
-- **.ics:** Termin ohne Zeitzone („floating time"); passt für eine Gruppe
-  in derselben Zeitzone.
+- **Markieren:** Klick oder Rechteck ziehen; die Startzelle entscheidet:
+  leer = setzen, markiert = entfernen.
+- **Filter in „Alle":** Personen ausblenden, „mindestens N" und „muss dabei
+  sein" (z. B. die SL). Felder, die nicht passen, sind ausgegraut; die
+  besten Termine richten sich danach.
+- **Sitzungslänge offen:** dann zeigen die besten Termine die
+  zusammenhängenden Blöcke mit den meisten Leuten, bei Gleichstand den
+  längsten.
+- **Zeitzonen:** Die Umfrage merkt sich die Zone der Person, die sie anlegt
+  (änderbar). Alle sehen das Raster in der eigenen Zone (aus dem System,
+  änderbar); die Felder bleiben dieselben, nur Tage und Uhrzeiten sind
+  umgerechnet. Ältere Umfragen ohne Zone rechnen nicht um.
+- **.ics:** mit Zone in UTC, ohne Zone als „floating time".
 
 ## Schritte
 
