@@ -7,6 +7,7 @@ import { createContext, useContext, useState } from 'react';
 import { Segment, Suchwahl } from './Bedienung';
 import { getLanguage, hatText, t } from './i18n';
 import type { Kachel } from '../shared/ablage';
+import type { Bogen } from '../shared/bogen';
 import { FREIGABEN, type LiveEintrag, type SlAenderung } from '../shared/live';
 import type { LiveZustand } from '../main/live';
 
@@ -153,7 +154,42 @@ function LiveKopf({ e, ich }: { e: LiveEintrag; ich: string | null }) {
         {u.rk !== null ? ` · ${t('rk')} ${u.rk}` : ''}
         {u.zustaende.length ? ` · ${u.zustaende.length} ${t('zustaende')}` : ''}
       </span>
+      {e.sicht === 'voll' && e.bogen?.werte ? <KompaktZeilen w={e.bogen.werte} /> : null}
     </>
+  );
+}
+
+/**
+ * Was die SL auf einen Blick braucht (docs/charakterbogen-kompakt.md,
+ * Schritt 2): TP als Balken mit temporären TP, Zauberplätze je Grad,
+ * Trefferwürfel. Nur bei voller Sicht; die Übersicht für alle bleibt grob.
+ */
+function KompaktZeilen({ w }: { w: NonNullable<Bogen['werte']> }) {
+  const gesamt = Math.max(1, w.tp.max + w.tp.temp);
+  const anteil = w.tp.max > 0 ? w.tp.aktuell / w.tp.max : 0;
+  const plaetze = w.zauber?.plaetze.filter((p) => p.max > 0) ?? [];
+  const tw = w.trefferwuerfel.filter((x) => x.gesamt > 0);
+  return (
+    <span className="kachel__kompakt" data-kompakt-karte>
+      <span className="tp__balken tp__balken--klein" aria-hidden="true">
+        <span
+          style={{ width: `${Math.round((w.tp.aktuell / gesamt) * 100)}%` }}
+          className={anteil <= 0.25 ? 'kritisch' : anteil <= 0.5 ? 'angeschlagen' : ''}
+        />
+        {w.tp.temp > 0 ? <span className="tp__temp" style={{ width: `${Math.round((w.tp.temp / gesamt) * 100)}%` }} /> : null}
+      </span>
+      {w.tp.temp > 0 ? <span className="kachel__zeile">+{w.tp.temp} {t('tp.temp')}</span> : null}
+      {plaetze.length ? (
+        <span className="kachel__zeile" data-kompakt-plaetze-sl>
+          {t('zauber.plaetze')}: {plaetze.map((p) => `${p.grad}: ${p.max - p.verbraucht}/${p.max}`).join(' · ')}
+        </span>
+      ) : null}
+      {tw.length ? (
+        <span className="kachel__zeile">
+          {t('tw.kurz')}: {tw.map((x) => `${x.uebrig}/${x.gesamt} ${getLanguage() === 'de' ? 'W' : 'd'}${x.seiten}`).join(' · ')}
+        </span>
+      ) : null}
+    </span>
   );
 }
 

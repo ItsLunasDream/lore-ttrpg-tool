@@ -317,6 +317,28 @@ app.whenReady().then(async () => {
   await warte(300);
   pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
 
+  // --- Kompaktansicht (docs/charakterbogen-kompakt.md) ---------------------
+  await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
+  await warte(300);
+  pruefe(
+    (await js(`Boolean(document.querySelector('[data-kompakt]'))`)) && !(await js(`Boolean(document.querySelector('[data-feld="attribut-int"]'))`)),
+    'Kompakt: nur die Kampfwerte, keine Attribute'
+  );
+  pruefe(await js(`Boolean(document.querySelector('[data-kompakt-plaetze] [data-platz="1-0"]'))`), 'Kompakt: Zauberplaetze stehen da');
+  await js(`document.querySelector('[data-kompakt-plaetze] [data-platz="1-0"]').click(); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 1, 'Kompakt: ein Klick verbraucht einen Platz');
+  await js(tippe('[data-feld="tp-betrag"]', '-5'));
+  await js(enter);
+  await warte(300);
+  pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '25', 'Kompakt: Schaden wirkt wie im vollen Bogen');
+  pruefe(await js(`Boolean(document.querySelector('[data-block="inventar"]'))`), 'Kompakt: das Inventar bleibt');
+  await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-feld="attribut-int"]'))`), 'zurueck zum vollen Bogen');
+  await js(`document.querySelector('[data-rast="lang"]').click(); true`);
+  await warte(300);
+
   // --- Waffenangriffe ----------------------------------------------------------
   const waehle = (auswahl, wert) =>
     js(`(async () => {

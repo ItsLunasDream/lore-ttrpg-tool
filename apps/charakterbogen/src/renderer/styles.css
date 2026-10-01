@@ -2014,3 +2014,29 @@ textarea {
 .gegenstand__titel:focus-visible {
   text-decoration: underline;
 }
+
+/* Kompaktansicht (docs/charakterbogen-kompakt.md): eine schmale Spalte. */
+.kompakt {
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+.kompakt .kampf__oben {
+  justify-content: center;
+}
+
+/* SL-Übersicht: Zusatzzeilen in den Raum-Kacheln. */
+.kachel__kompakt {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 0.85em;
+  text-align: left;
+}
+.tp__balken--klein {
+  height: 6px;
+}
+.kachel__zeile {
+  opacity: 0.85;
+}

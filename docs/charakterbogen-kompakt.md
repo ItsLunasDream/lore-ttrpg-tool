@@ -9,7 +9,16 @@ bestehenden Charakterbogens (`docs/charakterbogen.md`). Die Daten, das
 Speichern und die Live-Synchronisation im Raum gibt es schon; es fehlt nur
 eine Ansicht, die am Tisch in eine Ecke passt.
 
-**Stand:** Konzept, nichts gebaut.
+**Stand:** Schritte 1 und 2 umgesetzt (Umschalter „Kompakt" im Bogen,
+gemerkt je Bogen; Kompaktzeilen in den Karten unter „Im Raum"). Volle
+Ansicht bleibt Standard, auch im Raum. Das abreißbare Fenster fehlt noch.
+
+Abweichungen vom Entwurf unten:
+- Schaden, Heilen, Temp laufen über das vorhandene Betragsfeld des Bogens
+  („-5", „+3", Enter), nicht über drei eigene Knöpfe.
+- Das Inventar ist derselbe Block wie im vollen Bogen (inkl. Geben), ohne
+  eigenen Reiter für das Gruppeninventar.
+- Todesrettungen erscheinen nur bei 0 TP.
 
 ## Was die Kompaktansicht zeigt
 
@@ -61,5 +70,5 @@ Kompaktansicht nutzen, gilt:
 
 1. Soll „Schaden" auch Konzentration abfragen (Hinweis „Konzentration:
    RW SG …")?
-2. Soll die Kompaktansicht die Standardansicht für Spieler:innen im Raum
-   sein?
+2. ~~Soll die Kompaktansicht die Standardansicht im Raum sein?~~ Nein,
+   Umschalter (entschieden).

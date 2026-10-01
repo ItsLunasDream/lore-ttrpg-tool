@@ -216,6 +216,81 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
   );
 }
 
+// --- Kompaktansicht (docs/charakterbogen-kompakt.md) -----------------------
+
+/**
+ * Was am Tisch im Kampf gebraucht wird, in einer Spalte: RK und Initiative,
+ * Trefferpunkte mit Schaden/Heilen, Todesrettung (nur bei 0 TP),
+ * Trefferwürfel und Rasten, Zauberplätze, Zustände. Dieselben Bausteine wie
+ * im vollen Bogen, damit beide nie auseinanderlaufen.
+ */
+export function Kompaktbogen({ werte: w, aendere, setMeldung }: Pick<FigurProps, 'werte' | 'aendere' | 'setMeldung'>) {
+  const plaetze = w.zauber?.plaetze.filter((p) => p.max > 0) ?? [];
+  return (
+    <div className="kompakt" data-kompakt>
+      <section className="kasten kampf">
+        <div className="kampf__oben">
+          <Initiative w={w} aendere={aendere} />
+          <label className="schild" title={t('rk.lang')}>
+            <span className="schild__titel">{t('rk')}</span>
+            <ZahlRoh wert={w.rk} min={0} max={99} feld="rk" label={t('rk.lang')} aendern={(v) => aendere((x) => ({ ...x, rk: v }))} />
+            <SlMarke feld="rk" />
+          </label>
+        </div>
+        <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
+        {w.tp.aktuell === 0 ? <Todesrettung w={w} aendere={aendere} /> : null}
+        <Trefferwuerfel w={w} aendere={aendere} />
+        <Rasten w={w} aendere={aendere} setMeldung={setMeldung} />
+      </section>
+      {plaetze.length ? (
+        <section className="kasten" data-kompakt-plaetze>
+          <h2>{t('zauber.plaetze')}</h2>
+          <div className="plaetze">
+            {plaetze.map((p) => (
+              <div className="platz" key={p.grad}>
+                <span className="leise">{p.grad}</span>
+                <span className="punkte">
+                  {Array.from({ length: p.max }, (_, n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={n < p.verbraucht ? 'punkt punkt--weg' : 'punkt'}
+                      data-platz={`${p.grad}-${n}`}
+                      aria-label={t('zauber.platzUmschalten', { grad: p.grad })}
+                      title={t('zauber.platzUmschalten', { grad: p.grad })}
+                      onClick={() =>
+                        aendere((x) =>
+                          x.zauber
+                            ? {
+                                ...x,
+                                zauber: {
+                                  ...x.zauber,
+                                  plaetze: x.zauber.plaetze.map((q) =>
+                                    q.grad === p.grad ? { ...q, verbraucht: n < q.verbraucht ? n : n + 1 } : q
+                                  )
+                                }
+                              }
+                            : x
+                        )
+                      }
+                    />
+                  ))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      <section className="kasten">
+        <h2>
+          {t('zustaende')} <SlMarke feld="zustaende" /> <SlMarke feld="erschoepfung" />
+        </h2>
+        <Zustaende w={w} aendere={aendere} />
+      </section>
+    </div>
+  );
+}
+
 // --- Kopf ------------------------------------------------------------------
 
 function Kopf({ w, aendere, bild, setzeBild }: { w: Werte; aendere: FigurProps['aendere']; bild?: Bogen['bild']; setzeBild?: FigurProps['setzeBild'] }) {
