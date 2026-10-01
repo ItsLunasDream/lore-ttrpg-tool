@@ -484,6 +484,8 @@ export function App() {
                 return { ...b, design: wie({ farbe: farbe.id, papier: papier.id, schrift: schrift.id }) };
               })
             }
+            rahmen={offen.bild?.rahmen}
+            setzeRahmen={(r) => aendere((b) => (b.bild ? { ...b, bild: { ...b.bild, rahmen: r } } : b))}
           /> : null}
         {offen.art === 'figur' && darf ? (
           offen.storyNotiz ? (
@@ -651,7 +653,7 @@ export function App() {
           </label>
 
           {offen.werte && kompakt[offen.id] ? (
-            <Kompaktbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} name={offen.name} />
+            <Kompaktbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} name={offen.name} imRaum={live.rolle !== 'aus'} />
           ) : offen.werte ? (
             // In Tiergestalt liegt der Kasten der Gestalt neben dem Bogen.
             <div className={offen.werte.tiergestalt?.aktiv ? 'mit-gestalt' : 'ohne-gestalt'}>

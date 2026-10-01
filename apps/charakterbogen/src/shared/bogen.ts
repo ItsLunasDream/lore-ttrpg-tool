@@ -118,7 +118,8 @@ export interface Werte {
 }
 
 /** Rahmenformen fuer das Bild. */
-export const RAHMEN = ['kreis', 'oval', 'eckig', 'bogen', 'schild', 'rauten'] as const;
+/** Rückmeldung: Kreis, Quadrat und Fenster sind gut, der Rest fällt weg (alte Bögen bekommen den Kreis). */
+export const RAHMEN = ['kreis', 'eckig', 'bogen'] as const;
 export type Rahmen = (typeof RAHMEN)[number];
 /** Groesste erlaubte Bilddaten (die Oberflaeche verkleinert vorher). */
 export const BILD_HOECHSTENS = 600_000;

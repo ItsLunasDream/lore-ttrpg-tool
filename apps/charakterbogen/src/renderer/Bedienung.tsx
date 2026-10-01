@@ -5,6 +5,8 @@
  * Jede Wahl traegt `data-wert`, damit Rauchtests sie finden.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type React from 'react';
+import { setzeEin, vorschlaege } from '../shared/vorschlaege';
 
 export interface Option<T extends string | number> {
   readonly wert: T;
@@ -208,4 +210,80 @@ export function Suchwahl({
 export function Uebungspunkt({ stufe }: { stufe: number }) {
   const art = stufe >= 2 ? 'doppelt' : stufe >= 1 ? 'voll' : stufe > 0 ? 'halb' : 'leer';
   return <span className={`upunkt upunkt--${art}`} aria-hidden="true" />;
+}
+
+/**
+ * Ein Textfeld mit Vorschlägen beim Tippen (Rückmeldung: „Comm" → „Common").
+ * Pfeile wählen, Enter oder Tab übernimmt, Esc schließt. Freier Text bleibt
+ * erlaubt. `mehrere`: kommagetrennte Liste, vorgeschlagen wird zum letzten Teil.
+ */
+export function VorschlagFeld({
+  wert,
+  aendern,
+  liste,
+  mehrere = false,
+  ...eingabe
+}: {
+  wert: string;
+  aendern: (v: string) => void;
+  liste: readonly string[];
+  mehrere?: boolean;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'list'> & { [daten: `data-${string}`]: string | undefined }) {
+  const [offen, setOffen] = useState(false);
+  const [markiert, setMarkiert] = useState(0);
+  const treffer = useMemo(() => (offen ? vorschlaege(wert, liste, mehrere) : []), [offen, wert, liste, mehrere]);
+  const nimm = (x: string) => {
+    aendern(setzeEin(wert, x, mehrere));
+    setOffen(false);
+  };
+  return (
+    <span className="vorschlagfeld">
+      <input
+        {...eingabe}
+        value={wert}
+        autoComplete="off"
+        onChange={(e) => {
+          aendern(e.target.value);
+          setOffen(true);
+          setMarkiert(0);
+        }}
+        onBlur={() => window.setTimeout(() => setOffen(false), 120)}
+        onKeyDown={(e) => {
+          if (!treffer.length) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setMarkiert((m) => (m + 1) % treffer.length);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setMarkiert((m) => (m - 1 + treffer.length) % treffer.length);
+          } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            nimm(treffer[markiert] ?? treffer[0]);
+          } else if (e.key === 'Escape') setOffen(false);
+        }}
+      />
+      {treffer.length ? (
+        <ul className="vorschlagfeld__liste" role="listbox" data-vorschlaege>
+          {treffer.map((x, i) => (
+            <li key={x}>
+              <button
+                type="button"
+                tabIndex={-1}
+                role="option"
+                aria-selected={i === markiert}
+                className={i === markiert ? 'ist-an' : ''}
+                data-vorschlag={x}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  nimm(x);
+                }}
+              >
+                {x}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </span>
+  );
 }

@@ -4,10 +4,21 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { getLanguage, t } from './i18n';
-import type { Design } from '../shared/bogen';
+import { RAHMEN, type Design, type Rahmen } from '../shared/bogen';
 import { FARBEN, PAPIERE, SCHRIFTEN, VORGABE_DESIGN, designVon } from '../shared/design';
 
-export function DesignWahl({ design, aendern }: { design: Design | undefined; aendern: (wie: (d: Design) => Design) => void }) {
+export function DesignWahl({
+  design,
+  aendern,
+  rahmen: bildRahmen,
+  setzeRahmen
+}: {
+  design: Design | undefined;
+  aendern: (wie: (d: Design) => Design) => void;
+  /** Rahmen des Porträts; fehlt, wenn der Bogen kein Bild hat. */
+  rahmen?: Rahmen;
+  setzeRahmen?: (r: Rahmen) => void;
+}) {
   const i = getLanguage() === 'de' ? 0 : 1;
   const [offen, setOffen] = useState(false);
   const rahmen = useRef<HTMLDivElement>(null);
@@ -92,6 +103,27 @@ export function DesignWahl({ design, aendern }: { design: Design | undefined; ae
               </button>
             ))}
           </div>
+          <h3>{t('bild.rahmen')}</h3>
+          {bildRahmen && setzeRahmen ? (
+            <div className="rahmenwahl" role="radiogroup" aria-label={t('bild.rahmen')} data-bild-rahmen>
+              {RAHMEN.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  role="radio"
+                  aria-checked={r === bildRahmen}
+                  title={t(`bild.rahmen.${r}`)}
+                  data-rahmen={r}
+                  className={r === bildRahmen ? 'ist-an' : ''}
+                  onClick={() => setzeRahmen(r)}
+                >
+                  <span className={`rahmenprobe rahmenprobe--${r}`} /> {t(`bild.rahmen.${r}`)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="leise">{t('bild.rahmenOhneBild')}</p>
+          )}
           <div className="leiste">
             <span className="leiste__rest" />
             <button type="button" className="knopf--klein" onClick={() => aendern(() => ({ ...VORGABE_DESIGN }))}>
