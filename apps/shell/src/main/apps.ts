@@ -44,6 +44,7 @@ import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
+import { mountHomebrew } from '../../../homebrew/src/main/embed';
 import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
 import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
@@ -596,6 +597,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'encounter') return montiereEncounter(id, haken);
   if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
   if (id === 'magicitems') return montiereMagicItems(id, haken);
+  if (id === 'homebrew') return montiereHomebrew(id, haken);
   if (id === 'loot') return montiereLoot(id, haken);
   if (id === 'charakterbogen') return montiereCharakterbogen(id, haken);
   return null;
@@ -1543,6 +1545,47 @@ async function montiereMagicItems(id: string, haken: MontageHaken): Promise<Mont
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
     meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
+  };
+}
+
+/** Der Homebrew Creator (docs/homebrew-creator.md). Gebaut wie der Magic Item Generator, ohne KI. */
+async function montiereHomebrew(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountHomebrew({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.HOMEBREW_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    onEreignis: haken.onEreignis
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
   };
 }
 

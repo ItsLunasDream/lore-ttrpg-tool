@@ -122,6 +122,22 @@ export const NachschlagewerkIcon = (p: IconProps) => (
 );
 
 /**
+ * Hammer auf einem Amboss: selbst geschmiedet.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/homebrew.png` eines liegt.
+ */
+export const HomebrewIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M10,30 L36,30 L32,35 L14,35 Z" />
+    <path d="M18,35 L16,40 M30,35 L32,40" />
+    <path d="M21,26 L31,12" />
+    <path d="M27,9 L35,15 L33,18 L25,12 Z" />
+    <path d="M12,22 L12,25 M10.5,23.5 L13.5,23.5" />
+  </Rahmen>
+);
+
+/**
  * Ein Edelstein mit Funkeln.
  *
  * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
@@ -273,6 +289,7 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   encounter: EncounterIcon,
   nachschlagewerk: NachschlagewerkIcon,
   magicitems: MagicItemsIcon,
+  homebrew: HomebrewIcon,
   loot: LootIcon,
   charakterbogen: CharakterbogenIcon
 };

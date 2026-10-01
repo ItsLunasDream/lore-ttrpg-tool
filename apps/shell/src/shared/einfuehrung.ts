@@ -339,6 +339,28 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     ]
   },
   {
+    id: 'homebrew',
+    titel: { de: 'Homebrew Creator', en: 'Homebrew Creator' },
+    satz: {
+      de: 'Eigene Waffen, Rüstungen und Gegenstände bauen, verglichen mit dem SRD.',
+      en: 'Build your own weapons, armor and items, compared with the SRD.'
+    },
+    punkte: [
+      {
+        de: 'Oben eine Art wählen, dann Feld für Feld ausfüllen; ein Bild ist möglich.',
+        en: 'Pick a kind at the top, then fill in field by field; an image is optional.'
+      },
+      {
+        de: 'Rechts steht die Eichung: wie stark der Eintrag neben ähnlichen SRD-Einträgen ist. Sie warnt, sie verbietet nichts.',
+        en: 'The calibration on the right shows how strong the entry is next to similar SRD entries. It warns; it forbids nothing.'
+      },
+      {
+        de: 'Gespeichertes steht im Charakterbogen und im Loot Generator zur Wahl.',
+        en: 'Saved entries can be picked in the Character Sheet and the Loot Generator.'
+      }
+    ]
+  },
+  {
     id: 'loot',
     titel: { de: 'Loot Generator', en: 'Loot Generator' },
     satz: {

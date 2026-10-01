@@ -26,6 +26,7 @@ import { leseEintraege as leseEncounter } from '../../../encounter/src/main/embe
 import { leseEintraege as leseNotizen } from '../../../backstory/src/main/embed';
 import { leseEintraege as leseRegeln } from '../../../nachschlagewerk/src/main/embed';
 import { leseEintraege as leseGegenstaende } from '../../../magicitems/src/main/embed';
+import { leseEintraege as leseHomebrew } from '../../../homebrew/src/main/embed';
 import { leseEintraege as leseTabellen } from '../../../loot/src/main/embed';
 import { leseEintraege as leseBoegen } from '../../../charakterbogen/src/main/embed';
 
@@ -51,6 +52,7 @@ const LESER: readonly ((datenordner: string, sprache: 'de' | 'en') => Promise<re
   // genauso findet wie alles Selbstgebaute.
   leseRegeln,
   leseGegenstaende,
+  leseHomebrew,
   leseTabellen,
   leseBoegen
 ];
