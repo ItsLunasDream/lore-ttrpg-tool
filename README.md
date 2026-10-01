@@ -31,6 +31,8 @@ connection you set up yourself.
 - **Session log** (button in the title bar): records rolls, combat, loot,
   encounters, rests and handovers during a session and turns them into a note
   in the Story Creator.
+- **Help** (“?” in the title bar or F1): what the open tool does, its
+  controls and the shortcuts that work everywhere.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
 - **TTRPG Map Editor**: battlemaps and world maps, export as Universal VTT.

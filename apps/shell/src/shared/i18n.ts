@@ -298,6 +298,10 @@ const en = {
 
   'intro.start': 'Let’s go',
   'intro.wieder': 'Shown once. You can bring it back in the settings.',
+  'help.title': 'Help: {name}',
+  'help.button': 'Help (F1)',
+  'help.controls': 'Controls',
+  'help.general': 'Everywhere',
 
   'about.title': 'About LORE',
   'about.author': 'By ItsLunasDream',
@@ -654,6 +658,10 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'intro.start': 'Los geht’s',
   'intro.wieder': 'Wird einmal gezeigt. In den Einstellungen holst du es zurück.',
+  'help.title': 'Hilfe: {name}',
+  'help.button': 'Hilfe (F1)',
+  'help.controls': 'Bedienung',
+  'help.general': 'Überall',
 
   'about.title': 'Über LORE',
   'about.author': 'Von ItsLunasDream',

@@ -451,6 +451,48 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
 ];
 
 
+/*
+ * Die Hilfe (Knopf „?" in der Titelleiste, F1): dieselben Sätze wie die
+ * Einführung, dazu die Bedienung, wo ein Werkzeug Eigenheiten hat. Nur, was
+ * im Code nachgesehen ist; was nicht dasteht, gibt es nicht oder ist
+ * gewöhnlich (Klicken, Tippen).
+ */
+export const STEUERUNG: Readonly<Record<string, readonly Paar[]>> = {
+  backstory: [
+    { de: '„[[" tippen schlägt Notizen zum Verlinken vor; markierter Text mit „[[" wird zum Verweis.', en: 'Type “[[” to get notes to link; selected text plus “[[” becomes a link.' },
+    { de: 'Überschriften lassen sich mit dem Pfeil davor einklappen.', en: 'Headings collapse with the arrow in front of them.' },
+    { de: 'Strg+S speichert die offene Notiz.', en: 'Ctrl+S saves the open note.' }
+  ],
+  mapmaker: [
+    { de: 'Alle Tasten und Mausgriffe stehen in der eigenen Hilfe des Map Makers (F1 oder „?" in seiner Werkzeugleiste).', en: 'All keys and mouse gestures are listed in the Map Maker’s own help (F1 or “?” in its toolbar).' }
+  ],
+  initiative: [
+    { de: 'Strg+Z macht rückgängig, Strg+Y (oder Strg+Umschalt+Z) wieder her.', en: 'Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes.' },
+    { de: 'Rechtsklick auf eine Zeile oder die freie Fläche öffnet ein Menü.', en: 'Right-click a row or the empty area for a menu.' },
+    { de: 'Im Schadensfeld mit Enter bestätigen.', en: 'Confirm the damage field with Enter.' }
+  ],
+  dice: [
+    { de: 'Linksklick auf einen Würfel legt einen dazu, Rechtsklick nimmt einen weg.', en: 'Left-click a die to add one, right-click to remove one.' },
+    { de: 'Einen Ausdruck wie „2d6+3" tippen und mit Enter würfeln.', en: 'Type an expression like “2d6+3” and press Enter to roll.' }
+  ],
+  kalender: [
+    { de: 'Klicken markiert ein Feld, Ziehen ein Rechteck. Beginnt das Ziehen auf einem markierten Feld, wird entfernt.', en: 'Click marks a cell, dragging marks a rectangle. Starting on a marked cell removes instead.' },
+    { de: 'Mit der Tastatur: Leertaste oder Enter auf einem Feld.', en: 'With the keyboard: Space or Enter on a cell.' }
+  ],
+  loot: [{ de: 'In einem Eintrag schlägt „[" andere Tabellen zum Verweisen vor.', en: 'In an entry, “[” suggests other tables to reference.' }],
+  homebrew: [{ de: 'Ein Klick auf die Überschrift eines Abschnitts klappt ihn zu oder auf.', en: 'Click a section heading to collapse or expand it.' }]
+};
+
+/** Was überall gilt; steht unter jeder Hilfe. */
+export const ALLGEMEIN: readonly Paar[] = [
+  { de: 'Strg+K: Suche über alle Werkzeuge.', en: 'Ctrl+K: search across all tools.' },
+  { de: 'Strg+S: speichern, wo es einen Speichern-Knopf gibt.', en: 'Ctrl+S: save wherever there is a Save button.' },
+  { de: 'Pfeiltasten wandern durch Listen und Kacheln.', en: 'Arrow keys move through lists and tiles.' },
+  { de: 'F6: zurück in die Schiene links.', en: 'F6: back to the rail on the left.' },
+  { de: 'Strg+Alt+Plus/Minus/0: die ganze Oberfläche größer, kleiner, zurück.', en: 'Ctrl+Alt+Plus/Minus/0: the whole interface larger, smaller, reset.' },
+  { de: 'F1 oder „?" oben: diese Hilfe.', en: 'F1 or “?” at the top: this help.' }
+];
+
 /** Die Einfuehrung zu einer Kennung, oder `undefined`. */
 export function einfuehrungFuer(id: string): Einfuehrung | undefined {
   return EINFUEHRUNGEN.find((eintrag) => eintrag.id === id);

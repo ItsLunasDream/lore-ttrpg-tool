@@ -53,6 +53,7 @@ import { Austausch } from './Austausch';
 import { Protokoll } from './Protokoll';
 import { Ueber } from './Ueber';
 import { Einfuehrung } from './Einfuehrung';
+import { Hilfe } from './Hilfe';
 import { WILLKOMMEN, einfuehrungFuer, stehtAus } from '../shared/einfuehrung';
 
 declare global {
@@ -196,7 +197,7 @@ export function App() {
     phase: 'waechst' | 'wartet';
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
-  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | null>(null);
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | 'hilfe' | null>(null);
   /**
    * Ob zurueck und vorwaerts gerade moeglich sind.
    *
@@ -228,7 +229,7 @@ export function App() {
    * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
    * Dialog hinter der laufenden Anwendung nicht zu sehen.
    */
-  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | null) => {
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | 'hilfe' | null) => {
     setDialog(welcher);
     void window.shell.app.dialog(welcher !== null);
   }, []);
@@ -240,7 +241,7 @@ export function App() {
    * Hauptprozesses heraus aufgerufen wird und dort der Zustand von vorhin
    * stuende.
    */
-  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | null>(null);
+  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | 'hilfe' | null>(null);
   dialogRef.current = dialog;
 
   /**
@@ -694,6 +695,12 @@ export function App() {
         ereignis.preventDefault();
         oeffneSuche();
       }
+      // F1: die Hilfe des offenen Werkzeugs (in einem Werkzeug kommt sie über den Hauptprozess).
+      if (ereignis.key === 'F1' && !ereignis.ctrlKey && !ereignis.altKey && !ereignis.metaKey && !ereignis.shiftKey) {
+        ereignis.preventDefault();
+        zeigeDialog('hilfe');
+        return;
+      }
       // F6: aus der Hülle ins offene Werkzeug (und von dort mit F6 zurück).
       if (ereignis.key === 'F6' && !ereignis.ctrlKey && !ereignis.altKey && !ereignis.metaKey && !ereignis.shiftKey) {
         ereignis.preventDefault();
@@ -702,7 +709,8 @@ export function App() {
     };
     window.addEventListener('keydown', beiTaste);
     return () => window.removeEventListener('keydown', beiTaste);
-  }, [oeffneSuche]);
+  }, [oeffneSuche, zeigeDialog]);
+  useEffect(() => window.shell.hilfe.beiTaste(() => zeigeDialog('hilfe')), [zeigeDialog]);
 
   useEffect(() => window.shell.suche.beiTastenkuerzel(oeffneSuche), [oeffneSuche]);
 
@@ -848,6 +856,16 @@ export function App() {
               {ungelesen > 99 ? '99+' : ungelesen}
             </span>
           )}
+        </button>
+        <button
+          type="button"
+          className="titelleiste__knopf"
+          data-hilfe-knopf
+          title={t('help.button')}
+          aria-label={t('help.button')}
+          onClick={() => zeigeDialog('hilfe')}
+        >
+          ?
         </button>
         <button
           type="button"
@@ -1030,6 +1048,16 @@ export function App() {
       )}
       {dialog === 'ueber' && (
         <Ueber version={version} onClose={() => zeigeDialog(null)} t={t} sprache={sprache} />
+      )}
+      {dialog === 'hilfe' && (
+        <Hilfe
+          inhalt={(eintrag && einfuehrungFuer(eintrag.id)) || einfuehrungFuer(WILLKOMMEN)!}
+          name={eintrag && einfuehrungFuer(eintrag.id) ? t(nameKey(eintrag.id)) : einfuehrungFuer(WILLKOMMEN)!.titel[sprache === 'de' ? 'de' : 'en']}
+          sprache={sprache}
+          bild={eintrag ? symbole[eintrag.id] : undefined}
+          onClose={() => zeigeDialog(null)}
+          t={t}
+        />
       )}
       {dialog === 'einfuehrung' && einfuehrungId !== null && (
         <Einfuehrung
