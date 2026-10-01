@@ -33,7 +33,7 @@ python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 
   Kategorie, Seltenheit, Einstimmung und Zahlen eindeutig sind (106), der
   Rest aus `gegenstaende_paare.json` (152, von Hand, gegen den Rahmen
   geprueft; zwei begruendete Ausnahmen in `ABWEICHUNGEN`).
-- `gegenstaende_eichung.py`: Eichpunkte fuer den Magic Item Creator. Welcher
+- `gegenstaende_eichung.py`: Eichpunkte fuer den Magic Item Generator. Welcher
   Gegenstand fuer welche Wirkung steht, ist von Hand gewaehlt (`AUSWAHL`);
   die Zahlen kommen aus dem PDF.
 - `tand_lesen.py`: die Tabelle „Trinkets" / „Requisiten", gepaart ueber die

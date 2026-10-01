@@ -143,7 +143,7 @@ test('Waffen, Ruestung und Ausruestung aus dem SRD, mit Preis und ohne Zwischenz
   assert.ok(waffen.eintraege.some((e) => e.text === 'Langschwert (15 GM)'), JSON.stringify(waffen.eintraege.slice(0, 3)));
 });
 
-test('der Bestand des Magic Item Creators wird zu Tabellen, leere Seltenheiten fehlen', () => {
+test('der Bestand des Magic Item Generators wird zu Tabellen, leere Seltenheiten fehlen', () => {
   const liste = [
     { name: 'Klinge des Morgenrots', seltenheit: 'rare' },
     { name: 'Amulett der Stille', seltenheit: 'rare' },

@@ -1503,7 +1503,7 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
   };
 }
 
-/** Der Magic Item Creator. Eine Ablage im eigenen Datenordner, sonst wie das Nachschlagewerk. */
+/** Der Magic Item Generator. Eine Ablage im eigenen Datenordner, sonst wie das Nachschlagewerk. */
 async function montiereMagicItems(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountMagicItems({
     distDir: appDistDir(id, 'main'),
@@ -1546,7 +1546,7 @@ async function montiereMagicItems(id: string, haken: MontageHaken): Promise<Mont
   };
 }
 
-/** Der Loot Generator. Gebaut wie der Magic Item Creator. */
+/** Der Loot Generator. Gebaut wie der Magic Item Generator. */
 async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountLoot({
     distDir: appDistDir(id, 'main'),
@@ -1557,7 +1557,7 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     // Keine Vorlage kennt einen Typ fuer Gegenstaende; wer sich „item"
     // selbst angelegt hat, bekommt ihn, sonst wird es eine Notiz.
     anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken),
-    // Der Bestand des Magic Item Creators, gelesen wie fuer die Suche: die
+    // Der Bestand des Magic Item Generators, gelesen wie fuer die Suche: die
     // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
     gegenstaende: () => leseNamenUndSeltenheit(app.getPath('userData'))
   });
@@ -1592,7 +1592,7 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
   };
 }
 
-/** Alle Loot-Tabellen, wie der Loot Generator sie zeigt: eigene, SRD und die aus dem Magic Item Creator. */
+/** Alle Loot-Tabellen, wie der Loot Generator sie zeigt: eigene, SRD und die aus dem Magic Item Generator. */
 async function alleLootTabellen(sprache: 'de' | 'en') {
   const datenordner = app.getPath('userData');
   const [eigene, gegenstaende] = await Promise.all([leseTabellen(datenordner), leseNamenUndSeltenheit(datenordner)]);

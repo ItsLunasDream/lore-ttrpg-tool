@@ -1,5 +1,5 @@
 /**
- * Die KI des Magic Item Creators: Anfrage, Antwort und die Pruefung an der
+ * Die KI des Magic Item Generators: Anfrage, Antwort und die Pruefung an der
  * Seltenheit. Ohne Netz — geprueft wird, was mit Text passiert.
  */
 import test from 'node:test';

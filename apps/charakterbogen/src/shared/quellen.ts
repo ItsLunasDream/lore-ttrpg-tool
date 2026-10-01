@@ -1,7 +1,7 @@
 /**
  * Woher Gegenstaende ins Inventar kommen (docs/charakterbogen.md,
  * Schritt 7): SRD-Ausruestung (Waffen, Ruestungen, Abenteurerausruestung),
- * magische Gegenstaende des SRD, eigene aus dem Magic Item Creator und
+ * magische Gegenstaende des SRD, eigene aus dem Magic Item Generator und
  * Wuerfe auf Loot-Tabellen.
  *
  * Hier stehen nur die SRD-Quellen und die Umwandlung in einen Gegenstand.
@@ -167,7 +167,7 @@ function vergleichsname(s: string): string {
  * Inventar — ohne Wert und nur mit „Longsword (15GP) (Loot table: Weapons)"
  * als Beschreibung. Jetzt wird der Wurf mit den bekannten Gegenständen
  * abgeglichen (SRD-Ausrüstung, magische Gegenstände des SRD, eigene aus dem
- * Magic Item Creator); passt einer, kommen Wert, Gewicht, Beschreibung und
+ * Magic Item Generator); passt einer, kommen Wert, Gewicht, Beschreibung und
  * Waffenwerte mit. Die Herkunft aus der Tabelle bleibt als letzte Zeile.
  * Passt keiner, wird wenigstens der Preis aus der Klammer gelesen.
  */

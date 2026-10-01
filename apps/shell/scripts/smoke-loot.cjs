@@ -17,7 +17,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'loot-smoke-'));
 const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
 
-// Ein Gegenstand im Bestand des Magic Item Creators, bevor irgendetwas
+// Ein Gegenstand im Bestand des Magic Item Generators, bevor irgendetwas
 // startet, und zwar einer, der in den Loot Generator geschickt wurde
 // (`loot: ja`): nur solche bietet der Loot Generator als Tabelle an.
 const miOrdner = path.join(userData, 'magicitems', 'gegenstaende');
@@ -79,7 +79,7 @@ app.whenReady().then(async () => {
   pruefe(dateien().length === 3, `beim ersten Start liegen drei Beispiele da (${dateien().join(', ')})`);
   pruefe(
     (await js("document.querySelectorAll('.tabellenkachel').length")) === 9,
-    'und stehen als Kacheln in der Liste, dazu vier aus dem SRD und zwei aus dem Magic Item Creator'
+    'und stehen als Kacheln in der Liste, dazu vier aus dem SRD und zwei aus dem Magic Item Generator'
   );
 
   await js(`document.querySelector('[data-schnell="srd-waffen"]').click(); true`);
@@ -95,7 +95,7 @@ app.whenReady().then(async () => {
   await warte(300);
   pruefe(
     (await js("document.querySelector('[data-schnellwurf] .ergebnis__text')?.textContent ?? ''")) === 'Rauchtest-Klinge',
-    'der Bestand des Magic Item Creators ist nach Seltenheit wuerfelbar'
+    'der Bestand des Magic Item Generators ist nach Seltenheit wuerfelbar'
   );
 
   // Die SRD-Tabelle: wuerfelbar, aber schreibgeschuetzt, mit Namensnennung.

@@ -1,4 +1,4 @@
-# Konzept: Magic Item Creator
+# Konzept: Magic Item Generator
 
 Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
 Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung

@@ -1,5 +1,5 @@
 /**
- * Der Magic Item Creator.
+ * Der Magic Item Generator.
  *
  * Zwei Ansichten wie in den anderen Werkzeugen: die Sammlung als Kacheln mit
  * Suche und dem Erzeuger darueber, und ein Gegenstand zum Bearbeiten. Ein

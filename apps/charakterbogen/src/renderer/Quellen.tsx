@@ -1,6 +1,6 @@
 /**
  * „Aus Quelle hinzufügen" im Inventar: SRD-Ausrüstung, magische
- * Gegenstände des SRD, eigene aus dem Magic Item Creator (Homebrew) und
+ * Gegenstände des SRD, eigene aus dem Magic Item Generator (Homebrew) und
  * ein Wurf auf eine Loot-Tabelle.
  */
 import { useEffect, useMemo, useState } from 'react';

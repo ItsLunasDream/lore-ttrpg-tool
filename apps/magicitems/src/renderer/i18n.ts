@@ -1,11 +1,11 @@
 /**
- * Die Texte des Magic Item Creators. Paarweise `[de, en]` wie in den
+ * Die Texte des Magic Item Generators. Paarweise `[de, en]` wie in den
  * anderen Werkzeugen.
  */
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 
 const TEXTE = {
-  titel: ['Magic Item Creator', 'Magic Item Creator'],
+  titel: ['Magic Item Generator', 'Magic Item Generator'],
   untertitel: [
     'Magische Gegenstände würfeln, anpassen und ablegen.',
     'Roll, adjust and store magic items.'

@@ -1,5 +1,5 @@
 /**
- * Die Montage-Schnittstelle des Magic Item Creators (Konvention 7).
+ * Die Montage-Schnittstelle des Magic Item Generators (Konvention 7).
  *
  * Die Huelle ruft `mountMagicItems` und bekommt zurueck, was sie zum
  * Anzeigen braucht. Kein eigenstaendiger Hauptprozess: das Werkzeug laeuft

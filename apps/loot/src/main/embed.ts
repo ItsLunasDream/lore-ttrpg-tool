@@ -3,7 +3,7 @@
  *
  * Die Huelle ruft `mountLoot` und bekommt zurueck, was sie zum Anzeigen
  * braucht. Kein eigenstaendiger Hauptprozess: das Werkzeug laeuft nur in
- * der Huelle, wie der Magic Item Creator.
+ * der Huelle, wie der Magic Item Generator.
  *
  * Abgelegt wird je Tabelle eine Markdown-Datei unter
  * `<datenordner>/tabellen`. Die Datei ist zugleich das Format zum
@@ -41,7 +41,7 @@ export interface LootEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Legt eine Notiz im Story Creator an. Fehlt sie, meldet der Export es ehrlich. */
   readonly anlegen?: (titel: string, markdown: string) => Promise<{ ok: boolean; text: string }>;
-  /** Die Gegenstaende des Magic Item Creators, von der Huelle durchgereicht. */
+  /** Die Gegenstaende des Magic Item Generators, von der Huelle durchgereicht. */
   readonly gegenstaende?: () => Promise<{ name: string; seltenheit: string }[]>;
 }
 

@@ -352,11 +352,11 @@ Gebaut: Im Inventar (Figur und Gruppe) öffnet „+ Aus Quelle …“ vier Reite
   gepaarten Einträge des Kapitels gefunden.
 - **SRD magisch:** alle magischen Gegenstände des SRD mit Text; Gewicht und
   Preis nennt das SRD dafür nicht, die Felder bleiben leer.
-- **Eigene (Homebrew):** alles, was im Magic Item Creator gespeichert ist,
+- **Eigene (Homebrew):** alles, was im Magic Item Generator gespeichert ist,
   mit Art, Seltenheit, Einstimmung, Wirkungen, Fluch und Wert. Die Hülle
   liest das für den Bogen mit (die Werkzeuge kennen einander nicht).
 - **Loot-Tabelle:** eine Tabelle des Loot Generators wählen (eigene, SRD,
-  und die aus dem Magic Item Creator), würfeln, das Ergebnis mit einem
+  und die aus dem Magic Item Generator), würfeln, das Ergebnis mit einem
   Klick ins Inventar. Gewürfelt wird in der Hülle mit derselben Logik wie im
   Loot Generator.
 - Jeder übernommene Gegenstand merkt sich seine Herkunft (`quelle`: Art und

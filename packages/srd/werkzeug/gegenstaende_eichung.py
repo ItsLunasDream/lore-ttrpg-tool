@@ -1,5 +1,5 @@
 """
-Schreibt die Eichpunkte des Magic Item Creators aus den Gegenstaenden des SRD.
+Schreibt die Eichpunkte des Magic Item Generators aus den Gegenstaenden des SRD.
 
 VON HAND GEWAEHLT, AUS DEM PDF GELESEN
 ======================================

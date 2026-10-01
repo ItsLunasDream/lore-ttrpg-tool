@@ -1,5 +1,5 @@
 /**
- * Rauchtest: der Magic Item Creator.
+ * Rauchtest: der Magic Item Generator.
  *
  * Geprueft wird der Weg, den die Modultests nicht sehen: Kachel anklicken,
  * Eintrag waehlen, suchen — und vor allem der Sprung aus der Suche der
@@ -61,7 +61,7 @@ app.whenReady().then(async () => {
   sicht.webContents.on('console-message', (_e, l, t) => {
     if (l >= 2) konsole.push(t.slice(0, 160));
   });
-  pruefe(/Magic Item Creator/.test(await js('document.body.innerText')), 'mit seiner Ueberschrift');
+  pruefe(/Magic Item Generator/.test(await js('document.body.innerText')), 'mit seiner Ueberschrift');
 
   // --- Wuerfeln: Art und Seltenheit festgelegt ------------------------------
   const waehle = (was, wert) => js(`(() => {
@@ -194,6 +194,6 @@ app.whenReady().then(async () => {
   }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
-  console.log(fehler.length === 0 ? '\nMagic Item Creator bestanden.' : `\n${fehler.length} Fehler.`);
+  console.log(fehler.length === 0 ? '\nMagic Item Generator bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

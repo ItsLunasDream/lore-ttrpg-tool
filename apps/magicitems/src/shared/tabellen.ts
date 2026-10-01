@@ -1,5 +1,5 @@
 /**
- * Die Tabellen des Magic Item Creators: Arten, Wirkungen, Namen.
+ * Die Tabellen des Magic Item Generators: Arten, Wirkungen, Namen.
  *
  * Zweisprachig als Paar, wie in den anderen Werkzeugen. Die Wirkungen sind
  * EIGENE Formulierungen nach dem Muster, das man aus dem Regelwerk kennt

@@ -16,7 +16,8 @@ künftig **Magic Item Generator**, damit der Unterschied klar ist:
 
 - Sichtbare Namen: Kachel, Schiene, Einführung, Suche, Doku
   (`app.magicitems.name`, `einfuehrung.ts`, `docs/magicitems.md`, README).
-  Gefunden: 27 Dateien mit „Magic Item Creator".
+  Umgesetzt: alle sichtbaren Namen, Kommentare und Doku (außer dem
+  Verlauf in BACKLOG.md).
 - **Intern bleibt `magicitems`** (Ordner, IPC-Kanäle, Datenordner,
   Kennungen in Bögen und Loot-Tabellen). Eine interne Umbenennung bricht
   gespeicherte Daten und bringt keinen Nutzen.

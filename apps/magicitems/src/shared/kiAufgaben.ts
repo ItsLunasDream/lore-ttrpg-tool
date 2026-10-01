@@ -1,5 +1,5 @@
 /**
- * Was die KI zum Magic Item Creator beitraegt.
+ * Was die KI zum Magic Item Generator beitraegt.
  *
  * Wie beim Monster Creator: die KI schreibt, was Tabellen schlecht koennen —
  * eine Wirkung mit Eigenart, einen Namen, der zu ihr passt, einen Fluch mit

@@ -64,7 +64,7 @@ test('Loot: Unbekanntes behaelt den Wurf, der Preis in Klammern wird gelesen', (
   assert.equal(ohne.name, 'Ein zerbrochener Kompass');
 });
 
-test('Loot: eigener Gegenstand aus dem Magic Item Creator wird erkannt', () => {
+test('Loot: eigener Gegenstand aus dem Magic Item Generator wird erkannt', () => {
   const eigene = [{ quelle: 'magicitem', kennung: 'm1', name: 'Klinge der Morgenroete', art: 'Waffe, selten', gewicht: null, wert: 800, beschreibung: 'Leuchtet im Morgengrauen.' }];
   const e = B.lootAlsEintrag('Klinge der Morgenroete', 'mi-selten', 'Selten', 'de', eigene);
   assert.equal(e.quelle, 'magicitem');

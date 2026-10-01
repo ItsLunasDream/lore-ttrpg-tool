@@ -1,5 +1,5 @@
 /**
- * Der Bestand des Magic Item Creators als Tabellen.
+ * Der Bestand des Magic Item Generators als Tabellen.
  *
  * „Wuerfle einen seltenen magischen Gegenstand" soll auf die Gegenstaende
  * zeigen, die die Spielleitung schon gebaut hat, statt einen neuen zu
@@ -10,7 +10,7 @@
  * still nichts zu liefern.
  *
  * Schreibgeschuetzt wie die SRD-Tabelle: geaendert wird der Bestand im
- * Magic Item Creator, nicht hier.
+ * Magic Item Generator, nicht hier.
  */
 import { SELTENHEITEN, SELTENHEIT_NAME, type Seltenheit } from '@suite/srd';
 import type { Gespeichert } from './ablage';

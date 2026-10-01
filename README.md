@@ -22,7 +22,7 @@ connection you set up yourself.
   the official ones.
 - **Encounter Creator**: encounters from 331 SRD monsters and your own,
   difficulty per the rules, one click into the tracker.
-- **Magic Item Creator**: magic items by type and rarity, values per the SRD.
+- **Magic Item Generator**: magic items by type and rarity, values per the SRD.
 - **Loot Generator**: your own nested random tables.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
@@ -77,7 +77,7 @@ apps/monster/         Monster Creator
 apps/zustaende/       Status Effect Creator
 apps/encounter/       Encounter Creator
 apps/nachschlagewerk/ Reference
-apps/magicitems/      Magic Item Creator
+apps/magicitems/      Magic Item Generator
 apps/loot/            Loot Generator
 packages/dice/        Dice expressions
 packages/i18n/        Language and text substitution
@@ -365,7 +365,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Sharing and rooms |
 | `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
-| `magicitems.md` | Magic Item Creator |
+| `magicitems.md` | Magic Item Generator |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |

@@ -318,7 +318,7 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
   },
   {
     id: 'magicitems',
-    titel: { de: 'Magic Item Creator', en: 'Magic Item Creator' },
+    titel: { de: 'Magic Item Generator', en: 'Magic Item Generator' },
     satz: {
       de: 'Magische Gegenstände würfeln, anpassen und ablegen.',
       en: 'Roll, adjust and store magic items.'

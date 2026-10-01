@@ -20,7 +20,7 @@ fs.writeFileSync(
   JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'charakterbogen'] })
 );
 
-// Ein eigener Gegenstand aus dem Magic Item Creator (Homebrew).
+// Ein eigener Gegenstand aus dem Magic Item Generator (Homebrew).
 const mi = path.join(userData, 'magicitems', 'gegenstaende');
 fs.mkdirSync(mi, { recursive: true });
 fs.writeFileSync(
@@ -534,7 +534,7 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-quelle-reiter="eigene"]').click(); true`);
   pruefe(
     await bis(async () => js(`Boolean(document.querySelector('[data-quelle-dazu="sturmklinge"]'))`)),
-    'Homebrew: die Sturmklinge aus dem Magic Item Creator steht zur Wahl'
+    'Homebrew: die Sturmklinge aus dem Magic Item Generator steht zur Wahl'
   );
   await js(`document.querySelector('[data-quelle-dazu="sturmklinge"]').click(); true`);
   await warte(200);
