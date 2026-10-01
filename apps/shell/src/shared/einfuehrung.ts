@@ -339,6 +339,28 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     ]
   },
   {
+    id: 'kalender',
+    titel: { de: 'Campaign Calendar', en: 'Campaign Calendar' },
+    satz: {
+      de: 'Einen Termin finden: alle markieren, wann sie können, die Heatmap zeigt die besten Abende.',
+      en: 'Find a date: everyone marks when they can, the heatmap shows the best evenings.'
+    },
+    punkte: [
+      {
+        de: 'Neue Umfrage anlegen, Tage und Uhrzeiten wählen, dann im eigenen Raster ziehen: „Kann" oder „Notfalls".',
+        en: 'Create a poll, pick days and times, then drag in your own grid: “Available” or “If need be”.'
+      },
+      {
+        de: 'Im Raum teilen: Antworten kommen von selbst zurück. Ohne Raum als Datei herumschicken und wieder einlesen.',
+        en: 'Share in the room: answers come back on their own. Without a room, send it around as a file and import it again.'
+      },
+      {
+        de: 'Unter „Beste Termine" festlegen und als .ics in den eigenen Kalender holen.',
+        en: 'Set the date under “Best dates” and add it to your own calendar as .ics.'
+      }
+    ]
+  },
+  {
     id: 'orte',
     titel: { de: 'Settlement Generator', en: 'Settlement Generator' },
     satz: {

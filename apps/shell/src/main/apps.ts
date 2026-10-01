@@ -52,6 +52,7 @@ import {
   mountHomebrew
 } from '../../../homebrew/src/main/embed';
 import { leseFuerLoot as leseOrteFuerLoot, mountOrte } from '../../../orte/src/main/embed';
+import { mountKalender } from '../../../kalender/src/main/embed';
 import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
 import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
@@ -606,6 +607,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'magicitems') return montiereMagicItems(id, haken);
   if (id === 'homebrew') return montiereHomebrew(id, haken);
   if (id === 'orte') return montiereOrte(id, haken);
+  if (id === 'kalender') return montiereKalender(id, haken);
   if (id === 'loot') return montiereLoot(id, haken);
   if (id === 'charakterbogen') return montiereCharakterbogen(id, haken);
   return null;
@@ -1609,6 +1611,58 @@ async function montiereHomebrew(id: string, haken: MontageHaken): Promise<Montie
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
     zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+/**
+ * Der Campaign Calendar (docs/kampagnenkalender.md). Nachrichten im Raum
+ * fuehrt die Huelle selbst in die Ablage (index.ts, nimmRaumNachricht);
+ * das offene Werkzeug laedt danach nur neu.
+ */
+async function montiereKalender(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountKalender({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.KALENDER_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          sende: (inhalt, an) => haken.raum?.sende('kalender', inhalt, an) ?? false,
+          lage: () => haken.raum?.anfang('kalender').lage ?? { rolle: 'aus', ich: null, personen: [] }
+        }
+      : undefined
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    raumNachricht: () => eingebettet.raumNachricht(sicht.webContents as WebContents),
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
   };
 }
 

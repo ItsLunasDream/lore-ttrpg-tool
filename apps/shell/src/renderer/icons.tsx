@@ -122,6 +122,21 @@ export const NachschlagewerkIcon = (p: IconProps) => (
 );
 
 /**
+ * Ein Kalenderblatt mit Raster.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/kalender.png` eines liegt.
+ */
+export const KalenderIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M9,12 L39,12 L39,40 L9,40 Z" />
+    <path d="M9,19 L39,19" />
+    <path d="M16,8 L16,15 M32,8 L32,15" />
+    <path d="M14,25 L18,25 M22,25 L26,25 M30,25 L34,25 M14,31 L18,31 M22,31 L26,31 M30,31 L34,31" />
+  </Rahmen>
+);
+
+/**
  * Drei Dächer: ein Ort.
  *
  * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
@@ -307,6 +322,7 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   magicitems: MagicItemsIcon,
   homebrew: HomebrewIcon,
   orte: OrteIcon,
+  kalender: KalenderIcon,
   loot: LootIcon,
   charakterbogen: CharakterbogenIcon
 };

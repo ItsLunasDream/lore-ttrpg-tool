@@ -122,6 +122,8 @@ export const APPS: readonly AppEntry[] = [
   // genauso, und am Tisch schlaegt meist jemand anderes nach als der, der
   // leitet.
   { id: 'nachschlagewerk', status: 'bereit', rolle: 'alle' },
+  // Bei „alle": antworten sollen alle, nicht nur die SL.
+  { id: 'kalender', status: 'bereit', rolle: 'alle' },
   { id: 'monster', status: 'bereit', rolle: 'leitung' },
   { id: 'zustaende', status: 'bereit', rolle: 'leitung' },
   { id: 'magicitems', status: 'bereit', rolle: 'leitung' },

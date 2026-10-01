@@ -54,6 +54,7 @@ function startBericht(): void {
 import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
+import { nimmRaumNachricht as nimmKalenderNachricht } from '../../../kalender/src/main/embed';
 import { berechneAppFlaeche, GROESSEN, VORGABE_GROESSE } from '../shared/apps';
 import {
   meldeStoryCreatorAenderung,
@@ -1139,6 +1140,17 @@ function registriereKanaele(): void {
         bogenImRaum = bogenImRaum
           .then(() => montiereImHintergrund('charakterbogen'))
           .then(() => offen.get('charakterbogen')?.raumNachricht?.(von, inhalt))
+          .catch(() => undefined);
+        return;
+      }
+      // Terminumfragen: die Huelle fuehrt jede Antwort selbst in die Ablage,
+      // auch wenn der Kalender gerade zu ist; ist er offen, laedt er neu.
+      if (ereignis.werkzeug === 'kalender') {
+        const { von, inhalt } = ereignis;
+        void nimmKalenderNachricht(app.getPath('userData'), inhalt)
+          .then((geaendert) => {
+            if (geaendert) offen.get('kalender')?.raumNachricht?.(von, inhalt);
+          })
           .catch(() => undefined);
         return;
       }

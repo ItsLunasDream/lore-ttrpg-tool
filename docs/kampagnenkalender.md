@@ -2,7 +2,10 @@
 
 Rückmeldung: „Kampagnenkalender gut wie Crabfit.“
 
-**Stand:** Konzept, nichts gebaut.
+**Stand:** Gebaut als `apps/kalender` („Campaign Calendar"), Schritte 1–4.
+Antworten über den Raum und als Datei; der Server-Weg folgt mit dem Server
+(`docs/server.md`). Nicht gebaut: Ingame-Kalender, wiederkehrende Termine,
+Zeitzonen.
 
 ## Vorbild
 
@@ -50,6 +53,29 @@ Crab.fit hat einen Server, auf dem alle dieselbe Seite öffnen. Wir haben
 Vorschlag: **Raum und Datei** jetzt bauen, den Server-Weg später
 dazunehmen, wenn er kommt. Die Umfrage merkt sich alle Antworten, egal
 woher sie kamen.
+
+## Entschieden
+
+- Raum und Datei jetzt, Server später; zweite Stufe „Notfalls" ja; kein
+  Ingame-Kalender, keine wiederkehrenden Termine (Vorschläge aus dem
+  Konzept, keine Rückmeldung dazu).
+
+## Wie es gebaut ist
+
+- **Bewertung der Zeitfenster:** Eine Person zählt in einem Fenster der
+  gewünschten Dauer nur, wenn sie in jedem Feld kann (1 Punkt) bzw.
+  wenigstens notfalls kann (½ Punkt). Je Tag erscheint nur der beste
+  Vorschlag, damit nicht dreimal fast derselbe Abend auftaucht.
+- **Zusammenführen:** nach Namen (ohne Groß/klein), die neuere Antwort
+  gewinnt. Ein festgelegter Termin geht beim Zusammenführen nicht verloren.
+- **Raum:** Die Hülle legt jede Nachricht an den Kalender selbst ab, auch
+  wenn der Kalender gerade zu ist (`nimmRaumNachricht`); ist er offen, lädt
+  er neu. Eigene Antworten gehen beim Loslassen an alle.
+- **Datei:** „Als Datei weitergeben" speichert die Umfrage mit allen
+  Antworten; wer sie einliest, markiert und zurückschickt, wird beim
+  Einlesen zusammengeführt.
+- **.ics:** Termin ohne Zeitzone („floating time"); passt für eine Gruppe
+  in derselben Zeitzone.
 
 ## Schritte
 

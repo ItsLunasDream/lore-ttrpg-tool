@@ -28,6 +28,7 @@ import { leseEintraege as leseRegeln } from '../../../nachschlagewerk/src/main/e
 import { leseEintraege as leseGegenstaende } from '../../../magicitems/src/main/embed';
 import { leseEintraege as leseHomebrew } from '../../../homebrew/src/main/embed';
 import { leseEintraege as leseOrte } from '../../../orte/src/main/embed';
+import { leseEintraege as leseKalender } from '../../../kalender/src/main/embed';
 import { leseEintraege as leseTabellen } from '../../../loot/src/main/embed';
 import { leseEintraege as leseBoegen } from '../../../charakterbogen/src/main/embed';
 
@@ -55,6 +56,7 @@ const LESER: readonly ((datenordner: string, sprache: 'de' | 'en') => Promise<re
   leseGegenstaende,
   leseHomebrew,
   leseOrte,
+  leseKalender,
   leseTabellen,
   leseBoegen
 ];
