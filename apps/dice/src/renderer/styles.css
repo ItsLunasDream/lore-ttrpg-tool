@@ -963,3 +963,18 @@ input[type='number'] {
   outline: 2px solid var(--betont);
   outline-offset: -2px;
 }
+
+/* Schmale Seitenleiste: Oberflächen und Wurfart brechen um, statt rechts
+   abgeschnitten zu werden (Testbericht). */
+.aussehen__muster {
+  flex-wrap: wrap;
+}
+
+.teilen__wahl {
+  flex-wrap: wrap;
+}
+
+.teilen__knopf {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
