@@ -136,6 +136,8 @@ export interface Zauber extends Kopf {
   /** Schaden fuer die Eichung; anzahl 0 = kein Schaden. */
   schadenAnzahl: number;
   schadenSeiten: number;
+  /** Festes Plus wie bei „10W6 + 40". */
+  schadenPlus: number;
   schadensart: Schadensart;
   /** Einzelziel oder Flaeche. */
   ziel: 'einzel' | 'mehrere' | 'flaeche';
@@ -157,7 +159,7 @@ function kopf(name = ''): Kopf {
   return { id: '', name, beschreibung: '', bild: null, preis: null, gewicht: null, geaendert: '' };
 }
 
-export function leererEintrag(art: Art): Eintrag {
+export function leererEintrag(art: Art, sprache: 'de' | 'en' = 'de'): Eintrag {
   switch (art) {
     case 'waffe':
       return {
@@ -189,14 +191,16 @@ export function leererEintrag(art: Art): Eintrag {
         grad: 1,
         schule: 'hervorrufung',
         klassen: [],
-        zeit: '1 Aktion',
-        reichweite: '18 m',
-        komponenten: 'V, G',
-        dauer: 'Unmittelbar',
+        // Wortlaut wie in den SRD-Zaubern der jeweiligen Sprache.
+        zeit: sprache === 'de' ? 'Aktion' : 'Action',
+        reichweite: sprache === 'de' ? '18 Meter' : '60 feet',
+        komponenten: sprache === 'de' ? 'V, G' : 'V, S',
+        dauer: sprache === 'de' ? 'Unmittelbar' : 'Instantaneous',
         konzentration: false,
         ritual: false,
         schadenAnzahl: 0,
         schadenSeiten: 6,
+        schadenPlus: 0,
         schadensart: 'feuer',
         ziel: 'einzel',
         flaeche: 'kugel',
@@ -311,6 +315,7 @@ export function bereinige(roh: unknown, id: string): Eintrag {
         ritual: r.ritual === true,
         schadenAnzahl: Math.round(zahl(r.schadenAnzahl, 0, 0, 40)),
         schadenSeiten: Number(eins(String(r.schadenSeiten), ['4', '6', '8', '10', '12'] as const, '6')),
+        schadenPlus: Math.round(zahl(r.schadenPlus, 0, 0, 200)),
         schadensart: eins(r.schadensart, SCHADENSARTEN, leer.schadensart),
         ziel: r.ziel === 'flaeche' ? 'flaeche' : r.ziel === 'mehrere' ? 'mehrere' : 'einzel',
         flaeche: eins(r.flaeche, FLAECHEN, leer.flaeche),

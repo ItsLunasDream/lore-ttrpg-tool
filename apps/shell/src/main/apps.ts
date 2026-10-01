@@ -46,6 +46,7 @@ import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
 import {
   leseFuerInventar as leseHomebrewFuerInventar,
+  leseZauberFuerBogen as leseHomebrewZauber,
   leseFuerLoot as leseHomebrewFuerLoot,
   leseFuerNachschlagewerk as leseHomebrewFuerNachschlagewerk,
   mountHomebrew
@@ -1685,6 +1686,7 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     quellen: {
       magicitems: (sprache) => leseFuerInventar(app.getPath('userData'), sprache),
       homebrew: async (sprache) => [...(await leseHomebrewFuerInventar(app.getPath('userData'), sprache))],
+      homebrewZauber: (sprache) => leseHomebrewZauber(app.getPath('userData'), sprache),
       lootTabellen: async (sprache) => (await alleLootTabellen(sprache)).map((x) => ({ id: x.id, name: x.name })),
       lootWuerfle: async (tabellenId, sprache) => {
         const alle = await alleLootTabellen(sprache);

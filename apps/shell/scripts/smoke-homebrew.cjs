@@ -125,6 +125,36 @@ app.whenReady().then(async () => {
   pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 1, 'Filter Ruestung: eine Kachel');
   await js(`document.querySelector('[data-filter="alle"]').click(); true`);
 
+  // --- Zauber ------------------------------------------------------------------
+  await js(`document.querySelector('[data-neu="zauber"]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-zauber]'))`), 'Neu: Zauber oeffnet die Zauberfelder');
+  pruefe(!(await js(`Boolean(document.querySelector('[data-feld="preis"]'))`)), 'ein Zauber hat keinen Preis');
+  await tippe('name', 'Glutregen');
+  await waehle('grad', '3');
+  await waehle('ziel', 'flaeche');
+  await tippe('schadenAnzahl', '8');
+  await waehle('schadenSeiten', '6');
+  await waehle('rettungswurf', 'ges');
+  await warte(200);
+  pruefe((await urteil()) === 'im_rahmen', 'Grad 3, Flaeche, 8W6: im Rahmen');
+  pruefe(/Feuerball/.test(await js(`document.querySelector('[data-eichung-satz]').textContent`)), 'und nennt den Feuerball als Vergleich');
+  pruefe(await js(`Boolean(document.querySelector('[data-befund="hinweis"]'))`), 'ohne halben Schaden bei Erfolg: ein Hinweis');
+  await js(`document.querySelector('[data-feld="halbBeiErfolg"]').click(); true`);
+  await tippe('schadenAnzahl', '14');
+  await warte(200);
+  pruefe((await urteil()) === 'weit_ueber', '14W6 auf Grad 3: deutlich staerker');
+  await tippe('schadenAnzahl', '8');
+  await js(`document.querySelector('[data-klasse="magier"]').click(); true`);
+  await js(`document.querySelector('[data-speichern]').click(); true`);
+  await warte(800);
+  const zdatei = path.join(userData, 'homebrew', 'eintraege', 'glutregen.md');
+  const zinhalt = fs.existsSync(zdatei) ? fs.readFileSync(zdatei, 'utf8') : '';
+  pruefe(/"grad": 3/.test(zinhalt) && /"schadenAnzahl": 8/.test(zinhalt) && /"magier"/.test(zinhalt), 'der Zauber liegt mit seinen Werten in der Datei');
+  await js(`document.querySelector('[data-zurueck]').click(); true`);
+  await warte(400);
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung');
+
   // --- Suche der Huelle ----------------------------------------------------------
   const eintraege = (await hjs('window.shell.suche.eintraege()')) ?? [];
   pruefe(eintraege.some((e) => e.werkzeug === 'homebrew' && e.name === 'Sturmklinge'), 'Strg+K kennt die Sturmklinge');
@@ -172,6 +202,22 @@ app.whenReady().then(async () => {
   // Neue Figur: alle Attribute 10, also nur der magische Bonus +2.
   const schaden = await cb(`[...document.querySelectorAll('[data-angriff-schaden]')].map((e) => e.textContent.trim()).join('|')`);
   pruefe(/1d8\+2 Hieb/.test(schaden), `ausgerüstet wird sie zum Angriff: 1W8+2 Hieb (${schaden})`);
+
+  // Der eigene Zauber steht in der Zaubersuche des Bogens.
+  await cb(`document.querySelector('[data-zauber-an]')?.click(); true`);
+  await warte(400);
+  await cb(`document.querySelector('[data-zauber-suchen]')?.click(); true`);
+  let zda = false;
+  for (let i = 0; i < 30 && !zda; i += 1) {
+    zda = await cb(`Boolean(document.querySelector('[data-zauber-dazu-eigen="glutregen"]'))`);
+    if (!zda) await warte(200);
+  }
+  pruefe(zda, 'Charakterbogen: der Glutregen steht in der Zaubersuche');
+  if (zda) {
+    await cb(`document.querySelector('[data-zauber-dazu-eigen="glutregen"]').click(); true`);
+    await warte(300);
+    pruefe(/Glutregen/.test(await cb(`document.querySelector('.zauberliste, [data-zauberliste]')?.textContent ?? document.body.innerText`)), 'und landet in der Zauberliste');
+  }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
   fs.rmSync(tmp, { recursive: true, force: true });

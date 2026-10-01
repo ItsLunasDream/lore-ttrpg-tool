@@ -201,7 +201,7 @@ const TEXTE = {
   'zauber.text': ['Text', 'Text'],
   'zauber.herkunft': ['Herkunft (z. B. Talent)', 'Source (e.g. feat)'],
   'zauber.weg': ['Aus der Liste', 'Remove'],
-  'zauber.dazu': ['+ Zauber aus dem SRD', '+ Spell from the SRD'],
+  'zauber.dazu': ['+ Zauber aus SRD oder Homebrew', '+ Spell from SRD or Homebrew'],
   'zauber.eigen': ['+ Eigener Zauber', '+ Custom spell'],
   'zauber.eigenName': ['Eigener Zauber', 'Custom spell'],
   'zauber.suchen': ['Zauber suchen (deutsch oder englisch)', 'Search spells (English or German)'],

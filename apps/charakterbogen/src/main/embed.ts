@@ -40,6 +40,8 @@ export interface BogenEmbedOptions {
     lootWuerfle(tabellenId: string, sprache: 'de' | 'en'): Promise<string | null>;
     /** Eigene Waffen, Ruestungen und Gegenstaende aus dem Homebrew Creator (Quelleintraege). */
     homebrew?(sprache: 'de' | 'en'): Promise<Quelleintrag[]>;
+    /** Eigene Zauber aus dem Homebrew Creator, fuer die Zauberliste. */
+    homebrewZauber?(sprache: 'de' | 'en'): Promise<{ id: string; name: string; grad: number; text: string }[]>;
   };
   /** Notizen im Story Creator (ueber die Huelle). */
   readonly story?: {
@@ -266,6 +268,14 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
   handle('quellen:homebrew', async () => {
     try {
       return (await options.quellen?.homebrew?.(sprache)) ?? [];
+    } catch {
+      return [];
+    }
+  });
+
+  handle('quellen:homebrewZauber', async () => {
+    try {
+      return (await options.quellen?.homebrewZauber?.(sprache)) ?? [];
     } catch {
       return [];
     }
@@ -532,7 +542,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:homebrew', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene', 'nachschlagen']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:homebrew', 'quellen:homebrewZauber', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene', 'nachschlagen']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));

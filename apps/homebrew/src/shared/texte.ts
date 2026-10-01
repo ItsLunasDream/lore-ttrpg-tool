@@ -5,7 +5,7 @@
  */
 import type { Paar } from '@suite/srd';
 import type { Meisterschaft, RuestungsArt, WaffenEigenschaft } from '@suite/srd/waffen';
-import type { Art, Eintrag, Schadensart } from './modell';
+import type { Art, Eintrag, Schadensart, Zauberklasse, Zauberschule } from './modell';
 
 export const ART_NAME: Record<Art, Paar> = {
   waffe: { de: 'Waffe', en: 'Weapon' },
@@ -69,6 +69,30 @@ export const RUESTUNGSART_NAME: Record<RuestungsArt, Paar> = {
   schild: { de: 'Schild', en: 'Shield' }
 };
 
+/** Schulen wie in den Gradzeilen des SRD („Zaubertrick der Hervorrufung", „Evocation Cantrip"); der Test prueft das. */
+export const SCHULE_NAME: Record<Zauberschule, Paar> = {
+  bann: { de: 'Bann', en: 'Abjuration' },
+  beschwoerung: { de: 'Beschwörung', en: 'Conjuration' },
+  erkenntnis: { de: 'Erkenntnis', en: 'Divination' },
+  verzauberung: { de: 'Verzauberung', en: 'Enchantment' },
+  hervorrufung: { de: 'Hervorrufung', en: 'Evocation' },
+  illusion: { de: 'Illusion', en: 'Illusion' },
+  nekromantie: { de: 'Nekromantie', en: 'Necromancy' },
+  verwandlung: { de: 'Verwandlung', en: 'Transmutation' }
+};
+
+/** Klassen wie in den Gradzeilen des SRD; der Test prueft das. */
+export const KLASSE_NAME: Record<Zauberklasse, Paar> = {
+  barde: { de: 'Barde', en: 'Bard' },
+  druide: { de: 'Druide', en: 'Druid' },
+  hexenmeister: { de: 'Hexenmeister', en: 'Warlock' },
+  kleriker: { de: 'Kleriker', en: 'Cleric' },
+  magier: { de: 'Magier', en: 'Wizard' },
+  paladin: { de: 'Paladin', en: 'Paladin' },
+  waldlaeufer: { de: 'Waldläufer', en: 'Ranger' },
+  zauberer: { de: 'Zauberer', en: 'Sorcerer' }
+};
+
 /** Fuss in der Sprache: englisch „20 ft.", deutsch in Metern wie im SRD (6 m). */
 export function weite(fuss: number, s: 'de' | 'en'): string {
   if (s === 'en') return `${fuss} ft.`;
@@ -129,9 +153,32 @@ export function kurzzeile(e: Eintrag, s: 'de' | 'en'): string {
     case 'magisch':
       return `${ART_NAME.magisch[s]}${e.einstimmung ? (de ? ' (Einstimmung)' : ' (attunement)') : ''}`;
     case 'zauber': {
-      const grad = e.grad === 0 ? (de ? 'Zaubertrick' : 'Cantrip') : de ? `Grad ${e.grad}` : `Level ${e.grad}`;
-      const schaden = e.schadenAnzahl ? `${e.schadenAnzahl}${de ? 'W' : 'd'}${e.schadenSeiten} ${SCHADENSART_NAME[e.schadensart][s]}` : '';
+      const schule = SCHULE_NAME[e.schule][s];
+      const grad = e.grad === 0 ? (de ? `Zaubertrick, ${schule}` : `${schule} Cantrip`) : de ? `${schule}, Grad ${e.grad}` : `Level ${e.grad} ${schule}`;
+      const schaden = e.schadenAnzahl ? `${e.schadenAnzahl}${de ? 'W' : 'd'}${e.schadenSeiten}${e.schadenPlus ? ` + ${e.schadenPlus}` : ''} ${SCHADENSART_NAME[e.schadensart][s]}` : '';
       return [grad, schaden, e.konzentration ? (de ? 'Konzentration' : 'Concentration') : ''].filter(Boolean).join(' · ');
     }
   }
+}
+
+/** Die Kopfzeile eines Zaubers wie im SRD: Zeitaufwand, Reichweite, Komponenten, Wirkungsdauer. */
+export function zauberEigenschaften(z: Extract<Eintrag, { art: 'zauber' }>, s: 'de' | 'en'): string {
+  const de = s === 'de';
+  const dauer = z.konzentration && !/konzentration|concentration/i.test(z.dauer) ? `${de ? 'Konzentration' : 'Concentration'}, ${z.dauer}` : z.dauer;
+  return [
+    `${de ? 'Zeitaufwand' : 'Casting Time'}: ${z.zeit}${z.ritual ? (de ? ' oder Ritual' : ' or Ritual') : ''}`,
+    `${de ? 'Reichweite' : 'Range'}: ${z.reichweite}`,
+    `${de ? 'Komponenten' : 'Components'}: ${z.komponenten}`,
+    `${de ? 'Wirkungsdauer' : 'Duration'}: ${dauer}`
+  ].join(' · ');
+}
+
+/** Der ganze Text eines eigenen Zaubers, fuer die Zauberliste des Bogens. */
+export function zauberText(z: Extract<Eintrag, { art: 'zauber' }>, s: 'de' | 'en'): string {
+  const teile = [kurzzeile(z, s), zauberEigenschaften(z, s)];
+  const klassen = z.klassen.map((k) => KLASSE_NAME[k][s]).join(', ');
+  if (klassen) teile.push(`${s === 'de' ? 'Klassen' : 'Classes'}: ${klassen}`);
+  if (z.beschreibung.trim()) teile.push('', z.beschreibung.trim());
+  if (z.hoehererGrad.trim()) teile.push('', `${s === 'de' ? 'Höhere Grade' : 'Higher levels'}: ${z.hoehererGrad.trim()}`);
+  return teile.join('\n');
 }
