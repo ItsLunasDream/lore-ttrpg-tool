@@ -122,6 +122,22 @@ export const NachschlagewerkIcon = (p: IconProps) => (
 );
 
 /**
+ * Drei Dächer: ein Ort.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/orte.png` eines liegt.
+ */
+export const OrteIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M7,38 L7,26 L14,19 L21,26 L21,38" />
+    <path d="M19,38 L19,20 L27,12 L35,20 L35,38" />
+    <path d="M33,38 L33,28 L38,23 L43,28 L43,38" />
+    <path d="M5,38 L43,38" />
+    <path d="M25,38 L25,31 L29,31 L29,38" />
+  </Rahmen>
+);
+
+/**
  * Hammer auf einem Amboss: selbst geschmiedet.
  *
  * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
@@ -290,6 +306,7 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   nachschlagewerk: NachschlagewerkIcon,
   magicitems: MagicItemsIcon,
   homebrew: HomebrewIcon,
+  orte: OrteIcon,
   loot: LootIcon,
   charakterbogen: CharakterbogenIcon
 };

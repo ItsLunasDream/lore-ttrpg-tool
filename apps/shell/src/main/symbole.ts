@@ -68,6 +68,7 @@ const LIESMICH = [
   '  nachschlagewerk.png  Nachschlagewerk',
   '  magicitems.png    Magic Item Generator',
   '  homebrew.png      Homebrew Creator',
+  '  orte.png          Settlement Generator',
   '  loot.png          Loot Generator',
   '  charakterbogen.png Charakterbogen',
   '',

@@ -243,3 +243,17 @@ test('Homebrew: eigene Tabelle, magische zusätzlich nach Seltenheit', () => {
   assert.ok(alle.eintraege.some((e) => e.text === 'Funkelring'));
   assert.deepEqual(L.gegenstandsTabellen([{ name: 'Nur', seltenheit: '', herkunft: 'homebrew' }], 'de').map((x) => x.id), ['mi-homebrew']);
 });
+
+test('Läden aus dem Settlement Generator: je Laden eine Tabelle mit Ware und Preis', () => {
+  const t = L.gegenstandsTabellen(
+    [
+      { name: 'Langschwert (15 GM)', seltenheit: '', herkunft: 'ort', tabelle: 'Schmiede Mara (Rabenfurt)' },
+      { name: 'Dolch (2 GM)', seltenheit: '', herkunft: 'ort', tabelle: 'Schmiede Mara (Rabenfurt)' },
+      { name: 'Seil (1 GM)', seltenheit: '', herkunft: 'ort', tabelle: 'Krämerladen Jo (Rabenfurt)' }
+    ],
+    'de'
+  );
+  assert.deepEqual(t.map((x) => x.name), ['Schmiede Mara (Rabenfurt)', 'Krämerladen Jo (Rabenfurt)']);
+  assert.equal(t[0].eintraege.length, 2);
+  assert.ok(t.every((x) => x.id.startsWith('mi-ort-')));
+});

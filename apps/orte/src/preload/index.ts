@@ -1,12 +1,11 @@
 /**
- * Die Bruecke des Loot Generators: Ablage, Weitergeben, Sprache und die
- * Spruenge aus der Suche der Huelle. Gewuerfelt wird in der Oberflaeche.
+ * Die Bruecke des Settlement Generators: Ablage, Loot, Export in den Story
+ * Creator, Sprache und Spruenge aus der Suche. Gewuerfelt wird in der
+ * Oberflaeche.
  */
 import { contextBridge, ipcRenderer } from 'electron';
 import { kanal } from '../shared/kanaele';
 import type { Gespeichert, Kachel } from '../shared/ablage';
-
-type Antwort = { ok: boolean; text: string };
 
 const api = {
   /**
@@ -26,16 +25,19 @@ const api = {
   },
   sammlung: {
     liste: () => ipcRenderer.invoke(kanal('liste')) as Promise<Kachel[]>,
-    alle: () => ipcRenderer.invoke(kanal('alle')) as Promise<Gespeichert[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<Gespeichert | null>,
-    speichern: (t: Gespeichert, neu: boolean) =>
-      ipcRenderer.invoke(kanal('speichern'), t, neu) as Promise<Antwort & { id: string }>,
+    speichern: (g: Gespeichert, neu: boolean) =>
+      ipcRenderer.invoke(kanal('speichern'), g, neu) as Promise<{ ok: boolean; id: string; text: string }>,
     loeschen: (id: string) => ipcRenderer.invoke(kanal('loeschen'), id) as Promise<boolean>,
-    weitergeben: (id: string) => ipcRenderer.invoke(kanal('weitergeben'), id) as Promise<Antwort>,
-    einlesen: () => ipcRenderer.invoke(kanal('einlesen')) as Promise<Antwort & { namen: string[] }>
+    inDenLoot: (id: string) => ipcRenderer.invoke(kanal('inDenLoot'), id) as Promise<boolean>,
+    ausDemLoot: (id: string) => ipcRenderer.invoke(kanal('ausDemLoot'), id) as Promise<boolean>
   },
-  gegenstaende: () => ipcRenderer.invoke(kanal('gegenstaende')) as Promise<{ name: string; seltenheit: string; herkunft?: string; tabelle?: string }[]>,
-  story: (titel: string, markdown: string) => ipcRenderer.invoke(kanal('story'), titel, markdown) as Promise<Antwort>,
+  story: {
+    kampagnen: () =>
+      ipcRenderer.invoke(kanal('kampagnen')) as Promise<{ liste: { id: string; name: string }[]; aktuell: string | null }>,
+    exportiere: (o: Gespeichert, kampagneId: string | null, ersetzen: boolean) =>
+      ipcRenderer.invoke(kanal('export'), o, kampagneId, ersetzen) as Promise<{ ok: boolean; text: string; angelegt: number; vorhanden?: number }>
+  },
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);
     ipcRenderer.on(kanal('suche:zeigen'), lauscher);
@@ -55,9 +57,9 @@ const api = {
   }
 };
 
-export type LootApi = typeof api;
+export type OrteApi = typeof api;
 
-contextBridge.exposeInMainWorld('loot', api);
+contextBridge.exposeInMainWorld('orte', api);
 const verlaufsDokument = globalThis as unknown as {
   addEventListener(
     art: string,

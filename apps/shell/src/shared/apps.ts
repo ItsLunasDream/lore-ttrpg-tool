@@ -130,6 +130,7 @@ export const APPS: readonly AppEntry[] = [
   { id: 'initiative', status: 'bereit', rolle: 'leitung' },
   { id: 'mapmaker', status: 'bereit', rolle: 'leitung' },
   { id: 'npc', status: 'bereit', rolle: 'leitung' },
+  { id: 'orte', status: 'bereit', rolle: 'leitung' },
   { id: 'inspiration', status: 'bereit', rolle: 'leitung' },
   { id: 'encounter', status: 'bereit', rolle: 'leitung' }
 ];

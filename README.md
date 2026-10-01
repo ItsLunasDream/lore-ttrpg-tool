@@ -26,6 +26,7 @@ connection you set up yourself.
 - **Homebrew Creator**: your own weapons, armor, items, magic items and spells,
   calibrated against the SRD; they show up in the sheet, loot and reference.
 - **Loot Generator**: your own nested random tables.
+- **Settlement Generator**: villages, towns and cities with inn, shops at SRD prices, people and rumours.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
 - **TTRPG Map Editor**: battlemaps and world maps, export as Universal VTT.
@@ -82,6 +83,7 @@ apps/nachschlagewerk/ Reference
 apps/magicitems/      Magic Item Generator
 apps/homebrew/        Homebrew Creator
 apps/loot/            Loot Generator
+apps/orte/            Settlement Generator
 packages/dice/        Dice expressions
 packages/i18n/        Language and text substitution
 packages/motion/      Timings and animations
@@ -373,7 +375,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `homebrew-creator.md` | Homebrew Creator |
 | `sitzungsprotokoll.md` | Session log (concept, not built) |
 | `kampagnenkalender.md` | Campaign calendar with scheduling poll (concept, not built) |
-| `ortsgenerator.md` | Settlement generator (concept, not built) |
+| `ortsgenerator.md` | Settlement Generator |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |

@@ -2,7 +2,10 @@
 
 Rückmeldung: „Stadt und Ortgenerator auch machen.“
 
-**Stand:** Konzept, nichts gebaut.
+**Stand:** Gebaut als `apps/orte` („Settlement Generator"), Schritte 1–4.
+Nicht gebaut: Kaufen im Raum, Ortsplan, KI-Vorschläge, Personen im NPC
+Creator weiterbearbeiten (sie kommen aus demselben Erzeuger, landen aber
+als Notizen im Story Creator).
 
 ## Idee
 
@@ -31,13 +34,36 @@ Unternotizen) im Story Creator.
 - **Wichtige Personen:** mit dem Erzeuger des NPC Creators gewürfelt, mit
   Rolle im Ort (Bürgermeisterin, Hehler, Priester).
 
-## Was ich nicht weiß
+## Was aus dem SRD kommt (nachgesehen im PDF 5.2.1)
+
+- **Ortsgrößen:** Village / Town / City (Dorf / Kleinstadt / Stadt), aus der
+  Tabelle „Spellcasting Services".
+- **Zauberwirken gegen Bezahlung:** Dorf bis Grad 2, Kleinstadt bis Grad 5,
+  Stadt bis Grad 9, mit den Kosten der Tabelle (30 GM bis 100.000 GM).
+- **Gasthaus:** Übernachtung und Mahlzeit je Lebensstil (Ärmlich bis Edel),
+  dazu Bier, Brot, Käse und Wein („Food, Drink, and Lodging").
+- **Magische Gegenstände kaufen:** gewöhnliche in Kleinstadt oder Stadt,
+  ungewöhnliche und seltene nur in Städten („Magic Item Values by Rarity").
+  Die deutsche Fassung schreibt bei gewöhnlichen „in Dörfern oder Städten";
+  hier gilt die englische („in a town or city").
+- **Waren und Preise:** Waffen, Rüstungen, Abenteurerausrüstung und magische
+  Gegenstände mit den Preisen bzw. Werten des SRD.
+
+## Was eine Annahme ist (so auch in der Oberfläche gekennzeichnet)
+
+- Einwohnerzahlen je Größe.
+- Welche Läden es ab welcher Größe gibt (Dorf: Krämer und Schmied mit
+  einfachen Waffen; Kleinstadt und Stadt: dazu Bogner, Alchemist,
+  Magieladen) und wie viele Waren sie zeigen.
+- Die Qualität der Gasthäuser je Größe.
+
+## Was ich vor dem Bau nicht wusste
 
 - Das SRD 5.2.1 hat meines Wissens **keine Regeln** dafür, welche Waren es in
   welcher Ortsgröße gibt oder welche Seltenheit ein Magieladen führt. Die
   Grenzen wären meine Annahme, als solche gekennzeichnet und einstellbar.
-- Ob es im SRD Tabellen zu Siedlungen gibt, prüfe ich vor dem Bau im PDF.
-  Gibt es welche, gehen sie vor.
+- Ob es im SRD Tabellen zu Siedlungen gibt: geprüft, siehe oben. Eine
+  Tabelle für Ladenwaren je Ortsgröße gibt es nicht.
 
 ## Anbindung
 
@@ -52,6 +78,11 @@ Unternotizen) im Story Creator.
 - **Map Maker:** optional ein Ortsplan. Der Map Maker hat Generatoren; ob
   einer davon für Siedlungen taugt, prüfe ich vor dem Bau.
 - **KI** (falls an): freie Vorschläge neben den Tabellen, wie im NPC Creator.
+
+## Entschieden
+
+- Eigenes Werkzeug, nur Siedlungen; Kaufen im Raum und Ortsplan vorerst
+  nicht (Vorschläge aus dem Konzept, keine Rückmeldung dazu).
 
 ## Schritte
 
