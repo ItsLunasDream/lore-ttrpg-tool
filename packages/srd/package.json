@@ -15,7 +15,8 @@
     "./zauber": "./src/zauber.ts",
     "./ausruestung": "./src/ausruestung.ts",
     "./zustaende": "./src/zustaende.ts",
-    "./gestalten": "./src/gestalten.ts"
+    "./gestalten": "./src/gestalten.ts",
+    "./waffen": "./src/waffen.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

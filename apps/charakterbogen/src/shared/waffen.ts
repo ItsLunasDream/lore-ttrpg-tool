@@ -1,11 +1,8 @@
 /**
  * Waffenangriffe nach SRD 5.2 (docs/charakterbogen.md, „Waffenangriffe").
  *
- * Die Waffen kommen aus der Tabelle „Weapons" / „Waffen" in
- * `@suite/srd/ausruestung`. Beide Sprachen sind dort je fuer sich
- * alphabetisch sortiert; gepaart wird ueber Gruppe, Schadenswuerfel,
- * Schadensart, Preis und Meisterschaft. Das ist fuer alle 38 Waffen
- * eindeutig (ein Test prueft es).
+ * Die Waffen kommen aus `@suite/srd/waffen` (Tabelle „Weapons" / „Waffen",
+ * beide Sprachen gepaart; ein Test prueft alle 38).
  *
  * Gerechnet wird nach SRD: Angriff = Attributsmodifikator + Uebungsbonus
  * (wenn geuebt) + magischer Bonus. Nahkampf nimmt Staerke, Fernkampf
@@ -14,129 +11,15 @@
  * groesseren Wuerfel. Ein kritischer Treffer (natuerliche 20) wuerfelt die
  * Schadenswuerfel doppelt.
  */
-import { AUSRUESTUNG } from '@suite/srd/ausruestung';
+import { WAFFEN, waffeNach, type Waffe } from '@suite/srd/waffen';
 import type { RandomSource } from '@suite/dice';
 import { modifikator, type Attribut } from './regeln';
 import type { Angriff, Bogen, Werte } from './bogen';
 import { gesamtstufe } from './bogen';
 import { uebungsbonus } from './regeln';
 
-export interface Waffe {
-  /** Aus dem englischen Namen: „longsword", „light-crossbow". */
-  readonly id: string;
-  readonly name: readonly [string, string];
-  readonly kategorie: 'einfach' | 'kriegs';
-  readonly fern: boolean;
-  /** „1d8"; beim Blasrohr „1". */
-  readonly wuerfel: string;
-  /** Bei „Vielseitig": der Wuerfel zweihaendig. */
-  readonly vielseitig: string | null;
-  readonly art: readonly [string, string];
-  readonly finesse: boolean;
-  readonly eigenschaften: readonly [string, string];
-  readonly meisterschaft: readonly [string, string];
-  /** lb, null wenn keines angegeben. */
-  readonly gewicht: number | null;
-  /** GM. */
-  readonly wert: number | null;
-}
-
-const MEISTER: Record<string, string> = {
-  Nick: 'Einkerben',
-  Vex: 'Plagen',
-  Slow: 'Verlangsamen',
-  Sap: 'Auslaugen',
-  Topple: 'Umstoßen',
-  Push: 'Stoßen',
-  Graze: 'Streifen',
-  Cleave: 'Spalten'
-};
-const ART: Record<string, string> = { Piercing: 'Stich', Slashing: 'Hieb', Bludgeoning: 'Wucht' };
-
-type Reihe = readonly string[];
-
-function tabelle(sprache: 'de' | 'en'): Reihe[] {
-  const eintrag = AUSRUESTUNG.find((e) => e.id === 'weapons');
-  const block = eintrag?.bloecke[sprache].find(
-    (b) => b.typ === 'tabelle' && (b as { titel?: string }).titel === (sprache === 'de' ? 'Waffen' : 'Weapons')
-  ) as { reihen?: Reihe[] } | undefined;
-  return block?.reihen ?? [];
-}
-
-/** Gruppe je Reihe: Ueberschriftzeilen (leere Spalten) zaehlen hoch. */
-function mitGruppe(reihen: Reihe[]): { gruppe: number; r: Reihe }[] {
-  let gruppe = -1;
-  return reihen.flatMap((r) => {
-    if (!r[1]) {
-      gruppe += 1;
-      return [];
-    }
-    return [{ gruppe, r }];
-  });
-}
-
-function wuerfelAus(schaden: string): string {
-  return schaden.split(/\s+/)[0].toLowerCase().replace('w', 'd');
-}
-
-function preisInGold(text: string): number | null {
-  const m = /^([\d.,]+)\s*(GP|SP|CP|GM|SM|KM|PP|PM|EP|EM)$/i.exec(text.trim());
-  if (!m) return null;
-  const n = Number(m[1].replace(',', '.'));
-  const faktor: Record<string, number> = { GP: 1, GM: 1, SP: 0.1, SM: 0.1, CP: 0.01, KM: 0.01, PP: 10, PM: 10, EP: 0.5, EM: 0.5 };
-  return Math.round(n * faktor[m[2].toUpperCase()] * 100) / 100;
-}
-
-function gewichtLb(text: string): number | null {
-  const m = /^([\d/.]+)\s*lb/.exec(text.trim());
-  if (!m) return null;
-  const [a, b] = m[1].split('/');
-  return b ? Number(a) / Number(b) : Number(a);
-}
-
-function schluessel(gruppe: number, r: Reihe, de: boolean): string {
-  const [wuerfel, art] = r[1].split(/\s+/);
-  const kosten = r[5].replace('GM', 'GP').replace('SM', 'SP').replace('KM', 'CP');
-  const artDe = de ? art : ART[art] ?? art;
-  const meister = de ? r[3] : MEISTER[r[3]] ?? r[3];
-  return [gruppe, wuerfel.toLowerCase().replace('w', 'd'), artDe, kosten, meister].join('|');
-}
-
-function zuId(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-
-function lies(): Waffe[] {
-  const de = new Map(mitGruppe(tabelle('de')).map(({ gruppe, r }) => [schluessel(gruppe, r, true), r]));
-  return mitGruppe(tabelle('en')).flatMap(({ gruppe, r }) => {
-    const d = de.get(schluessel(gruppe, r, false));
-    if (!d) return [];
-    const vielseitig = /Versatile \((\d+d\d+)\)/.exec(r[2]);
-    return [
-      {
-        id: zuId(r[0]),
-        name: [d[0], r[0]] as const,
-        kategorie: gruppe < 2 ? ('einfach' as const) : ('kriegs' as const),
-        fern: gruppe === 1 || gruppe === 3,
-        wuerfel: wuerfelAus(r[1]),
-        vielseitig: vielseitig ? vielseitig[1] : null,
-        art: [d[1].split(/\s+/)[1] ?? '', r[1].split(/\s+/)[1] ?? ''] as const,
-        finesse: /\bFinesse\b/.test(r[2]),
-        eigenschaften: [d[2], r[2]] as const,
-        meisterschaft: [d[3], r[3]] as const,
-        gewicht: gewichtLb(r[4]),
-        wert: preisInGold(r[5])
-      }
-    ];
-  });
-}
-
-export const WAFFEN: readonly Waffe[] = lies();
-const NACH_ID = new Map(WAFFEN.map((w) => [w.id, w]));
-
-export function waffeNach(id: string | undefined | null): Waffe | null {
-  return id ? NACH_ID.get(id) ?? null : null;
-}
+// Die Waffentabelle selbst liest @suite/srd/waffen (auch fuer den Homebrew Creator).
+export { WAFFEN, waffeNach, type Waffe };
 
 // --- Rechnen ----------------------------------------------------------------
 
