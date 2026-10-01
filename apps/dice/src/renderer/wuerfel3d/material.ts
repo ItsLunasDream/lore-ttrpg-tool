@@ -225,18 +225,32 @@ export function baueMaterial(muster: Muster, farbe: string): MeshStandardMateria
   }
 
   if (muster === 'kristall') {
-    // Durchscheinend wie geschliffenes Glas, in der gewaehlten Farbe getoent.
+    /*
+     * Durchsichtig wie geschliffenes Glas, in der gewaehlten Farbe getoent
+     * (Rueckmeldung: vorher wirkte er wie matter Kunststoff).
+     * - volle Durchlaessigkeit: durch die Flaechen sieht man die Ziffern
+     *   der Rueckseite, wie bei echten Kristallwuerfeln. Beidseitig
+     *   gezeichnet (DoubleSide) waeren auch die inneren Facetten zu sehen;
+     *   das liess im Software-Rendering den Wurf ausfallen, darum nicht;
+     * - hellere Grundfarbe und lange Daempfungsstrecke: die Toenung kommt
+     *   von der Dicke, nicht von einer deckenden Farbe;
+     * - etwas Dispersion (Farbsaeume an den Kanten) und kraeftige
+     *   Spiegelung der Umgebung fuer helle Kanten.
+     */
     return new MeshPhysicalMaterial({
-      color: grund,
+      color: grund.clone().lerp(new Color('#ffffff'), 0.45),
       metalness: 0,
-      roughness: 0.04,
-      envMapIntensity: 0.8,
-      transmission: 0.6,
-      thickness: 0.8,
-      ior: 1.6,
+      roughness: 0.02,
+      envMapIntensity: 1.4,
+      transmission: 1,
+      thickness: 1.4,
+      ior: 1.55,
+      dispersion: 0.4,
       attenuationColor: grund,
-      attenuationDistance: 1.5,
+      attenuationDistance: 2.5,
+      specularIntensity: 1,
       clearcoat: 1,
+      clearcoatRoughness: 0,
       flatShading: true
     });
   }
