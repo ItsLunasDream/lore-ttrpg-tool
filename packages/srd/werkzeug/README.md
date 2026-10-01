@@ -12,7 +12,7 @@ python3 werkzeug/monster_erzeugen.py /tmp/monster.json # paart ueber die Zahlen,
 # Magische Gegenstaende: erst die Zeilen beider PDFs ablegen, dann lesen
 python3 -c "import pickle,sys; sys.path.insert(0,'werkzeug'); from monster_lesen import lies_zeilen as z; [pickle.dump(z(s),open(f'/tmp/zeilen_{s}.pkl','wb')) for s in ('en','de')]"
 python3 werkzeug/gegenstaende_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json
-python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../../apps/magicitems/src/shared/eichpunkte.ts
+python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../magie/src/eichpunkte.ts
 python3 werkzeug/gegenstaende_text.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json /tmp/gtext.json
 python3 werkzeug/gegenstaende_erzeugen.py /tmp/gtext.json   # schreibt src/magische-gegenstaende.ts
 python3 werkzeug/zauber_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/zauber.json

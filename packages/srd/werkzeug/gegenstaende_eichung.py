@@ -9,7 +9,7 @@ Wirkung haben. Die Seltenheit, der Bonus und die Heilformel dagegen werden
 aus dem ausgelesenen Text genommen, nicht abgetippt. Fehlt ein gewaehlter
 Gegenstand in der Auslese, bricht das Skript ab.
 
-Der Test in apps/magicitems prueft dann: erzeugt der Erzeuger bei dieser
+Der Test in packages/magie prueft dann: erzeugt der Erzeuger bei dieser
 Seltenheit diese Wirkung, und mit denselben Zahlen?
 
 Aufruf:  python3 werkzeug/gegenstaende_eichung.py <gegenstaende.json> <ziel.ts>
@@ -92,7 +92,7 @@ KOPF = '''/**
  * DIESE DATEI IST ERZEUGT (packages/srd/werkzeug/gegenstaende_eichung.py).
  * Welcher Gegenstand fuer welche Wirkung steht, ist von Hand gewaehlt;
  * Seltenheit, Bonus und Heilformel sind aus dem PDF gelesen. Der Test
- * tests/eichung.test.mjs prueft den Erzeuger daran.
+ * packages/magie/tests/eichung.test.mjs prueft den Erzeuger daran.
  */
 
 export interface Eichpunkt {

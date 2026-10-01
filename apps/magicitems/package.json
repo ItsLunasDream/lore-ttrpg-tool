@@ -30,8 +30,9 @@
     "@suite/foundry": "*",
     "@suite/i18n": "*",
     "@suite/ki": "*",
+    "@suite/magie": "*",
     "@suite/motion": "*",
-    "@suite/tastatur": "*",
-    "@suite/srd": "*"
+    "@suite/srd": "*",
+    "@suite/tastatur": "*"
   }
 }
