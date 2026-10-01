@@ -5,6 +5,10 @@
  * echte Exporte geprueft (docs/magicitems.md). Fuer Waffen, Ruestungen,
  * einfache Gegenstaende und Zauber liegt mir kein echter Export vor, an dem
  * ich die Felder pruefen koennte; geraten wird nicht.
+ *
+ * Das Bild steht als data:-Adresse in `img`. UNGEPRUEFT: ob Foundry das beim
+ * Import annimmt, ist an keinem echten Import getestet (auf Wunsch trotzdem
+ * drin, docs/homebrew-creator.md).
  */
 import { alsFoundryGegenstand, dateiname, kennung } from '@suite/foundry';
 import { gegenstandswert } from '@suite/srd';
@@ -28,5 +32,6 @@ export function alsFoundryDatei(e: Eintrag, zufall: () => number = Math.random):
     wert: e.preis ?? gegenstandswert(e.seltenheit, { verbrauch: VERBRAUCH[e.gegenstandsart] }),
     notiz: e.beschreibung
   });
+  if (e.bild) item.img = e.bild;
   return { name: dateiname('Item', e.name, kennung(zufall)), inhalt: `${JSON.stringify(item, null, 2)}\n` };
 }

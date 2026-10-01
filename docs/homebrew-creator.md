@@ -145,8 +145,9 @@ und im Nachschlagewerk.
 - **Foundry-Export nur für magische Gegenstände.** Für Waffen, Rüstungen,
   einfache Gegenstände und Zauber liegt kein echter Foundry-Export vor, an dem
   sich die Felder prüfen ließen; geraten wird nicht.
-- **Bild im Foundry-Export fehlt.** Ob Foundry ein Bild als `data:`-Adresse im
-  Feld `img` annimmt, ist ungeprüft. Dafür braucht es einen Test in Foundry.
+- **Bild im Foundry-Export ungeprüft.** Es steht als `data:`-Adresse im Feld
+  `img` (auf Wunsch aufgenommen). Ob Foundry das beim Import annimmt, ist an
+  keinem echten Import getestet.
 - **Magischer Gegenstand:** gelesen werden nur Zahlen in festen Mustern
   („+2 Bonus", „2W6 … Schaden", „SG 15", „(Grad 3)"). Frei Formuliertes
   sieht die Eichung nicht; die Oberfläche sagt das.
@@ -167,4 +168,4 @@ und im Nachschlagewerk.
   Umsetzung wie das Porträt im Charakterbogen: verkleinert und als Daten
   im Eintrag gespeichert, mit Größengrenze.
 
-Offene Frage: Soll das Bild in den Foundry-Export, obwohl es dort ungeprüft ist?
+Offen: echte Foundry-Exporte (Waffe, Rüstung, Gegenstand, Zauber, Gegenstand mit Bild) als Vorlage, um den Export zu erweitern und das Bildfeld zu prüfen.

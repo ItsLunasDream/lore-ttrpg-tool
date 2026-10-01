@@ -47,3 +47,9 @@ test('Foundry: nur magische Gegenstaende, mit Seltenheit, Einstimmung und SRD-We
   assert.match(item.system.description.value, /Leuchtet im Dunkeln/);
   assert.match(d.name, /\.json$/);
 });
+
+test('Foundry: das Bild steht in img (ungeprueft), ohne Bild bleibt das Standardsymbol', () => {
+  const bild = 'data:image/jpeg;base64,AAAA';
+  assert.equal(JSON.parse(H.alsFoundryDatei(mit({ bild })).inhalt).img, bild);
+  assert.match(JSON.parse(H.alsFoundryDatei(mit({})).inhalt).img, /^icons\//);
+});
