@@ -105,7 +105,7 @@ function starte() {
   app.whenReady().then(async () => {
     await warte(5000);
     const fenster = BaseWindow.getAllWindows()[0];
-    const sicht = fenster?.contentView?.children?.[1];
+    const sicht = fenster?.contentView?.children?.find((v) => v.webContents?.getURL().includes('/apps/inspiration/'));
     if (!sicht?.webContents) {
       console.log('  FEHL die Inspirationshilfe steht nicht');
       app.exit(1);

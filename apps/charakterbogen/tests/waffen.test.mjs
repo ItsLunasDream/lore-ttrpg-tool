@@ -94,3 +94,36 @@ test('Ausgeruestete Waffen im Inventar werden zu Angriffen, abgelegte nicht', ()
   assert.equal(gelesen.werte.angriffe[0].magie, 3);
   assert.equal(gelesen.werte.angriffe[0].attribut, 'auto');
 });
+
+test('eine eigene Waffe (Homebrew) rechnet wie eine SRD-Waffe', () => {
+  const w = B.leereWerte();
+  w.attribute.ges = 16;
+  w.attribute.sta = 10;
+  const eigen = { kategorie: 'kriegs', fern: false, wuerfel: '1d8', vielseitig: '1d10', art: ['Blitz', 'Lightning'], finesse: true, eigenschaften: ['Finesse', 'Finesse'], meisterschaft: ['Plagen', 'Vex'] };
+  const a = { name: 'Sturmklinge', bonus: '', schaden: '', notiz: '', waffe: 'hb-sturmklinge', magie: 1, geuebt: true, attribut: 'auto', eigeneWaffe: eigen };
+  const werte = B.angriffswerte(w, a, 'de');
+  assert.equal(werte.bonus, 3 + 2 + 1, 'GES +3 (Finesse), Übung +2, Magie +1');
+  assert.equal(werte.schaden, '1d8+4');
+  assert.equal(werte.art, 'Blitz');
+});
+
+test('aus dem Inventar: eine ausgerüstete eigene Waffe wird zum Angriff, auch nach dem Einlesen', () => {
+  const b = B.bereinige(
+    {
+      name: 'X',
+      art: 'figur',
+      gegenstaende: [
+        { id: 'g1', name: 'Sturmklinge', anzahl: 1, ausgeruestet: true, quelle: { art: 'homebrew', kennung: 'sturmklinge' },
+          waffe: { id: 'hb-sturmklinge', magie: 1, geuebt: true, eigen: { kategorie: 'kriegs', wuerfel: '1d8', art: ['Blitz', 'Lightning'], finesse: true, eigenschaften: ['Finesse', 'Finesse'], meisterschaft: ['Plagen', 'Vex'] } } }
+      ]
+    },
+    'x'
+  );
+  assert.equal(b.gegenstaende[0].quelle.art, 'homebrew');
+  const angriffe = B.angriffeAusInventar(b);
+  assert.equal(angriffe.length, 1);
+  assert.equal(angriffe[0].eigeneWaffe.wuerfel, '1d8');
+  const kaputt = B.bereinige({ name: 'Y', art: 'figur', gegenstaende: [{ name: 'Z', ausgeruestet: true, waffe: { id: 'hb-z', eigen: { wuerfel: 'viel' } } }] }, 'y');
+  assert.equal(kaputt.gegenstaende[0].waffe.eigen, undefined, 'unlesbarer Würfel: keine eigene Waffe');
+  assert.equal(B.angriffeAusInventar(kaputt).length, 0);
+});

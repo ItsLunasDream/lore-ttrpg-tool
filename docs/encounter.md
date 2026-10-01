@@ -124,7 +124,7 @@ GM's 5e Monster Builder Resource Document, CC-BY-4.0).
 **Diese Frage ist inzwischen beantwortet.** Das SRD 5.2.1 steht unter
 CC-BY-4.0, und die Zahlen dürfen mit der vorgeschriebenen Namensnennung
 übernommen werden (siehe `NOTICE.md`). Sie gehören nach `packages/srd/`,
-zusammen mit dem, was das Nachschlagewerk und der Magic Item Creator
+zusammen mit dem, was das Nachschlagewerk und der Magic Item Generator
 brauchen — siehe `docs/nachschlagewerk.md`. Was bleibt, ist Fleißarbeit:
 die Tabellen aus dem Dokument sauber herausholen und gegenlesen. **Der Bau
 ist damit nicht mehr blockiert.**

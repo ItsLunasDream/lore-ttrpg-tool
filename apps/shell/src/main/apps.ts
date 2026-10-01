@@ -44,11 +44,19 @@ import { mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
+import {
+  leseFuerInventar as leseHomebrewFuerInventar,
+  leseFuerLoot as leseHomebrewFuerLoot,
+  leseFuerNachschlagewerk as leseHomebrewFuerNachschlagewerk,
+  mountHomebrew
+} from '../../../homebrew/src/main/embed';
 import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
 import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
 import { wuerfle as wuerfleTabelle } from '@suite/tabellen';
+import { groessenTaste } from '../shared/tasten';
 import { mountCharakterbogen } from '../../../charakterbogen/src/main/embed';
+import { ersetzeStoryBlock } from '../../../charakterbogen/src/shared/ablage';
 import type { KiQuelle } from './ki';
 import type { Uebergabe } from '@suite/uebergabe';
 import type { Language } from '../shared/i18n';
@@ -228,6 +236,8 @@ export interface MontageHaken {
   readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
   /** Holt den Story Creator nach vorn und zeigt eine Notiz (`<Kampagne>/<Notiz>`). */
   readonly zeigeInStory?: (kennung: string) => void;
+  /** Holt das Nachschlagewerk nach vorn und zeigt einen Eintrag oder Filter. */
+  readonly zeigeImNachschlagewerk?: (kennung: string) => void;
   /**
    * Die KI-Anbindung der Sammlung.
    *
@@ -402,6 +412,13 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
    */
   sicht.webContents.on('before-input-event', (event, eingabe) => {
     if (eingabe.type !== 'keyDown') return;
+    // F6: zurück in die Hülle (Schiene). Tab kommt aus einer eingebetteten
+    // Ansicht nicht heraus; ohne diese Taste säße man per Tastatur fest.
+    if (eingabe.key === 'F6' && !eingabe.control && !eingabe.alt && !eingabe.meta && !eingabe.shift) {
+      event.preventDefault();
+      huellenFokus?.();
+      return;
+    }
     if (!(eingabe.control || eingabe.meta)) return;
     // Strg+Alt und Plus, Minus, 0: die Groesse der ganzen Oberflaeche.
     // Strg allein bleibt den Werkzeugen (Zoom im Story Creator).
@@ -416,13 +433,7 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
   });
 }
 
-/** Welche Groessentaste gedrueckt ist, oder null. Auch der Ziffernblock zaehlt. */
-export function groessenTaste(key: string, code = ''): 'groesser' | 'kleiner' | 'zurueck' | null {
-  if (key === '+' || key === '=' || code === 'NumpadAdd' || code === 'Equal') return 'groesser';
-  if (key === '-' || code === 'NumpadSubtract' || code === 'Minus') return 'kleiner';
-  if (key === '0' || code === 'Digit0' || code === 'Numpad0') return 'zurueck';
-  return null;
-}
+export { groessenTaste } from '../shared/tasten';
 
 let huellenGroesse: ((stufe: 'groesser' | 'kleiner' | 'zurueck') => void) | null = null;
 
@@ -439,6 +450,13 @@ export function setzeGroessentaste(hoerer: (stufe: 'groesser' | 'kleiner' | 'zur
  */
 let huellenSuche: (() => void) | null = null;
 
+/** Was F6 in einem Werkzeug tut: den Fokus an die Hülle geben. */
+let huellenFokus: (() => void) | null = null;
+
+export function setzeFokustaste(hoerer: () => void): void {
+  huellenFokus = hoerer;
+}
+
 export function setzeSuchtaste(hoerer: () => void): void {
   huellenSuche = hoerer;
 }
@@ -450,6 +468,17 @@ async function lade(
 ): Promise<void> {
   if (quelle.devServerUrl) await sicht.webContents.loadURL(quelle.devServerUrl);
   else await sicht.webContents.loadFile(quelle.indexFile!);
+  /*
+   * „Geladen" heisst noch nicht, dass die Oberflaeche zuhoert: React meldet
+   * seine Empfaenger erst in Effekten nach dem ersten Zeichnen an. Was die
+   * Huelle direkt danach zustellte (Figuren, Begegnung, Kartenname, Treffer
+   * der Suche), ging sonst verloren (Rueckmeldung „In die Initiative").
+   * Zwei Takte der Ereignisschleife reichen dafuer; Timer laufen auch in
+   * einer unsichtbaren Ansicht.
+   */
+  await sicht.webContents
+    .executeJavaScript('new Promise((r) => setTimeout(() => setTimeout(r, 60), 0))')
+    .catch(() => undefined);
 }
 
 /**
@@ -573,6 +602,7 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'encounter') return montiereEncounter(id, haken);
   if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
   if (id === 'magicitems') return montiereMagicItems(id, haken);
+  if (id === 'homebrew') return montiereHomebrew(id, haken);
   if (id === 'loot') return montiereLoot(id, haken);
   if (id === 'charakterbogen') return montiereCharakterbogen(id, haken);
   return null;
@@ -715,6 +745,31 @@ async function legeNotizAn(
   }
   haken.onEreignis?.('backstory');
   return { ok: true, text: `${titel} → ${kampagne.name}`, kennung };
+}
+
+/**
+ * Schreibt den Abschnitt des Charakterbogens in seine Notiz (stetiger
+ * Abgleich, nur Bogen → Notiz). Was ausserhalb der Markierungen steht,
+ * bleibt; siehe `ersetzeStoryBlock`.
+ */
+async function aktualisiereStoryNotiz(kennung: string, block: string, haken: MontageHaken): Promise<boolean> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
+  const teiler = kennung.indexOf('/');
+  if (!backstoryEmbed || teiler <= 0) return false;
+  const kampagne = kennung.slice(0, teiler);
+  let notiz;
+  try {
+    notiz = await backstoryEmbed.vault.getNote(kampagne, kennung.slice(teiler + 1));
+  } catch {
+    return false;
+  }
+  const neu = ersetzeStoryBlock(notiz.body, block);
+  if (neu === notiz.body) return true;
+  await backstoryEmbed.vault.saveNote(kampagne, { ...notiz, body: neu });
+  if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
+  return true;
 }
 
 /** Gibt es die Notiz `<Kampagne>/<Notiz>` noch? */
@@ -1372,7 +1427,9 @@ async function montiereNachschlagewerk(id: string, haken: MontageHaken): Promise
     datenordner: datenordner(id),
     devServerUrl: process.env.NACHSCHLAGEWERK_DEV_SERVER_URL,
     language: haken.language,
-    onLanguageChange: (language) => haken.onLanguageChange(language as Language)
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Eintraege aus dem Homebrew Creator, neben dem SRD (docs/homebrew-creator.md).
+    homebrew: () => leseHomebrewFuerNachschlagewerk(app.getPath('userData'))
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1455,7 +1512,7 @@ async function montiereZustaende(id: string, haken: MontageHaken): Promise<Monti
   };
 }
 
-/** Der Magic Item Creator. Eine Ablage im eigenen Datenordner, sonst wie das Nachschlagewerk. */
+/** Der Magic Item Generator. Eine Ablage im eigenen Datenordner, sonst wie das Nachschlagewerk. */
 async function montiereMagicItems(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountMagicItems({
     distDir: appDistDir(id, 'main'),
@@ -1498,20 +1555,15 @@ async function montiereMagicItems(id: string, haken: MontageHaken): Promise<Mont
   };
 }
 
-/** Der Loot Generator. Gebaut wie der Magic Item Creator. */
-async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteApp> {
-  const eingebettet = await mountLoot({
+/** Der Homebrew Creator (docs/homebrew-creator.md). Gebaut wie der Magic Item Generator, ohne KI. */
+async function montiereHomebrew(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountHomebrew({
     distDir: appDistDir(id, 'main'),
     datenordner: datenordner(id),
-    devServerUrl: process.env.LOOT_DEV_SERVER_URL,
+    devServerUrl: process.env.HOMEBREW_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
-    // Keine Vorlage kennt einen Typ fuer Gegenstaende; wer sich „item"
-    // selbst angelegt hat, bekommt ihn, sonst wird es eine Notiz.
-    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken),
-    // Der Bestand des Magic Item Creators, gelesen wie fuer die Suche: die
-    // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
-    gegenstaende: () => leseNamenUndSeltenheit(app.getPath('userData'))
+    onEreignis: haken.onEreignis
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1544,7 +1596,56 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
   };
 }
 
-/** Alle Loot-Tabellen, wie der Loot Generator sie zeigt: eigene, SRD und die aus dem Magic Item Creator. */
+/** Der Loot Generator. Gebaut wie der Magic Item Generator. */
+async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountLoot({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.LOOT_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    // Keine Vorlage kennt einen Typ fuer Gegenstaende; wer sich „item"
+    // selbst angelegt hat, bekommt ihn, sonst wird es eine Notiz.
+    anlegen: (titel, markdown) => legeNotizAn(titel, markdown, ['item', 'note'], haken),
+    // Der Bestand des Magic Item Generators, gelesen wie fuer die Suche: die
+    // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
+    gegenstaende: async () => [
+      ...(await leseNamenUndSeltenheit(app.getPath('userData'))),
+      ...(await leseHomebrewFuerLoot(app.getPath('userData')))
+    ]
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
+/** Alle Loot-Tabellen, wie der Loot Generator sie zeigt: eigene, SRD und die aus dem Magic Item Generator. */
 async function alleLootTabellen(sprache: 'de' | 'en') {
   const datenordner = app.getPath('userData');
   const [eigene, gegenstaende] = await Promise.all([leseTabellen(datenordner), leseNamenUndSeltenheit(datenordner)]);
@@ -1574,13 +1675,16 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
         if (!(await storyNotizDa(kennung, haken))) return false;
         haken.zeigeInStory?.(kennung);
         return true;
-      }
+      },
+      aktualisiere: (kennung, block) => aktualisiereStoryNotiz(kennung, block, haken)
     },
     eigeneZustaende: async () => (await leseEigeneZustaende()).map((z) => ({ name: z.name, text: z.text })),
+    nachschlagen: (kennung) => haken.zeigeImNachschlagewerk?.(kennung),
     // Quellen fuers Inventar aus anderen Werkzeugen. Die Werkzeuge kennen
     // einander nicht; die Huelle liest fuer den Charakterbogen mit.
     quellen: {
       magicitems: (sprache) => leseFuerInventar(app.getPath('userData'), sprache),
+      homebrew: async (sprache) => [...(await leseHomebrewFuerInventar(app.getPath('userData'), sprache))],
       lootTabellen: async (sprache) => (await alleLootTabellen(sprache)).map((x) => ({ id: x.id, name: x.name })),
       lootWuerfle: async (tabellenId, sprache) => {
         const alle = await alleLootTabellen(sprache);

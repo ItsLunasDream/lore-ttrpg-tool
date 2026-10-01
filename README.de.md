@@ -23,7 +23,7 @@ KI-Anbindung, die man selbst einrichtet.
   offiziellen.
 - **Encounter Creator**: Begegnungen aus 331 SRD-Monstern und eigenen,
   Schwierigkeit nach Regelwerk, mit einem Klick in den Tracker.
-- **Magic Item Creator**: magische Gegenstände nach Art und Seltenheit, Wert
+- **Magic Item Generator**: magische Gegenstände nach Art und Seltenheit, Wert
   nach SRD.
 - **Loot Generator**: eigene, verschachtelbare Zufallstabellen.
 - **Nachschlagewerk**: SRD-Glossar, Ausrüstung, 339 Zauber, 258 magische
@@ -81,7 +81,7 @@ apps/monster/         Monster Creator
 apps/zustaende/       Status Effect Creator
 apps/encounter/       Encounter Creator
 apps/nachschlagewerk/ Nachschlagewerk
-apps/magicitems/      Magic Item Creator
+apps/magicitems/      Magic Item Generator
 apps/loot/            Loot Generator
 packages/dice/        Würfelausdrücke
 packages/i18n/        Sprache und Textersetzung
@@ -172,6 +172,10 @@ Obsidian.
   und enge Listen kommen so heraus, wie sie hineingingen.
 - **Export**: PDF mit Inhaltsverzeichnis, Graph und Sprungzielen; Markdown
   mit Alias-Kopf, wenn der Dateiname vom Titel abweicht.
+- **Graph-Fenster** mit drei Ansichten: Beziehungsnetz, Zeitstrahl (nach dem
+  Feld „Zeitpunkt“) und **Handlungsstränge**: Plots als Folgen von Notizen,
+  die bei einer Notiz eines anderen Strangs abzweigen und in einen anderen
+  münden können. Gespeichert in `campaign.json` (`plots`).
 
 ## Charakterbogen
 
@@ -185,7 +189,8 @@ Obsidian.
 - **Aussehen je Bogen**: Akzentfarbe, Papier und Schrift (sieben freie
   Schriften sind dabei). Kaum Auswahllisten: Segmente, Punkte und
   durchsuchbare Wahl statt dessen.
-- **Story Creator**: eine Notiz zur Figur anlegen und später öffnen.
+- **Story Creator**: eine Notiz zur Figur anlegen, später öffnen und auf
+  Wunsch stetig mit dem Bogen abgleichen (eigener Text in der Notiz bleibt).
 - **Schaden / Heilung**: `-7` oder `7` zieht ab, `+5` heilt, Würfel gehen
   (`2w6+3`); temporäre TP zuerst. Rasten nach SRD 5.2.
 - **Zauber**: SG und Angriff, Plätze je Grad (auch Paktmagie), Liste aus
@@ -196,7 +201,7 @@ Obsidian.
 - **Inventar**: Gegenstände mit Gewicht und Wert, Geld in PM/GM/EM/SM/KM,
   Gruppeninventare, Geben und Aufteilen zwischen Bögen; Gewichte in kg und lb.
   Gegenstände kommen auch aus dem SRD (Ausrüstung, magische Gegenstände),
-  aus dem Magic Item Creator (Homebrew) und als Wurf auf eine Loot-Tabelle.
+  aus dem Magic Item Generator (Homebrew) und als Wurf auf eine Loot-Tabelle.
 - **Im Raum**: den eigenen Bogen hineinbringen; der Gastgeber führt den
   gemeinsamen Stand. Je Bogen sehen die anderen nichts, eine Übersicht oder
   alles. Die SL kann jeden Bogen ändern; das wird bei der Person, der er
@@ -380,7 +385,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Teilen und Räume |
 | `raum-online.md` | Anleitung: Raum übers Internet (Portfreigabe, IPv6) |
-| `magicitems.md` | Magic Item Creator |
+| `magicitems.md` | Magic Item Generator |
 | `nachschlagewerk.md` | Nachschlagewerk |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventar (Konzept, nicht gebaut) |

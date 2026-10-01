@@ -352,11 +352,11 @@ Gebaut: Im Inventar (Figur und Gruppe) öffnet „+ Aus Quelle …“ vier Reite
   gepaarten Einträge des Kapitels gefunden.
 - **SRD magisch:** alle magischen Gegenstände des SRD mit Text; Gewicht und
   Preis nennt das SRD dafür nicht, die Felder bleiben leer.
-- **Eigene (Homebrew):** alles, was im Magic Item Creator gespeichert ist,
+- **Eigene (Homebrew):** alles, was im Magic Item Generator gespeichert ist,
   mit Art, Seltenheit, Einstimmung, Wirkungen, Fluch und Wert. Die Hülle
   liest das für den Bogen mit (die Werkzeuge kennen einander nicht).
 - **Loot-Tabelle:** eine Tabelle des Loot Generators wählen (eigene, SRD,
-  und die aus dem Magic Item Creator), würfeln, das Ergebnis mit einem
+  und die aus dem Magic Item Generator), würfeln, das Ergebnis mit einem
   Klick ins Inventar. Gewürfelt wird in der Hülle mit derselben Logik wie im
   Loot Generator.
 - Jeder übernommene Gegenstand merkt sich seine Herkunft (`quelle`: Art und
@@ -420,8 +420,12 @@ Gebaut auf Wunsch nach Schritt 7:
   benutzten Kampagne eine Notiz mit der Lesefassung der Figur an und merkt
   sich die Verknüpfung (`Bogen.storyNotiz`). Danach öffnet der Knopf „Notiz“
   den Story Creator an dieser Stelle; gibt es die Notiz nicht mehr, wird die
-  Verknüpfung gelöst. Die Notiz ist ein Schnappschuss und wird nicht
-  nachgeführt.
+  Verknüpfung gelöst. Mit **„↻ Synchron“** wird die Notiz stetig
+  nachgeführt (nur Bogen → Notiz): Der Bogen schreibt nach jedem Speichern
+  (gebündelt, 1,5 s) nur den Abschnitt zwischen
+  `<!-- charakterbogen:anfang -->` und `<!-- charakterbogen:ende -->` neu;
+  was davor oder danach in der Notiz steht, bleibt. Änderungen innerhalb des
+  Abschnitts überschreibt der Bogen.
 - **Eigene Zustände:** Die Zustände aus dem Status Effect Creator stehen in
   der Suchwahl unter „Eigene“ und tragen ihren Text als Hinweis; im Bogen
   als `eigen:<Name>`.
@@ -467,8 +471,8 @@ Gebaut (nach Schritt 6, auf Wunsch vor Schritt 7):
 - **Loot Generator**: gebaut andersherum: der Bogen würfelt über „Aus Quelle
   … → Loot-Tabelle“. Ein Knopf „Ins Inventar“ im Loot Generator selbst
   fehlt noch.
-- **Story Creator**: gebaut, siehe „Aussehen und Bedienung“. Die Notiz ist
-  ein Schnappschuss; Nachführen bei Änderungen fehlt.
+- **Story Creator**: gebaut, siehe „Aussehen und Bedienung“ (Notiz anlegen,
+  öffnen, auf Wunsch stetig nachführen).
 
 ## Ablage
 
@@ -524,7 +528,7 @@ interface Bogen {
   gegenstaende: InventarGegenstand[];         // aus docs/inventar.md
   notizen: string;
   design?: { farbe: string; papier: string; schrift: string };
-  storyNotiz?: { kennung: string; titel: string }; // `<Kampagne>/<Notiz>`
+  storyNotiz?: { kennung: string; titel: string; sync?: boolean }; // `<Kampagne>/<Notiz>`
   fassung: number;
 }
 ```
@@ -551,6 +555,8 @@ Notiert, noch nicht geplant:
   genauso rechnet.
 - **Zauber-Homebrew:** eigene Zauber anlegen, die in der Zauberliste des
   Bogens neben den SRD-Zaubern stehen.
+
+  Beides ist als Konzept ausgearbeitet: `docs/homebrew-creator.md`.
 
 ## Zu klären
 

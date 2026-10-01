@@ -24,6 +24,7 @@
   "dependencies": {
     "@suite/dice": "*",
     "@suite/motion": "*",
+    "@suite/tastatur": "*",
     "@suite/eintraege": "*",
     "@suite/uebergabe": "*",
     "@suite/srd": "*"

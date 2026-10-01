@@ -1,5 +1,5 @@
 /**
- * Der Magic Item Creator.
+ * Der Magic Item Generator.
  *
  * Zwei Ansichten wie in den anderen Werkzeugen: die Sammlung als Kacheln mit
  * Suche und dem Erzeuger darueber, und ein Gegenstand zum Bearbeiten. Ein
@@ -736,9 +736,9 @@ export function App() {
       ) : gefunden.length === 0 ? (
         <p className="hinweis">{t('liste.nichts')}</p>
       ) : (
-        <ul className="kacheln">
+        <ul className="kacheln" data-pfeile="raster">
           {gefunden.map((e) => (
-            <li key={e.id}>
+            <li data-pfeil key={e.id}>
               <button
                 type="button"
                 className="gegenstandskachel"

@@ -169,6 +169,10 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('button').click(); true`); // zurueck zur Liste
   await bis(async () => js(`Boolean(document.querySelector('[data-live="${annaId}"]'))`));
   pruefe(/15\/20/.test(await js(`document.querySelector('[data-live="${annaId}"]').textContent`)), 'die Liste des Gastgebers zeigt 15/20');
+  pruefe(
+    await js(`Boolean(document.querySelector('[data-live="${annaId}"] [data-kompakt-karte]'))`),
+    'die Karte zeigt die Kompaktzeilen (TP, Trefferwuerfel)'
+  );
   await js(`document.querySelector('[data-live="${annaId}"]').click(); true`);
   pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-still]'))`)), 'an einem fremden Bogen hat die SL den Schalter „Still aendern"');
   await js(tippe('[data-feld="rk"]', '12'));

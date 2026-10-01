@@ -13,6 +13,10 @@ import '@fontsource/uncial-antiqua/latin-400.css';
 import '@fontsource/caveat/latin-400.css';
 import '@fontsource/caveat/latin-700.css';
 import './styles.css';
+import { installierePfeile } from '@suite/tastatur';
+
+// Pfeiltasten in Listen und Kacheln (data-pfeile), siehe packages/tastatur.
+installierePfeile();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

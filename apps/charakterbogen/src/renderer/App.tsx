@@ -13,7 +13,8 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { api } from './api';
 import { setLanguage, t } from './i18n';
 import { InventarBlock } from './InventarBlock';
-import { Figurenbogen } from './Figurenbogen';
+import { Figurenbogen, Kompaktbogen } from './Figurenbogen';
+import { GestaltKasten } from './TiergestaltBlock';
 import { DesignWahl } from './DesignWahl';
 import { angriffeAusInventar } from '../shared/waffen';
 import { LiveLeiste, LiveListe, SlHinweis, SlMarke, SlMarkenKontext, markenAus } from './LiveTeile';
@@ -53,6 +54,24 @@ export function App() {
   const nrJe = useRef(new Map<string, number>());
   const sendeTakt = useRef<number | null>(null);
   const [still, setStill] = useState(false);
+  /** Kompaktansicht je Bogen; gemerkt in diesem Fenster, nicht im Bogen (jede Person wählt selbst). */
+  const [kompakt, setKompakt] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem('charakterbogen.kompakt') ?? '{}') as Record<string, boolean>;
+    } catch {
+      return {};
+    }
+  });
+  const schalteKompakt = (id: string) =>
+    setKompakt((k) => {
+      const neu = { ...k, [id]: !k[id] };
+      try {
+        window.localStorage.setItem('charakterbogen.kompakt', JSON.stringify(neu));
+      } catch {
+        /* ohne Speicher gilt die Wahl bis zum Schließen */
+      }
+      return neu;
+    });
   const stillRef = useRef(false);
   stillRef.current = still;
   /** Nach „In den Raum bringen": diesen Bogen oeffnen, sobald er da ist. */
@@ -411,9 +430,9 @@ export function App() {
         ) : gefunden.length === 0 ? (
           <p className="leer">{t('liste.nichts')}</p>
         ) : (
-          <ul className="kacheln">
+          <ul className="kacheln" data-pfeile="raster">
             {gefunden.map((k) => (
-              <li key={k.id}>
+              <li data-pfeil key={k.id}>
                 <button type="button" className="kachel" data-bogen={k.id} onClick={() => void oeffne(k.id)}>
                   <span className="kachel__name">{k.name}</span>
                   <span className="kachel__kurz">{k.art === 'gruppe' ? t('gruppe') : k.kurz || '—'}</span>
@@ -490,9 +509,29 @@ export function App() {
               </button>
               <button
                 type="button"
+                data-story-sync
+                className={offen.storyNotiz.sync ? 'ist-an' : ''}
+                aria-pressed={offen.storyNotiz.sync === true}
+                title={t('story.sync.titel')}
+                onClick={() => {
+                  const an = !offen.storyNotiz?.sync;
+                  aendere((b) => (b.storyNotiz ? { ...b, storyNotiz: { ...b.storyNotiz, sync: an } } : b));
+                  // Beim Einschalten sofort abgleichen; danach nach jedem Speichern.
+                  if (an && offenRef.current) {
+                    void api.story.jetzt(offenRef.current).then((ok) => {
+                      if (ok) setMeldung(t('story.sync.an'));
+                      else setFehler(t('story.fehlt'));
+                    });
+                  }
+                }}
+              >
+                ↻ {t('story.sync')}
+              </button>
+              <button
+                type="button"
                 className="knopf--leise"
-                aria-label={t('story.loesen')}
-                title={t('story.loesen')}
+                data-story-loesen
+                title={t('story.loesen.titel')}
                 onClick={() =>
                   aendere((b) => {
                     const { storyNotiz: _weg, ...rest } = b;
@@ -500,7 +539,7 @@ export function App() {
                   })
                 }
               >
-                ×
+                {t('story.loesen')}
               </button>
             </span>
           ) : (
@@ -521,6 +560,17 @@ export function App() {
               ✎ {t('story.anlegen')}
             </button>
           )
+        ) : null}
+        {offen.art === 'figur' ? (
+          <button
+            type="button"
+            data-ansicht-kompakt
+            aria-pressed={Boolean(kompakt[offen.id])}
+            title={t('ansicht.kompaktHinweis')}
+            onClick={() => schalteKompakt(offen.id)}
+          >
+            {kompakt[offen.id] ? t('ansicht.voll') : t('ansicht.kompakt')}
+          </button>
         ) : null}
         {offen.art === 'figur' && (!liveEintrag || liveEintrag.darfAendern) ? (
           <button
@@ -600,14 +650,31 @@ export function App() {
             </span>
           </label>
 
-          {offen.werte ? (
+          {offen.werte && kompakt[offen.id] ? (
+            <Kompaktbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} />
+          ) : offen.werte ? (
+            // In Tiergestalt liegt der Kasten der Gestalt neben dem Bogen.
+            <div className={offen.werte.tiergestalt?.aktiv ? 'mit-gestalt' : 'ohne-gestalt'}>
+            <div className="mit-gestalt__bogen">
             <Figurenbogen
+              name={offen.name}
               werte={offen.werte}
               aendere={aendereWerte}
               setMeldung={setMeldung}
               ausInventar={angriffeAusInventar(offen)}
               imRaum={live.rolle !== 'aus'}
+              bild={offen.bild}
+              setzeBild={(bild) =>
+                aendere((b) => {
+                  if (bild) return { ...b, bild };
+                  const { bild: _weg, ...rest } = b;
+                  return rest;
+                })
+              }
             />
+            </div>
+            <GestaltKasten w={offen.werte} aendere={aendereWerte} />
+            </div>
           ) : null}
 
           <section className="kasten" data-block="inventar">
@@ -640,6 +707,7 @@ export function App() {
             />
           </section>
 
+          {kompakt[offen.id] && offen.werte ? null : (
           <section className="kasten">
             <h2>
               {t('notizen')} <SlMarke feld="notizen" />
@@ -652,6 +720,7 @@ export function App() {
               onChange={(e) => aendere((b) => ({ ...b, notizen: e.target.value }))}
             />
           </section>
+          )}
         </fieldset>
         </div>
       </SlMarkenKontext.Provider>

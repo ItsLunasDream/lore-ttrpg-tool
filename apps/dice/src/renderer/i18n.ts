@@ -52,6 +52,10 @@ export const texte = {
   'muster.marmor': ['Marmor', 'Marble'],
   'muster.metall': ['Metall', 'Metal'],
   'muster.sternenhimmel': ['Sternenhimmel', 'Starfield'],
+  'muster.lack': ['Lack', 'Gloss'],
+  'muster.perlmutt': ['Perlmutt', 'Pearl'],
+  'muster.kristall': ['Kristall', 'Crystal'],
+  'muster.holz': ['Holz', 'Wood'],
   'aussehen.dreiD': ['Würfel als Körper (3D)', 'Dice as solids (3D)'],
   'aussehen.dreiDfehlt': [
     'Keine Grafikbeschleunigung — es bleibt bei der flachen Darstellung.',

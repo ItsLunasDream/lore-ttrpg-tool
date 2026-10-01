@@ -1,6 +1,6 @@
 /**
  * „Aus Quelle hinzufügen" im Inventar: SRD-Ausrüstung, magische
- * Gegenstände des SRD, eigene aus dem Magic Item Creator (Homebrew) und
+ * Gegenstände des SRD, eigene aus dem Magic Item Generator (Homebrew) und
  * ein Wurf auf eine Loot-Tabelle.
  */
 import { useEffect, useMemo, useState } from 'react';
@@ -9,7 +9,7 @@ import { Segment } from './Bedienung';
 import { getLanguage, t } from './i18n';
 import type { Bogen } from '../shared/bogen';
 import { gewichtAnzeige } from '../shared/inventar';
-import { alsGegenstand, srdAusruestung, srdMagie, sucheQuellen, type Quelleintrag } from '../shared/quellen';
+import { alsGegenstand, lootAlsEintrag, srdAusruestung, srdMagie, sucheQuellen, type Quelleintrag } from '../shared/quellen';
 
 type Reiter = 'srd' | 'magie' | 'eigene' | 'loot';
 
@@ -29,20 +29,26 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
   const [wurf, setWurf] = useState<string | null>(null);
 
   useEffect(() => {
-    if (reiter === 'eigene' && eigene === null) {
-      void api.quellen.magicitems().then((liste) =>
-        setEigene(
-          liste.map((g) => ({
-            quelle: 'magicitem',
-            kennung: g.id,
-            name: g.name,
-            art: g.art,
-            gewicht: null,
-            wert: g.wert,
-            beschreibung: g.beschreibung,
-            einstimmung: g.einstimmung
-          }))
-        )
+    // Auch fuer Loot: ein gewuerfelter eigener Gegenstand bringt so seine Werte mit.
+    if ((reiter === 'eigene' || reiter === 'loot') && eigene === null) {
+      // Beides unter „Eigene": was im Homebrew Creator gebaut und was im
+      // Magic Item Generator gewuerfelt wurde.
+      void Promise.all([api.quellen.homebrew().catch(() => []), api.quellen.magicitems()]).then(([homebrew, magie]) =>
+        setEigene([
+          ...homebrew,
+          ...magie.map(
+            (g): Quelleintrag => ({
+              quelle: 'magicitem',
+              kennung: g.id,
+              name: g.name,
+              art: g.art,
+              gewicht: null,
+              wert: g.wert,
+              beschreibung: g.beschreibung,
+              einstimmung: g.einstimmung
+            })
+          )
+        ])
       );
     }
     if (reiter === 'loot' && tabellen === null) {
@@ -124,16 +130,8 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
                   data-loot-dazu
                   onClick={() => {
                     const name = tabellen?.find((x) => x.id === tabelle)?.name ?? '';
-                    // Kurz als Name, der ganze Wurf in der Beschreibung.
-                    dazu({
-                      quelle: 'loot',
-                      kennung: tabelle,
-                      name: wurf.length > 80 ? `${wurf.slice(0, 79)}…` : wurf,
-                      art: name,
-                      gewicht: null,
-                      wert: null,
-                      beschreibung: `${wurf}\n\n(${t('quelle.loot')}: ${name})`
-                    });
+                    // Mit bekannten Gegenständen abgleichen: Wert, Gewicht, Iteminfo.
+                    dazu(lootAlsEintrag(wurf, tabelle, name, sprache, eigene ?? []));
                     setWurf(null);
                   }}
                 >
@@ -154,9 +152,9 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
             onChange={(e) => setSuche(e.target.value)}
           />
           {reiter === 'eigene' && eigene && eigene.length === 0 ? <p className="leise">{t('quelle.eigene.leer')}</p> : null}
-          <ul className="quellen__liste">
+          <ul className="quellen__liste" data-pfeile="liste">
             {liste.map((e) => (
-              <li key={`${e.quelle}:${e.kennung}`}>
+              <li data-pfeil key={`${e.quelle}:${e.kennung}`}>
                 <div>
                   <strong>{e.name}</strong> <span className="leise">{e.art}</span>
                   <div className="leise quellen__zahlen">

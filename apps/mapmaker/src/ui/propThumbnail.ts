@@ -23,7 +23,7 @@ export function getThumbnail(def: PropDef): HTMLCanvasElement | null {
   if (!renderer || !def.draw) return null;
 
   const g = new Graphics();
-  def.draw(g, new Rng(hashSeed(1, def.id.length, def.name.length)));
+  def.draw(g, new Rng(hashSeed(1, def.id.length, def.name.length)), 0);
 
   // Quadratisches Frame um die Prop-Ausdehnung, damit breite und hohe Props
   // in der Palette gleich groß erscheinen.

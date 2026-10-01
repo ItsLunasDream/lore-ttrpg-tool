@@ -85,3 +85,25 @@ test('Lesefassung nennt neue Felder', () => {
   assert.match(md, /\*\*Passiv:\*\* Wahrnehmung 11/);
   assert.match(md, /Akrobatik \+1/);
 });
+
+test('Story-Abschnitt: ersetzt nur zwischen den Markierungen', () => {
+  const b = figur({ sprachen: 'Elfisch' });
+  const block = B.storyBlock(b, 'de');
+  assert.match(block, /^<!-- charakterbogen:anfang -->/);
+  assert.match(block, /<!-- charakterbogen:ende -->$/);
+  const vorher = `Meine Gedanken zu Mira.\n\n${B.storyBlock(figur({ sprachen: 'Zwergisch' }), 'de')}\n\nNachwort bleibt.`;
+  const nachher = B.ersetzeStoryBlock(vorher, block);
+  assert.match(nachher, /^Meine Gedanken zu Mira\./);
+  assert.match(nachher, /Nachwort bleibt\.$/);
+  assert.match(nachher, /Elfisch/);
+  assert.doesNotMatch(nachher, /Zwergisch/);
+  // Der Editor schreibt Kommentare ohne Leerzeichen zurueck.
+  const kompakt = vorher.replace('<!-- charakterbogen:anfang -->', '<!--charakterbogen:anfang-->');
+  assert.match(B.ersetzeStoryBlock(kompakt, block), /Elfisch/);
+  // Ohne Abschnitt: unten angehaengt, Text davor bleibt.
+  const neu = B.ersetzeStoryBlock('Nur Text.', block);
+  assert.match(neu, /^Nur Text\.\n\n<!-- charakterbogen:anfang -->/);
+  // Ein $ im Bogen wird nicht als Ersetzungsmuster gelesen.
+  const geld = B.storyBlock(figur({ sprachen: 'Preis $& $1' }), 'de');
+  assert.match(B.ersetzeStoryBlock(vorher, geld), /Preis \$& \$1/);
+});

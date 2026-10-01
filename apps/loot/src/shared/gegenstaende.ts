@@ -1,5 +1,5 @@
 /**
- * Der Bestand des Magic Item Creators als Tabellen.
+ * Der Bestand des Magic Item Generators als Tabellen.
  *
  * „Wuerfle einen seltenen magischen Gegenstand" soll auf die Gegenstaende
  * zeigen, die die Spielleitung schon gebaut hat, statt einen neuen zu
@@ -10,7 +10,7 @@
  * still nichts zu liefern.
  *
  * Schreibgeschuetzt wie die SRD-Tabelle: geaendert wird der Bestand im
- * Magic Item Creator, nicht hier.
+ * Magic Item Generator, nicht hier.
  */
 import { SELTENHEITEN, SELTENHEIT_NAME, type Seltenheit } from '@suite/srd';
 import type { Gespeichert } from './ablage';
@@ -19,15 +19,38 @@ import { woertlich } from '@suite/tabellen';
 export const GEGENSTAND_PRAEFIX = 'mi-';
 
 const GRUNDNAME = { de: 'Magische Gegenstände', en: 'Magic Items' } as const;
+const HOMEBREW = { de: 'Homebrew', en: 'Homebrew' } as const;
 
 export function istGegenstandstabelle(id: string): boolean {
   return id.startsWith(GEGENSTAND_PRAEFIX);
 }
 
+/**
+ * `herkunft: 'homebrew'`: aus dem Homebrew Creator (docs/homebrew-creator.md).
+ * Die stehen in einer eigenen Tabelle „Homebrew"; nur die magischen mit
+ * Seltenheit stehen zusaetzlich bei den magischen Gegenstaenden.
+ */
 export function gegenstandsTabellen(
-  liste: readonly { readonly name: string; readonly seltenheit: string }[],
+  roh: readonly { readonly name: string; readonly seltenheit: string; readonly herkunft?: string }[],
   sprache: 'de' | 'en'
 ): Gespeichert[] {
+  const homebrew = roh.filter((g) => g.herkunft === 'homebrew');
+  const liste = roh.filter((g) => (SELTENHEITEN as readonly string[]).includes(g.seltenheit));
+  const zusatz = (heraus: Gespeichert[]) =>
+    homebrew.length
+      ? [
+          ...heraus,
+          {
+            id: `${GEGENSTAND_PRAEFIX}homebrew`,
+            name: HOMEBREW[sprache],
+            aliase: [],
+            eintraege: [...homebrew.map((g) => g.name)].sort((a, b) => a.localeCompare(b)).map((text) => ({ text: woertlich(text) })),
+            notiz: '',
+            geaendert: ''
+          }
+        ]
+      : heraus;
+  if (liste.length === 0) return zusatz([]);
   if (liste.length === 0) return [];
   const tabelle = (id: string, name: string, namen: readonly string[], aliase: readonly string[]): Gespeichert => ({
     id: `${GEGENSTAND_PRAEFIX}${id}`,
@@ -50,5 +73,5 @@ export function gegenstandsTabellen(
       );
     }
   }
-  return heraus;
+  return zusatz(heraus);
 }

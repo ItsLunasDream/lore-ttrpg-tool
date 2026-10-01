@@ -50,6 +50,7 @@ const GLEICH_ERLAUBT = new Set([
   'app.monster.name',
   'app.zustaende.name',
   'app.magicitems.name',
+  'app.homebrew.name',
   'app.loot.name',
   // Der Name des Anbieters und das Muster eines Anthropic-Schluessels: beides
   // ist keine Sprache, sondern eine Schreibweise.

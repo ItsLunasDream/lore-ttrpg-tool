@@ -8,6 +8,7 @@ import type { Figur, Kachel } from '../shared/ablage';
 import type { Bogen } from '../shared/bogen';
 import type { Uebergabe } from '../shared/uebergabe';
 import type { Anfrage } from '../shared/live';
+import type { Quelleintrag } from '../shared/quellen';
 import type { LiveZustand } from '../main/live';
 
 type Antwort = { ok: boolean; text: string };
@@ -60,14 +61,20 @@ const api = {
       ipcRenderer.invoke(kanal('quellen:magicitems')) as Promise<
         { id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]
       >,
+    homebrew: () => ipcRenderer.invoke(kanal('quellen:homebrew')) as Promise<Quelleintrag[]>,
     lootTabellen: () => ipcRenderer.invoke(kanal('quellen:lootTabellen')) as Promise<{ id: string; name: string }[]>,
     lootWuerfle: (id: string) => ipcRenderer.invoke(kanal('quellen:lootWuerfle'), id) as Promise<string | null>
   },
   /** Notiz im Story Creator anlegen oder oeffnen. */
   story: {
-    anlegen: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:anlegen'), bogen) as Promise<{ ok: boolean; text: string; kennung?: string }>,
+    anlegen: (bogen: Bogen, sync = false) =>
+      ipcRenderer.invoke(kanal('story:anlegen'), bogen, sync) as Promise<{ ok: boolean; text: string; kennung?: string }>,
+    /** Den Abschnitt in der Notiz jetzt neu schreiben. */
+    jetzt: (bogen: Bogen) => ipcRenderer.invoke(kanal('story:jetzt'), bogen) as Promise<boolean>,
     oeffne: (kennung: string) => ipcRenderer.invoke(kanal('story:oeffne'), kennung) as Promise<boolean>
   },
+  /** Das Nachschlagewerk mit einem Eintrag oder Filter oeffnen (`gestalten?…`). */
+  nachschlagen: (kennung: string) => ipcRenderer.invoke(kanal('nachschlagen'), kennung) as Promise<boolean>,
   /** Eigene Zustaende aus dem Status Effect Creator. */
   eigeneZustaende: () => ipcRenderer.invoke(kanal('zustaende:eigene')) as Promise<{ name: string; text: string }[]>,
   /** Figuren in den Initiative Tracker. */

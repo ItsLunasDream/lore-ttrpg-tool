@@ -2074,3 +2074,348 @@ mark {
 .modal__hint--warnung {
   color: var(--accent);
 }
+
+/* --- Zeitstrahl (neben dem Graph) ------------------------------------------ */
+.graph__rest {
+  flex: 1;
+}
+
+.zeitstrahl {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 28px;
+  display: grid;
+  align-content: start;
+  gap: 28px;
+}
+
+.zeitstrahl__leer {
+  padding: 32px;
+  color: var(--text-muted, #939aab);
+}
+
+.zeitstrahl__linie {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  display: flex;
+  gap: 18px;
+  position: relative;
+  overflow-x: auto;
+}
+
+/* Die Linie, mittig durch die Marken: jede Zeile ist 220 px hoch, die Linie bei 110. */
+.zeitstrahl__linie::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 109px;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.25;
+  border-radius: 2px;
+}
+
+.zeitstrahl__punkt {
+  position: relative;
+  flex: 0 0 150px;
+  height: 220px;
+}
+
+.zeitstrahl__knoten {
+  position: absolute;
+  inset: 0;
+  width: 150px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+}
+
+.zeitstrahl__text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+/* Oben: der Text endet ueber der Linie; unten: er beginnt darunter. */
+.zeitstrahl__punkt .zeitstrahl__text {
+  bottom: 128px;
+}
+
+.zeitstrahl__punkt--unten .zeitstrahl__text {
+  bottom: auto;
+  top: 128px;
+}
+
+.zeitstrahl__marke {
+  position: absolute;
+  left: 50%;
+  top: 110px;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--farbe);
+  box-shadow: 0 0 0 3px var(--bg);
+  transition: transform 120ms ease;
+}
+
+.zeitstrahl__zeit {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.zeitstrahl__titel {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.zeitstrahl__knoten:hover .zeitstrahl__titel,
+.zeitstrahl__knoten:focus-visible .zeitstrahl__titel,
+.zeitstrahl__knoten.is-active .zeitstrahl__titel {
+  text-decoration: underline;
+}
+
+.zeitstrahl__knoten:hover .zeitstrahl__marke,
+.zeitstrahl__knoten.is-active .zeitstrahl__marke {
+  transform: scale(1.35);
+}
+
+.zeitstrahl__ohne h3 {
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 0 0 4px;
+}
+
+.note-editor__sprache {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.graph__ansichten {
+  display: flex;
+  gap: 4px;
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.graph__ansichten button.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Handlungsstraenge: mehrere Plots als Zweige (GraphView, dritte Ansicht). */
+.straenge {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.straenge__flaeche {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.straenge__svg {
+  display: block;
+}
+
+.straenge__band {
+  fill: transparent;
+}
+
+.straenge__zeile {
+  cursor: pointer;
+}
+
+.straenge__zeile.is-active .straenge__band,
+.straenge__zeile:hover .straenge__band {
+  fill: var(--accent-soft);
+}
+
+.straenge__name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.straenge__kante {
+  fill: none;
+  stroke-width: 3px;
+  stroke-linecap: round;
+}
+
+.straenge__kante--abzweig,
+.straenge__kante--muendung {
+  stroke-dasharray: 6 5;
+  opacity: 0.8;
+}
+
+.straenge__knoten {
+  cursor: pointer;
+}
+
+.straenge__knoten circle {
+  stroke: var(--bg);
+  stroke-width: 3px;
+  transition: r 120ms ease;
+}
+
+.straenge__knoten:hover circle,
+.straenge__knoten.is-active circle {
+  r: 14;
+  stroke: var(--text);
+}
+
+.straenge__titel,
+.straenge__zeit {
+  text-anchor: middle;
+  font-size: 12px;
+  fill: var(--text);
+}
+
+.straenge__zeit {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+.straenge__leiste {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  overflow: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.straenge__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.straenge__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.straenge__chips button.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.straenge__bearbeiten {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.straenge__bearbeiten h4 {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.straenge__feld {
+  display: grid;
+  gap: 4px;
+}
+
+.straenge__farben {
+  display: flex;
+  gap: 6px;
+}
+
+.straenge__farben button {
+  width: 22px;
+  height: 22px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.straenge__farben button.is-active {
+  border-color: var(--text);
+}
+
+.straenge__liste {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
+.straenge__liste li > span {
+  display: inline-block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.straenge__liste button,
+.straenge__anschluss button {
+  min-width: 0;
+  padding: 0 6px;
+}
+
+.straenge__wahl ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.straenge__wahl li button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.straenge__wahl input {
+  width: 100%;
+}
+
+.straenge__info {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.straenge__anschluss {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.straenge__weg {
+  margin-top: 12px;
+  color: var(--danger);
+}
+
+.straenge__hinweis {
+  color: var(--text-muted);
+  font-size: 13px;
+}

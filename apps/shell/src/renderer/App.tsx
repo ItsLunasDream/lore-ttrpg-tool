@@ -10,6 +10,7 @@
  * etwas, wenn keine daraufliegt: weil das Werkzeug noch nicht einbettbar ist,
  * oder weil es sich nicht oeffnen liess.
  */
+import { groessenTaste } from '../shared/tasten';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   APPS,
@@ -675,14 +676,7 @@ export function App() {
   useEffect(() => {
     const beiTaste = (ereignis: KeyboardEvent) => {
       if ((ereignis.ctrlKey || ereignis.metaKey) && ereignis.altKey) {
-        const stufe =
-          ereignis.key === '+' || ereignis.code === 'NumpadAdd' || ereignis.code === 'Equal'
-            ? 'groesser'
-            : ereignis.key === '-' || ereignis.code === 'NumpadSubtract' || ereignis.code === 'Minus'
-              ? 'kleiner'
-              : ereignis.code === 'Digit0' || ereignis.code === 'Numpad0'
-                ? 'zurueck'
-                : null;
+        const stufe = groessenTaste(ereignis.key, ereignis.code);
         if (stufe) {
           ereignis.preventDefault();
           window.shell.einstellungen.groesseTaste(stufe);
@@ -693,12 +687,28 @@ export function App() {
         ereignis.preventDefault();
         oeffneSuche();
       }
+      // F6: aus der Hülle ins offene Werkzeug (und von dort mit F6 zurück).
+      if (ereignis.key === 'F6' && !ereignis.ctrlKey && !ereignis.altKey && !ereignis.metaKey && !ereignis.shiftKey) {
+        ereignis.preventDefault();
+        window.shell.fokus.zumWerkzeug();
+      }
     };
     window.addEventListener('keydown', beiTaste);
     return () => window.removeEventListener('keydown', beiTaste);
   }, [oeffneSuche]);
 
   useEffect(() => window.shell.suche.beiTastenkuerzel(oeffneSuche), [oeffneSuche]);
+
+  // F6 im Werkzeug: der Fokus landet auf dem aktiven Eintrag der Schiene.
+  useEffect(
+    () =>
+      window.shell.fokus.beiHuelle(() => {
+        const ziel =
+          document.querySelector<HTMLElement>('.schiene__eintrag--an') ?? document.querySelector<HTMLElement>('.schiene__heim');
+        ziel?.focus();
+      }),
+    []
+  );
   useEffect(() => window.shell.einstellungen.beiGroesseVonAussen(setGroesse), []);
 
   const ladeSymboleNeu = useCallback(async () => {
@@ -1047,7 +1057,8 @@ function Startmenue({
       ) : (
         <h1 className="menue__titel">{t('menu.title')}</h1>
       )}
-      <p className="menue__untertitel">{t('menu.subtitle')}</p>
+      {/* Das Banner traegt den Untertitel schon selbst (Rueckmeldung). */}
+      {symbole.banner ? null : <p className="menue__untertitel">{t('menu.subtitle')}</p>}
 
       {/*
         Nach Rolle am Tisch gruppiert statt alle neun nebeneinander.
@@ -1070,7 +1081,7 @@ function Startmenue({
           return (
             <section className="menue__gruppe" key={rolle}>
               <h2 className="menue__gruppenname">{t(ROLLE_KEY[rolle])}</h2>
-              <div className="kacheln">
+              <div className="kacheln" data-pfeile="raster">
                 {gruppe.map((app) => {
                   const waehlbar = istWaehlbar(app.status);
                   nummer += 1;
@@ -1210,6 +1221,7 @@ function Buehne({
     <div className="buehne">
       <nav
         className="schiene"
+        data-pfeile="liste"
         style={{ width: CHROME.schieneBreite }}
         aria-label="LORE"
         ref={schiene}

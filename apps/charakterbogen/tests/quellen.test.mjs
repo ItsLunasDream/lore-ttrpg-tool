@@ -38,3 +38,36 @@ test('SRD-Magie und Umwandlung in einen Gegenstand', () => {
   // Uebersteht die Pruefung beim Lesen.
   assert.equal(B.bereinigeGegenstaende([w])[0].waffe.id, 'dagger');
 });
+
+test('Loot: Wurf wird mit SRD-Gegenstaenden abgeglichen (Wert, Beschreibung, Waffe, Herkunft)', () => {
+  const e = B.lootAlsEintrag('Longsword (15 GP)', 'srd-waffen', 'Weapons', 'en');
+  assert.equal(e.name, 'Longsword');
+  assert.equal(e.wert, 15);
+  assert.equal(e.gewicht, 3);
+  assert.ok(e.waffe, 'Waffenwerte kommen mit');
+  assert.match(e.beschreibung, /1d8/);
+  assert.match(e.beschreibung, /\(Loot table: Weapons\)$/);
+  // Englischer Wurf, deutscher Bogen: deutscher Name, gleiche Werte.
+  const de = B.lootAlsEintrag('Longsword (15 GP)', 'srd-waffen', 'Waffen', 'de');
+  assert.equal(de.name, 'Langschwert');
+  assert.equal(de.wert, 15);
+  assert.match(de.beschreibung, /\(Loot-Tabelle: Waffen\)$/);
+});
+
+test('Loot: Unbekanntes behaelt den Wurf, der Preis in Klammern wird gelesen', () => {
+  const e = B.lootAlsEintrag('Goldene Brosche mit Rubin (250 GM)', 't1', 'Schmuck', 'de');
+  assert.equal(e.name, 'Goldene Brosche mit Rubin');
+  assert.equal(e.wert, 250);
+  assert.match(e.beschreibung, /Goldene Brosche mit Rubin \(250 GM\)/);
+  const ohne = B.lootAlsEintrag('Ein zerbrochener Kompass', 't1', 'Krimskrams', 'de');
+  assert.equal(ohne.wert, null);
+  assert.equal(ohne.name, 'Ein zerbrochener Kompass');
+});
+
+test('Loot: eigener Gegenstand aus dem Magic Item Generator wird erkannt', () => {
+  const eigene = [{ quelle: 'magicitem', kennung: 'm1', name: 'Klinge der Morgenroete', art: 'Waffe, selten', gewicht: null, wert: 800, beschreibung: 'Leuchtet im Morgengrauen.' }];
+  const e = B.lootAlsEintrag('Klinge der Morgenroete', 'mi-selten', 'Selten', 'de', eigene);
+  assert.equal(e.quelle, 'magicitem');
+  assert.equal(e.wert, 800);
+  assert.match(e.beschreibung, /^Leuchtet im Morgengrauen\./);
+});

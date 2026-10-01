@@ -104,6 +104,8 @@ export function pickLight(doc: MapDocument, p: Point, tolerance: number): LightS
   let best: LightSource | null = null;
   let bestDistSq = tolerance * tolerance;
   for (const light of doc.vtt.lights) {
+    // Licht eines Props wird am Prop bearbeitet (model/propLights.ts).
+    if (light.propLink) continue;
     const d = (light.x - p.x) ** 2 + (light.y - p.y) ** 2;
     if (d < bestDistSq) {
       bestDistSq = d;
@@ -264,6 +266,7 @@ export function pickVttInRect(
 
   if (filter.lights) {
     for (const light of doc.vtt.lights) {
+      if (light.propLink) continue;
       if (
         light.x >= rect.minX &&
         light.x <= rect.maxX &&

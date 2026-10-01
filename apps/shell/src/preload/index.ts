@@ -204,6 +204,17 @@ const api = {
    * Liefert, was die Werkzeuge abgelegt haben — gesucht wird in der
    * Oberflaeche, damit jeder Tastendruck nicht ueber die Bruecke muss.
    */
+  /** F6: Fokus zwischen Hülle und Werkzeug wechseln. */
+  fokus: {
+    zumWerkzeug: () => ipcRenderer.send('fokus:werkzeug'),
+    beiHuelle: (fn: () => void): (() => void) => {
+      const hoerer = () => fn();
+      ipcRenderer.on('fokus:huelle', hoerer);
+      return () => {
+        ipcRenderer.off('fokus:huelle', hoerer);
+      };
+    }
+  },
   suche: {
     eintraege: () => ipcRenderer.invoke('suche:eintraege') as Promise<Eintrag[]>,
     /**

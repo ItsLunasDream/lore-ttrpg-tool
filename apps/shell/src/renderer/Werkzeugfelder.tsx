@@ -195,9 +195,9 @@ export function Werkzeugfelder({ appId, titel, sprache, lade, setze, befehl, onF
             {feld.eintraege.length === 0 ? (
               <p className="feld__hinweis">{text(feld.leer, sprache)}</p>
             ) : (
-              <ul className="feld__sammlung">
+              <ul className="feld__sammlung" data-pfeile="liste">
                 {feld.eintraege.map((eintrag) => (
-                  <li key={eintrag}>
+                  <li data-pfeil key={eintrag}>
                     <span>{eintrag}</span>
                     <button
                       type="button"

@@ -20,3 +20,4 @@ export * from '../src/main/sicherung';
 export * from '../src/main/raum';
 export * from '../src/main/raumkrypto';
 export * from '../src/main/raeume';
+export * from '../src/shared/tasten';

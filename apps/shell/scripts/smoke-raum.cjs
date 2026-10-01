@@ -21,7 +21,7 @@ const userData = path.join(tmp, 'userData');
 const monsterOrdner = path.join(userData, 'monster', 'monster');
 fs.mkdirSync(monsterOrdner, { recursive: true });
 fs.writeFileSync(path.join(monsterOrdner, 'ork.md'), '---\nid: ork\nname: Ork\ncr: "1"\n---\n# Ork\n');
-// Ein Gegenstand aus dem Magic Item Creator: auch er laesst sich teilen.
+// Ein Gegenstand aus dem Magic Item Generator: auch er laesst sich teilen.
 const gegenstandOrdner = path.join(userData, 'magicitems', 'gegenstaende');
 fs.mkdirSync(gegenstandOrdner, { recursive: true });
 fs.writeFileSync(

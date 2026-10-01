@@ -287,6 +287,8 @@ export function nextZ(doc: MapDocument, layerId: LayerId): number {
 export function isObjectEditable(doc: MapDocument, id: ObjectId): boolean {
   const o = doc.objects[id];
   if (!o || o.locked) return false;
+  // Mauerwerk einer Wand wird über die Wand bearbeitet, nicht einzeln.
+  if (o.kind === 'shape' && o.vttLink) return false;
   return !isEffectivelyLocked(doc, o.layerId) && isEffectivelyVisible(doc, o.layerId);
 }
 

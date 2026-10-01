@@ -25,6 +25,13 @@ const thorin = {
 };
 fs.writeFileSync(path.join(boegen, 'thorin.md'), `---\nname: Thorin\n---\n\n\`\`\`json bogen\n${JSON.stringify(thorin)}\n\`\`\`\n`);
 
+// Ein gespeicherter Kampf: der Tracker liest ihn beim Start asynchron. Frueher
+// ueberschrieb er dabei die Figur, die eben aus dem Bogen kam (Rueckmeldung).
+fs.mkdirSync(path.join(userData, 'initiative'), { recursive: true });
+fs.writeFileSync(
+  path.join(userData, 'initiative', 'kampf.json'),
+  JSON.stringify({ schemaVersion: 1, begegnungId: null, name: 'Alter Kampf', teilnehmer: [], amZug: -1, runde: 1, laeuft: false })
+);
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
 

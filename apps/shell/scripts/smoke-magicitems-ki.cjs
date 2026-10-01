@@ -1,5 +1,5 @@
 /**
- * Rauchtest: die KI im Magic Item Creator, gegen ein nachgebautes Ollama.
+ * Rauchtest: die KI im Magic Item Generator, gegen ein nachgebautes Ollama.
  *
  * Geprueft: der ganze Gegenstand von der KI, die Pruefung an der Seltenheit
  * (ein zu hoher Bonus wird gezogen und gemeldet), eine einzelne Wirkung und

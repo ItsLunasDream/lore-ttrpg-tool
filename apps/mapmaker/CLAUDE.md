@@ -154,19 +154,32 @@ des Projekts, nicht bloß Ordnung:
   `beginTransaction()` / `endTransaction()` geklammert und über `mergeKey` verschmolzen.
 - **Prozedurale Props werden je Variante einmal in eine Textur gebacken**
   (`engine/propTextures.ts`), danach sind es nur noch Sprites in einem Batch.
-- **Grundrisse entstehen durch Teilen, nicht durch Streuen.** Der Stadt-Generator
-  (`model/generators/cityPlan.ts`) schneidet die Ortsfläche mit Geraden in
-  konvexe Blöcke und stellt die Häuser an deren Kanten. Zurückweisungsverfahren
-  — würfeln und wegwerfen — sahen bei jedem Startwert gleich aus und fanden bei
-  dreihundert Häusern keinen Platz mehr. Wie viele Häuser hineinpassen, wird
-  über den *Maßstab* getroffen und gesucht, nicht ausgerechnet: eine Formel
-  dafür stimmte immer nur für einen Fall.
+- **Städte wachsen an Straßen, nicht durch Streuen.** Der Stadt-Generator
+  (`model/generators/stadtNetz.ts`) legt zuerst ein Netz an: Markt,
+  geschwungene Hauptstraßen zu den Ausfällen, Ringgassen, Speichen und
+  Quergassen. Die Häuser stehen Wand an Wand an beiden Straßenseiten, die
+  großen zuerst am Markt. Zurückweisungsverfahren — würfeln und wegwerfen —
+  sahen bei jedem Startwert gleich aus; die frühere Blockteilung
+  (`cityPlan.ts`, nur noch für Hilfsfunktionen) gab gerade Schnitte und
+  verstreute Häuser. Wie viele Häuser hineinpassen, wird über den *Maßstab*
+  gesucht, nicht ausgerechnet; überzählige fallen von außen nach innen weg.
+  Haus gegen Haus wird exakt geprüft (Trennachsensatz), das Raster gilt nur
+  für Straßen — ein grobes Raster wies Nachbarn Wand an Wand ab.
 - **Einstellungen wirken auf die Auswahl, nicht nur auf das Nächste.** Ein
   Panel, das nur die Werkzeugvorgabe schreibt, sieht aus wie ein kaputter
   Regler: man verstellt etwas und nichts passiert. Jedes Panel, das
   Objekteigenschaften zeigt, übernimmt darum beides — Vorgabe *und* Auswahl —
   und zeigt an, was die Auswahl sagt. Und es erscheint, sobald ein passendes
   Objekt ausgewählt ist, nicht erst beim zugehörigen Werkzeug.
+- **Mauerwerk ist Teil der Wand.** Wand und Tür tragen ihren Stil selbst
+  (`style`, `styleLayerId`); die sichtbare Zeichnung leitet
+  `model/vttVisuals.ts` nach jedem Befehl, Rückgängig und Wiederholen daraus
+  ab. Sie ist nicht einzeln anfassbar (`isObjectEditable`) und braucht keinen
+  eigenen Rückgängig-Schritt. Wer Wände neu anlegt, setzt den Stil an der Wand
+  und legt **keine** lose Zeichnung daneben — genau das ließ sich früher
+  auseinanderziehen.
+- **Setz-Werkzeuge wählen aus, was sie gesetzt haben** (`tools/auswahlNachSetzen.ts`),
+  damit die Einstellungen rechts sofort auf das eben Gesetzte wirken.
 - **Wer eine Eigenschaft hinzufügt, die man sieht, ergänzt `viewKey`.** Der
   Renderer baut einen Knoten nur neu, wenn dieser Schlüssel sich ändert. Fehlt
   die Eigenschaft darin, ist die Änderung im Modell da und im Bild nicht — bei

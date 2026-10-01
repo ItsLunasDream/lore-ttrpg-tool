@@ -27,12 +27,7 @@ function keyOf(propId: string, variant: number): string {
   return `${propId}#${variant}`;
 }
 
-/** Welche Variante gehört zu diesem Seed? */
-export function variantFor(propId: string, seed: number): number {
-  const def = getProp(propId);
-  if (!def || def.variants <= 1) return 0;
-  return hashSeed(seed) % def.variants;
-}
+export { variantFor } from '@/assets/varianten';
 
 /**
  * Liefert die Textur für eine Prop-Variante. Prozedurale Props entstehen
@@ -56,7 +51,7 @@ export function getPropTexture(
     // Der Seed koppelt Variante an Prop-Id: gleiche Variante, gleiches Aussehen,
     // aber zwei verschiedene Props teilen sich nicht dasselbe Zufallsmuster.
     const rng = new Rng(hashSeed(hashString(propId), variant + 1));
-    def.draw(g, rng);
+    def.draw(g, rng, variant);
 
     // Explizites Frame statt automatischer Bounds: sonst schneidet Pixi auf den
     // tatsächlich bemalten Bereich zu und das Prop sitzt nicht mehr mittig.

@@ -22,6 +22,7 @@ import {
   objectCenter,
   pickHandle,
   pickInRect,
+  pickAllObjects,
   pickObject,
   selectionBounds,
   type HandleId,
@@ -115,6 +116,12 @@ export class SelectTool implements Tool {
   private rubberAttached = false;
   private moved = false;
   /**
+   * Durchklicken übereinanderliegender Objekte (Rückmeldung): Stelle des
+   * letzten Klicks ohne Ziehen und der Stapel des laufenden Klicks.
+   */
+  private letzterKlick: { x: number; y: number } | null = null;
+  private durchklick: { stapel: ObjectId[]; index: number } | null = null;
+  /**
    * Das Textwerkzeug, das beim Doppelklick übernimmt.
    *
    * Gemeldet wurde „den Text einer Region kann man nicht bearbeiten". Man
@@ -151,9 +158,25 @@ export class SelectTool implements Tool {
     // Klicks zu stehlen, die dem Karteninhalt galten.
     if (this.tryGrabGuide(ctx, e)) return;
 
-    const hit = pickObject(doc, e.world, ctx.renderer.textMetrics, (o) =>
+    const stapel = pickAllObjects(doc, e.world, ctx.renderer.textMetrics, (o) =>
       objectAllowed(o, filter),
     );
+    let hit: MapObject | null = stapel[0] ?? null;
+
+    // Erneuter Klick an derselben Stelle: das schon Gewählte bleibt der
+    // Treffer (so lässt es sich weiter ziehen), und erst beim Loslassen ohne
+    // Ziehen geht die Auswahl eine Ebene tiefer.
+    this.durchklick = null;
+    const gleicheStelle =
+      !!this.letzterKlick &&
+      Math.hypot(e.world.x - this.letzterKlick.x, e.world.y - this.letzterKlick.y) * ctx.renderer.camera.zoom < 5;
+    if (hit && gleicheStelle && !e.shift && !e.alt && stapel.length > 1) {
+      const index = stapel.findIndex((o) => state.selection.includes(o.id));
+      if (index >= 0) {
+        hit = stapel[index];
+        this.durchklick = { stapel: stapel.map((o) => o.id), index };
+      }
+    }
 
     // Ein Objekt gewinnt gegen die VTT-Ebene: es liegt sichtbar obenauf,
     // während Wände und Lichter nur Hilfslinien sind.
@@ -305,6 +328,18 @@ export class SelectTool implements Tool {
     if (this.mode === 'drag' || this.mode === 'transform' || this.mode === 'node') {
       ctx.endTransaction();
     }
+
+    // Durchklicken: ein Klick ohne Ziehen auf ein Objekt merkt sich die Stelle;
+    // der nächste Klick dort wählt das Objekt darunter (am Ende wieder oben).
+    const klickAufObjekt = this.mode === 'drag' && !this.moved && this.startPositions.size > 0;
+    if (klickAufObjekt && this.durchklick) {
+      const { stapel, index } = this.durchklick;
+      const naechstes = stapel[(index + 1) % stapel.length];
+      ctx.state.setSelection(expandToGroups(ctx.doc, [naechstes]));
+      ctx.state.setVttSelection(emptyVttSelection());
+    }
+    this.letzterKlick = klickAufObjekt && !e.shift ? { ...this.startWorld } : null;
+    this.durchklick = null;
     this.mode = 'idle';
     this.startPositions.clear();
     this.vttStart = emptyVttStart();

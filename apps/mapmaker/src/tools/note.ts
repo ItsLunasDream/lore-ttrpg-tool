@@ -8,6 +8,7 @@
  */
 
 import { AddVttItems, PatchVttItems, RemoveVttItems } from '@/model/commands';
+import { waehleGesetztes } from './auswahlNachSetzen';
 import { makeId } from '@/model/ids';
 import { snapPoint } from '@/model/grid';
 import type { MapNote } from '@/model/types';
@@ -35,6 +36,7 @@ export class NoteTool implements Tool {
 
     const existing = pickNote(ctx.doc, e.world, tolerance);
     if (existing) {
+      waehleGesetztes(ctx, { notes: [existing.id] });
       // Erst beim Loslassen entscheidet sich, ob das ein Klick oder ein Zug war.
       this.dragging = {
         id: existing.id,
@@ -60,6 +62,7 @@ export class NoteTool implements Tool {
       playerVisible: s.playerVisible,
     };
     ctx.exec(new AddVttItems('notes', [note], t('cmd.addNote')));
+    waehleGesetztes(ctx, { notes: [note.id] });
     ctx.state.setEditingNoteId(note.id);
   }
 

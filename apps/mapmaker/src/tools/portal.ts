@@ -13,17 +13,14 @@
 
 import { Graphics } from 'pixi.js';
 import {
-  AddObjects,
   AddVttItems,
-  CompositeCommand,
   PatchVttItems,
   RemoveVttItems,
   type Command,
 } from '@/model/commands';
 import { snapPoint } from '@/model/grid';
 import { makeId } from '@/model/ids';
-import { canHoldObjects } from '@/model/document';
-import { buildWallShape } from '@/assets/wallStyles';
+import { stilFuer, waehleGesetztes } from './auswahlNachSetzen';
 import type { Portal, Wall } from '@/model/types';
 import { pickPortal, pickWall } from './vttPick';
 import type { Tool, ToolContext, ToolPointerEvent } from './types';
@@ -126,14 +123,18 @@ export class PortalTool implements Tool {
     const label = this.kind === 'window' ? t('cmd.addWindow') : t('cmd.addDoor');
     const parts: Command[] = [];
 
+    const stil = stilFuer(ctx, ctx.state.opening.style);
+    let gesetzt: { walls?: string[]; portals?: string[] };
     if (this.kind === 'window') {
       const wall: Wall = {
         id: makeId('wall'),
         points: [...bounds],
         type: 'window',
         closed: false,
+        ...stil,
       };
       parts.push(new AddVttItems('walls', [wall], label));
+      gesetzt = { walls: [wall.id] };
     } else {
       const portal: Portal = {
         id: makeId('portal'),
@@ -141,23 +142,15 @@ export class PortalTool implements Tool {
         closed: true,
         // Ohne Wand darunter ist die Tür freistehend — genau das sagt das Flag aus.
         freestanding: this.start.wallAngle === null,
+        // Sichtbares Stück als Teil der Tür (model/vttVisuals.ts).
+        ...stil,
       };
       parts.push(new AddVttItems('portals', [portal], label));
+      gesetzt = { portals: [portal.id] };
     }
 
-    // Sichtbares Stück mitlegen, wenn ein Stil gewählt ist.
-    const shape = buildWallShape(
-      ctx.doc,
-      ctx.state.activeLayerId,
-      ctx.state.opening.style,
-      [...bounds],
-      false,
-    );
-    if (shape && canHoldObjects(ctx.doc, ctx.state.activeLayerId)) {
-      parts.push(new AddObjects([shape], label));
-    }
-
-    ctx.exec(parts.length > 1 ? new CompositeCommand(parts, label) : parts[0]);
+    ctx.exec(parts[0]);
+    waehleGesetztes(ctx, gesetzt);
     this.reset(ctx);
   }
 

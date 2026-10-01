@@ -47,7 +47,7 @@ Material aus dem SRD 5.1.
 
 Betrifft: `packages/srd/` — die Zustände, die Schwierigkeitszahlen des
 Encounter Creators, die Regeltexte des Nachschlagewerks und später die
-Eichgegenstände des Magic Item Creators.
+Eichgegenstände des Magic Item Generators.
 
 Anders als beim SRD 5.1 oben ist das hier **unmittelbar**: das Material kommt
 direkt aus dem SRD 5.2.1, nicht über ein drittes Dokument. Beide

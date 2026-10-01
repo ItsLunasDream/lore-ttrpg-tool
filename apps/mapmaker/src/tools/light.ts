@@ -9,6 +9,7 @@
 
 import { Graphics } from 'pixi.js';
 import { AddVttItems, PatchVttItems, RemoveVttItems } from '@/model/commands';
+import { waehleGesetztes } from './auswahlNachSetzen';
 import { makeId } from '@/model/ids';
 import type { LightSource } from '@/model/types';
 import { pickLight } from './vttPick';
@@ -35,6 +36,7 @@ export class LightTool implements Tool {
     // Ein vorhandenes Licht anfassen heißt: Reichweite neu ziehen.
     const existing = pickLight(ctx.doc, e.world, tolerance);
     if (existing) {
+      waehleGesetztes(ctx, { lights: [existing.id] });
       this.placing = { id: existing.id, x: existing.x, y: existing.y };
       ctx.beginTransaction();
       this.attach(ctx);
@@ -53,6 +55,8 @@ export class LightTool implements Tool {
       shadows: s.shadows,
     };
     ctx.exec(new AddVttItems('lights', [light], t('cmd.addLight')));
+    // Gleich ausgewählt: Farbe, Stärke und Schatten rechts wirken auf dieses Licht.
+    waehleGesetztes(ctx, { lights: [light.id] });
     this.placing = { id: light.id, x: light.x, y: light.y };
     ctx.beginTransaction();
     this.attach(ctx);

@@ -5,7 +5,7 @@ import type { IpcMainInvokeEvent } from 'electron';
 import { Vault, VaultError, writeSettings } from './vault';
 import { translate } from '../shared/i18n';
 import { zipDirectory } from './export';
-import { setzePruefsprache } from './rechtschreibung';
+import { setzeErkannteSprachen, setzePruefsprache } from './rechtschreibung';
 import { ALLOWED_IMAGE_EXTENSIONS } from './vault';
 import { referencedAssets, renderNoteMarkdown, aliasKopf, toFileName } from './markdownExport';
 import { exportNotesToPdf } from './pdfExport';
@@ -219,6 +219,7 @@ export function registerIpc(context: IpcContext): void {
   handle<[string, string], Campaign>('campaign:rename', (id, name) => vault.renameCampaign(id, name));
   handle<[string], void>('campaign:delete', (id) => vault.deleteCampaign(id));
   handle<[string], Campaign>('campaign:get', (id) => vault.getCampaign(id));
+  handle<[string, unknown], Campaign>('campaign:plots', (id, plots) => vault.savePlots(id, plots));
   handle<[string, Record<string, GraphPosition>], Campaign>('campaign:graphPositions', (id, positions) =>
     vault.saveGraphPositions(id, positions)
   );
@@ -376,6 +377,12 @@ export function registerIpc(context: IpcContext): void {
     if (art === 'cut') event.sender.cut();
     else if (art === 'copy') event.sender.copy();
     else if (art === 'paste') event.sender.paste();
+  });
+
+  /** Die im Text erkannten Sprachen (Oberflaeche), nur wirksam bei „auto“. */
+  handleWithEvent<[string[]], void>('spell:erkannt', async (event, sprachen) => {
+    if (event.sender.isDestroyed()) return;
+    setzeErkannteSprachen(event.sender.session, Array.isArray(sprachen) ? sprachen : [], context.settings.language, context.settings.spellcheck);
   });
 
   handleWithEvent<[string], string[]>('spell:add', async (event, wort) => {

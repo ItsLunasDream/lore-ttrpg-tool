@@ -36,6 +36,7 @@
     "@suite/eintraege": "*",
     "@suite/i18n": "*",
     "@suite/motion": "*",
+    "@suite/tastatur": "*",
     "@suite/srd": "*"
   }
 }

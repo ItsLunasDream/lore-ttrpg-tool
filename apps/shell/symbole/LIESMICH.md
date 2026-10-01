@@ -23,7 +23,7 @@ Der Name ist die Kennung des Werkzeugs:
 | `encounter.png`   | Encounter Creator  |
 | `zustaende.png`   | Status Effect Creator |
 | `nachschlagewerk.png` | Nachschlagewerk |
-| `magicitems.png`  | Magic Item Creator |
+| `magicitems.png`  | Magic Item Generator |
 | `loot.png`        | Loot Generator     |
 | `austausch.png`   | Teilen (Titelleiste und Dialog) |
 | `banner.png`      | Banner oben im Startmenü, statt des Titels |

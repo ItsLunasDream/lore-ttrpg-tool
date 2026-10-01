@@ -9,3 +9,4 @@ export * from '../src/shared/live';
 export * from '../src/shared/waffen';
 export * from '../src/shared/quellen';
 export * from '../src/shared/design';
+export * from '../src/shared/tiergestalt';

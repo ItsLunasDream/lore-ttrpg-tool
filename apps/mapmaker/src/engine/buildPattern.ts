@@ -142,6 +142,25 @@ function drawTile(ctx: CanvasRenderingContext2D, kind: PatternKind): void {
       }
       break;
     }
+    case 'waves': {
+      // Kurze Wellenstriche, versetzt in zwei Reihen — das übliche Zeichen
+      // für Wasser auf Karten. Jeder Strich liegt ganz innerhalb der Kachel,
+      // deshalb gibt es keine Naht.
+      ctx.lineWidth = n * 0.04;
+      ctx.lineCap = 'round';
+      const welle = (x: number, y: number) => {
+        const b = n * 0.36;
+        const h = n * 0.06;
+        ctx.beginPath();
+        ctx.moveTo(x - b / 2, y);
+        ctx.bezierCurveTo(x - b / 4, y - h * 2, x - b / 8, y - h * 2, x, y);
+        ctx.bezierCurveTo(x + b / 8, y + h * 2, x + b / 4, y + h * 2, x + b / 2, y);
+        ctx.stroke();
+      };
+      welle(n * 0.28, n * 0.27);
+      welle(n * 0.74, n * 0.76);
+      break;
+    }
     case 'scales': {
       // Schuppen: Halbkreise, die zweite Reihe um eine halbe Breite versetzt.
       ctx.lineWidth = n * 0.045;

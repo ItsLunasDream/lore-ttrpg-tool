@@ -1,3 +1,4 @@
+import { bereinigeStraenge } from '../shared/straenge';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -391,7 +392,8 @@ export class Vault {
       name: parsed.name ?? campaignId,
       createdAt: parsed.createdAt ?? new Date().toISOString(),
       noteTypes: migrated ? structuredClone(DEFAULT_NOTE_TYPES) : normalizeNoteTypes(parsed.noteTypes as NoteTypeDef[]),
-      graphPositions: normalizeGraphPositions(parsed.graphPositions)
+      graphPositions: normalizeGraphPositions(parsed.graphPositions),
+      ...(Array.isArray(parsed.plots) ? { plots: bereinigeStraenge(parsed.plots) } : {})
     };
 
     if (migrated) await writeJson(file, campaign);
@@ -407,6 +409,17 @@ export class Vault {
     return this.inOrder(campaignId, async () => {
       const campaign = await this.readCampaign(campaignId);
       const updated: Campaign = { ...campaign, noteTypes: validateNoteTypes(noteTypes) };
+      await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
+      return updated;
+    });
+  }
+
+  /** Speichert die Handlungsstraenge; Notizen, die es nicht mehr gibt, fallen heraus. */
+  async savePlots(campaignId: string, plots: unknown): Promise<Campaign> {
+    return this.inOrder(campaignId, async () => {
+      const campaign = await this.readCampaign(campaignId);
+      const known = await this.noteIds(campaignId);
+      const updated: Campaign = { ...campaign, plots: bereinigeStraenge(plots, known) };
       await writeJson(path.join(this.campaignDir(campaignId), CAMPAIGN_FILE), updated);
       return updated;
     });
@@ -525,7 +538,8 @@ export class Vault {
       graphPositions:
         roh.graphPositions && typeof roh.graphPositions === 'object'
           ? (roh.graphPositions as Campaign['graphPositions'])
-          : {}
+          : {},
+      ...(Array.isArray(roh.plots) ? { plots: bereinigeStraenge(roh.plots) } : {})
     };
 
     const dir = this.campaignDir(campaign.id);

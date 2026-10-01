@@ -12,7 +12,7 @@ python3 werkzeug/monster_erzeugen.py /tmp/monster.json # paart ueber die Zahlen,
 # Magische Gegenstaende: erst die Zeilen beider PDFs ablegen, dann lesen
 python3 -c "import pickle,sys; sys.path.insert(0,'werkzeug'); from monster_lesen import lies_zeilen as z; [pickle.dump(z(s),open(f'/tmp/zeilen_{s}.pkl','wb')) for s in ('en','de')]"
 python3 werkzeug/gegenstaende_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json
-python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../../apps/magicitems/src/shared/eichpunkte.ts
+python3 werkzeug/gegenstaende_eichung.py /tmp/gegenstaende.json ../magie/src/eichpunkte.ts
 python3 werkzeug/gegenstaende_text.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/gegenstaende.json /tmp/gtext.json
 python3 werkzeug/gegenstaende_erzeugen.py /tmp/gtext.json   # schreibt src/magische-gegenstaende.ts
 python3 werkzeug/zauber_lesen.py /tmp/zeilen_en.pkl /tmp/zeilen_de.pkl /tmp/zauber.json
@@ -33,7 +33,7 @@ python3 werkzeug/tand_lesen.py src/tand.ts             # Trinkets / Requisiten, 
   Kategorie, Seltenheit, Einstimmung und Zahlen eindeutig sind (106), der
   Rest aus `gegenstaende_paare.json` (152, von Hand, gegen den Rahmen
   geprueft; zwei begruendete Ausnahmen in `ABWEICHUNGEN`).
-- `gegenstaende_eichung.py`: Eichpunkte fuer den Magic Item Creator. Welcher
+- `gegenstaende_eichung.py`: Eichpunkte fuer den Magic Item Generator. Welcher
   Gegenstand fuer welche Wirkung steht, ist von Hand gewaehlt (`AUSWAHL`);
   die Zahlen kommen aus dem PDF.
 - `tand_lesen.py`: die Tabelle „Trinkets" / „Requisiten", gepaart ueber die

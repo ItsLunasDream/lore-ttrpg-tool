@@ -52,6 +52,8 @@ export interface Uebersicht {
   readonly tpStufe: 'voll' | 'leicht' | 'schwer' | 'boden' | null;
   readonly rk: number | null;
   readonly zustaende: readonly string[];
+  /** Die Tiergestalt, in der die Figur gerade ist (SRD-Kennung). */
+  readonly gestalt?: string;
 }
 
 /** Ein Bogen, wie ihn eine Person bekommt. */
@@ -219,7 +221,8 @@ export function uebersichtVon(b: Bogen): Uebersicht {
     kurz: [klassenText(b), w?.spezies.trim() ?? ''].filter(Boolean).join(' · '),
     tpStufe,
     rk: w ? w.rk : null,
-    zustaende: w ? [...w.zustaende] : []
+    zustaende: w ? [...w.zustaende] : [],
+    ...(w?.tiergestalt?.aktiv ? { gestalt: w.tiergestalt.aktiv } : {})
   };
 }
 

@@ -15,7 +15,7 @@ ersetzt den Abschnitt „Im Raum“; Frage 1 und 4 beantwortet er dort.
   („Gemeinsame Beute", die Truhe im Lager, das Packpferd).
 - Gegenstände hinzufügen aus vier Quellen:
   1. **Eigene Gegenstände**, so unkompliziert wie auf D&D Beyond.
-  2. **Magic Items** aus der Sammlung des Magic Item Creators.
+  2. **Magic Items** aus der Sammlung des Magic Item Generators.
   3. **SRD**: Ausrüstung (Waffen, Rüstungen, Werkzeug, Abenteuerausrüstung)
      und magische Gegenstände aus `packages/srd`.
   4. **Loot**: ein Wurf des Loot Generators, Zeile für Zeile.
@@ -52,7 +52,7 @@ Darüberfahren.
 
 **Übernommen wird eine Kopie**, kein Verweis. Name, Beschreibung, Gewicht
 und Wert stehen danach im Inventar selbst. Grund: ein Inventar ist ein
-Spielstand. Ändert jemand später den Gegenstand im Magic Item Creator, soll
+Spielstand. Ändert jemand später den Gegenstand im Magic Item Generator, soll
 sich nicht still das Schwert in der Tasche einer Figur mitändern. Die
 Herkunft wird mitgeschrieben (Quelle und Kennung), damit man den Eintrag
 von Hand „auffrischen" kann.
@@ -61,7 +61,7 @@ Was die Quellen hergeben:
 
 | Quelle              | Name | Beschreibung | Gewicht | Wert |
 |---------------------|------|--------------|---------|------|
-| Magic Item Creator  | ja   | Wirkungen, Fluch, Notiz | nein | ja (`wert`) |
+| Magic Item Generator  | ja   | Wirkungen, Fluch, Notiz | nein | ja (`wert`) |
 | SRD magisch         | ja   | Text         | nein    | nein, siehe unten |
 | SRD Waffen/Rüstung  | ja   | Text         | aus der Tabelle | aus der Tabelle |
 | SRD Abenteuerausrüstung | ja | Text       | zu prüfen | zu prüfen |

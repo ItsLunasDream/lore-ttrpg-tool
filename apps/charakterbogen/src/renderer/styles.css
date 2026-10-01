@@ -804,6 +804,21 @@ textarea {
   border-color: color-mix(in srgb, var(--rand) 60%, transparent);
 }
 
+/* `.blatt button` oben ist spezifischer als einfache Klassen: Punkte
+   (Zauberplaetze, Tiergestalt) und Chip-Knoepfe holen sich ihre Fuellung
+   hier zurueck, sonst sehen volle und verbrauchte Punkte gleich aus. */
+.blatt .punkt {
+  background: var(--betont);
+}
+
+.blatt .punkt--weg {
+  background: transparent;
+}
+
+.blatt .chip button {
+  background: transparent;
+}
+
 .blatt input:focus,
 .blatt textarea:focus {
   border-color: var(--betont);
@@ -1833,4 +1848,326 @@ textarea {
   .designwahl__tafel {
     animation: none;
   }
+}
+
+.knopfpaar [data-story-sync].ist-an {
+  border-color: var(--gut);
+  color: var(--gut);
+}
+
+/* --- Rueckmeldungen: Hauptknopf im Blatt, Punkte, Abstand, temporaere TP --- */
+
+/* `.blatt button` setzte den Grund auch fuer den Hauptknopf: im hellen
+   Papier stand „Ins Inventar" weiss auf weiss (Rueckmeldung). */
+.blatt .knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: var(--b-kasten);
+}
+
+.blatt .knopf--haupt:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--betont) 85%, var(--b-text));
+}
+
+/* Ueber einem gesetzten Punkt sieht man, dass ein Klick ihn loescht;
+   ueber einem leeren, dass er gesetzt wird (Rueckmeldung Erschoepfung). */
+.pip:hover:not(:disabled):not(.ist-an) {
+  background: var(--betont-leise);
+  border-color: var(--betont);
+  transform: scale(1.15);
+}
+
+.pip.ist-an:hover:not(:disabled) {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--betont);
+  transform: scale(1.15);
+}
+
+.pip--gefahr.ist-an:hover:not(:disabled) {
+  border-color: var(--gefahr);
+}
+
+.erschoepfung {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dotted color-mix(in srgb, var(--rand) 55%, transparent);
+}
+
+.tp__balken {
+  display: flex;
+}
+
+.tp__balken .tp__temp {
+  background: repeating-linear-gradient(45deg, #5b8def, #5b8def 4px, #7aa7ff 4px, #7aa7ff 8px);
+}
+
+/* --- Bild der Figur ------------------------------------------------------- */
+
+.blatt__kopf {
+  grid-template-columns: auto minmax(260px, 1.1fr) 2fr;
+}
+
+@media (max-width: 860px) {
+  .blatt__kopf {
+    grid-template-columns: auto 1fr;
+  }
+  .blatt__kopf .kopfraster {
+    grid-column: 1 / -1;
+  }
+}
+
+.portraet {
+  grid-row: span 2;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.portraet__rahmen {
+  width: 116px;
+  height: 116px;
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid var(--betont) !important;
+  background: var(--grund) !important;
+  box-shadow:
+    0 0 0 3px var(--grund-hoch),
+    0 0 0 5px var(--rand);
+  display: grid;
+  place-items: center;
+}
+
+.portraet__rahmen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portraet__leer {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.portraet__rahmen--kreis {
+  border-radius: 50%;
+}
+
+.portraet__rahmen--oval {
+  width: 100px;
+  height: 128px;
+  border-radius: 50%;
+}
+
+.portraet__rahmen--eckig {
+  border-radius: 6px;
+}
+
+.portraet__rahmen--bogen {
+  width: 104px;
+  height: 128px;
+  border-radius: 52px 52px 6px 6px;
+}
+
+.portraet__rahmen--schild,
+.portraet__rahmen--rauten {
+  border: none !important;
+  box-shadow: none;
+  background: var(--betont) !important;
+}
+
+.portraet__rahmen--schild {
+  clip-path: polygon(50% 0, 100% 10%, 100% 58%, 50% 100%, 0 58%, 0 10%);
+}
+
+.portraet__rahmen--rauten {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.portraet__rahmen--schild img,
+.portraet__rahmen--rauten img {
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  clip-path: inherit;
+}
+
+.portraet__wahl {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.rahmenprobe {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  vertical-align: middle;
+}
+
+.rahmenprobe--kreis { border-radius: 50%; }
+.rahmenprobe--oval { width: 10px; height: 14px; border-radius: 50%; }
+.rahmenprobe--eckig { border-radius: 2px; }
+.rahmenprobe--bogen { width: 10px; height: 14px; border-radius: 5px 5px 1px 1px; }
+.rahmenprobe--schild { background: currentColor; clip-path: polygon(50% 0, 100% 12%, 100% 58%, 50% 100%, 0 58%, 0 12%); border: none; }
+.rahmenprobe--rauten { background: currentColor; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); border: none; }
+
+/* Name als Knopf: klappt die Iteminfo auf, sieht aber aus wie Text. */
+.gegenstand__titel {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gegenstand__titel:hover,
+.gegenstand__titel:focus-visible {
+  text-decoration: underline;
+}
+
+/* Kompaktansicht (docs/charakterbogen-kompakt.md): eine schmale Spalte. */
+.kompakt {
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+.kompakt .kampf__oben {
+  justify-content: center;
+}
+
+/* SL-Übersicht: Zusatzzeilen in den Raum-Kacheln. */
+.kachel__kompakt {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 0.85em;
+  text-align: left;
+}
+.tp__balken--klein {
+  height: 6px;
+}
+.kachel__zeile {
+  opacity: 0.85;
+}
+
+/* --- Tiergestalt (docs/tiergestalt.md) ------------------------------------ */
+
+.tiergestalt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tiergestalt__regel {
+  margin: 0;
+}
+
+.tiergestalt__nutzungen,
+.tiergestalt__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tiergestalt__knoepfe {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.tiergestalt__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tiergestalt__zeile {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 2fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.tiergestalt__zeile--aktiv {
+  background: color-mix(in srgb, var(--betont) 16%, transparent);
+}
+
+.tiergestalt__name {
+  font-weight: 600;
+}
+
+.tiergestalt__warnung {
+  color: #d9a441;
+}
+
+/* Der Kasten der Gestalt liegt neben dem Bogen, solange er breit genug ist. */
+.mit-gestalt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.mit-gestalt__bogen {
+  min-width: 0;
+}
+
+.mit-gestalt > .gestaltkasten {
+  position: sticky;
+  top: 8px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+@media (max-width: 1100px) {
+  .mit-gestalt {
+    grid-template-columns: 1fr;
+  }
+
+  .mit-gestalt > .gestaltkasten {
+    order: -1;
+    position: static;
+    max-height: none;
+  }
+}
+
+.gestaltkasten p {
+  margin: 0 0 4px;
+  line-height: 1.45;
+}
+
+.gestaltkasten__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gestaltkasten__attribute {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0;
+}
+
+.gestaltkasten__zeile,
+.gestaltkasten__hinweis {
+  font-size: 0.92em;
+}
+
+.kachel__gestalt {
+  font-size: 12px;
+  color: var(--betont);
 }

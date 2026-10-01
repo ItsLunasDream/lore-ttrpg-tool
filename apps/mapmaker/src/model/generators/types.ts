@@ -31,6 +31,11 @@ export interface GenProp {
   y: number;
   scale: number;
   rotation: number;
+  /**
+   * Ein leuchtendes Prop (Fackel, Kamin) bekommt sonst sein VTT-Licht; wahr
+   * heißt: ohne, etwa wenn „Licht mitgeben" ausgeschaltet ist.
+   */
+  ohneLicht?: boolean;
 }
 
 export interface GenLight {

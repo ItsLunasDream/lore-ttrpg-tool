@@ -9,6 +9,8 @@
  * Der Boden ist unsichtbar. Die Wuerfel fallen vor den Hintergrund der
  * Anwendung, ohne Tisch und ohne Schatten einer sichtbaren Flaeche.
  */
+import { GLAENZEND } from './material';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { useEffect, useRef, useState } from 'react';
 import {
   AmbientLight,
@@ -18,7 +20,8 @@ import {
   MeshBasicMaterial,
   PerspectiveCamera,
   Scene,
-  WebGLRenderer
+  WebGLRenderer,
+  PMREMGenerator
 } from 'three';
 import type { Art } from '../../shared/formen';
 import { SEITEN } from '../../shared/formen';
@@ -161,6 +164,16 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
     knoten.appendChild(renderer.domElement);
 
     const szene = new Scene();
+    /*
+     * Eine Umgebung zum Spiegeln (Rueckmeldung: Metall sah nicht nach Metall
+     * aus). Metall zeigt fast nur, was es spiegelt; mit zwei Lichtern allein
+     * gab es nichts zu spiegeln. Der Raum aus three.js ist klein und wird
+     * einmal je Szene vorgerechnet. Nur die glaenzenden Muster bekommen ihn;
+     * als Licht fuer alle ueberstrahlte er Marmor und Holz zu Weiss.
+     */
+    const vorrechner = new PMREMGenerator(renderer);
+    const umgebung = vorrechner.fromScene(new RoomEnvironment(), 0.04).texture;
+    vorrechner.dispose();
     // Die Kamera wird erst aufgestellt, wenn der Wurf feststeht: ihre
     // Entfernung haengt davon ab, wie weit die Wuerfel tatsaechlich rollen.
     const FELD = 40;
@@ -179,6 +192,7 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
 
     const vorrat = koerperVorrat();
     const material = baueMaterial(einstellungen.muster, einstellungen.farbe);
+    if (GLAENZEND.has(einstellungen.muster)) material.envMap = umgebung;
     // Je Wuerfelart ein Atlas, geteilt ueber alle Wuerfel dieses Wurfs: die
     // zwanzig Ziffern eines d20 sind fuer alle d20 dieselben.
     const schrift = zahlenFarbe(einstellungen.farbe);
@@ -458,6 +472,7 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
       stoffe.clear();
       material.dispose();
       if (material.map) material.map.dispose();
+      umgebung.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };

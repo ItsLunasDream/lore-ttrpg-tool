@@ -127,7 +127,7 @@ export function NoteList({
         ))}
       </div>
 
-      <div className="note-list__scroll">
+      <div className="note-list__scroll" data-pfeile="liste">
         {grouped.length === 0 ? (
           <p className="note-list__empty">{index.notes.length === 0 ? t('list.emptyCampaign') : t('list.noMatch')}</p>
         ) : (

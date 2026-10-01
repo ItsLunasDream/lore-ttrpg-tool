@@ -1,5 +1,5 @@
 /**
- * Erzeuger und Ablage des Magic Item Creators.
+ * Erzeuger und Ablage des Magic Item Generators.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';

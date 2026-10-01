@@ -10,8 +10,8 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 const TEXTE = {
   titel: ['Nachschlagewerk', 'Reference'],
   untertitel: [
-    'Regelglossar, Ausrüstung, Zauber und magische Gegenstände des SRD 5.2.1, offline, auf Deutsch und Englisch.',
-    'The rules glossary, equipment, spells and magic items of the SRD 5.2.1, offline, in English and German.'
+    'Regelglossar, Ausrüstung, Zauber, magische Gegenstände und Tiergestalten des SRD 5.2.1, offline, auf Deutsch und Englisch.',
+    'The rules glossary, equipment, spells, magic items and beast forms of the SRD 5.2.1, offline, in English and German.'
   ],
   suche: ['Suchen', 'Search'],
   'suche.platzhalter': ['Begriff oder Stelle im Text …', 'A term or a phrase in the text …'],
@@ -56,6 +56,60 @@ const TEXTE = {
   'notiz.platzhalter': ['Was willst du dir hier merken?', 'What do you want to remember here?'],
   'notiz.weg': ['Stelle nicht mehr gefunden', 'Passage no longer found'],
   'notiz.fehler': ['Die Notizen ließen sich nicht speichern.', 'The notes could not be saved.'],
+  'ansicht.regeln': ['Regeln', 'Rules'],
+  'ansicht.gestalten': ['Gestalten', 'Beast forms'],
+  'gestalt.fuer': ['Für {name}', 'For {name}'],
+  'gestalt.vorgabe': ['Wofür', 'For'],
+  'gestalt.stufe': ['Druidenstufe', 'Druid level'],
+  'gestalt.zielHg': ['HG oder Stufe des Ziels', 'CR or level of the target'],
+  'gestalt.maxHg': ['Höchster HG', 'Maximum CR'],
+  'gestalt.flugErlaubt': ['Fliegen erlaubt', 'Fly Speed allowed'],
+  'gestalt.ja': ['ja', 'yes'],
+  'gestalt.nein': ['nein', 'no'],
+  'gestalt.regelStufe': [
+    'Bekannte Gestalten: {bekannt} · höchster HG {hg} · Fliegen: {flug} · {nutzungen} Nutzungen · beim Verwandeln {temp} temporäre TP · bis {stunden} Std.',
+    'Known forms: {bekannt} · max CR {hg} · Fly Speed: {flug} · {nutzungen} uses · {temp} temporary HP on shifting · up to {stunden} h'
+  ],
+  'gestalt.abStufe2': ['Tiergestalt gibt es ab Druidenstufe 2.', 'Wild Shape starts at Druid level 2.'],
+  'gestalt.regelEigene': [
+    'Eigene Grenze, etwa für eine Unterklasse aus einem anderen Buch. Trag die Werte von dort ein.',
+    'A custom limit, for example for a subclass from another book. Enter the values from there.'
+  ],
+  'gestalt.regelVertrauter': ['Ein Tier mit HG 0.', 'A Beast with a Challenge Rating of 0.'],
+  'gestalt.regelVerwandlung': [
+    'Ein Tier mit einem HG bis zum HG des Ziels (oder seiner Stufe).',
+    'A Beast with a Challenge Rating up to the target’s (or its level).'
+  ],
+  'gestalt.regelTiergestalten': ['Höchstens groß, HG bis 4.', 'Large or smaller, Challenge Rating 4 or lower.'],
+  'gestalt.bewegung': ['Bewegung', 'Movement'],
+  'gestalt.sinne': ['Sinne', 'Senses'],
+  'gestalt.groesse': ['Größe', 'Size'],
+  'gestalt.maxGroesse': ['Größe', 'Size'],
+  'gestalt.jede': ['jede', 'any'],
+  'gestalt.sortierung': ['Sortieren', 'Sort'],
+  'gestalt.nachHg': ['nach HG', 'by CR'],
+  'gestalt.nachName': ['nach Name', 'by name'],
+  'gestalt.nachTp': ['nach TP', 'by HP'],
+  'gestalt.nachRk': ['nach RK', 'by AC'],
+  'gestalt.schwaerme': ['Schwärme zeigen', 'Show swarms'],
+  'gestalt.schwarm': ['Schwarm', 'Swarm'],
+  'gestalt.suche': ['Tier suchen …', 'Find a beast …'],
+  'gestalt.anzahl': ['{anzahl} Gestalten', '{anzahl} forms'],
+  'gestalt.bekanntZahl': ['{n} von {max} bekannt', '{n} of {max} known'],
+  'gestalt.bekannt': ['Bekannte Gestalt der Figur', 'Known form of the character'],
+  'gestalt.hg': ['HG', 'CR'],
+  'gestalt.rk': ['RK', 'AC'],
+  'gestalt.tp': ['TP', 'HP'],
+  'gestalt.vergleichen': ['Vergleichen', 'Compare'],
+  'gestalt.vergleich': ['Vergleich', 'Comparison'],
+  'gestalt.ausVergleich': ['Aus dem Vergleich nehmen', 'Remove from comparison'],
+  'gestalt.angriffe': ['Aktionen', 'Actions'],
+  'gestalt.tier': ['Tier', 'Beast'],
+  'gestalt.leerTitel': ['Wähle links eine Gestalt.', 'Pick a form on the left.'],
+  'gestalt.leerSatz': [
+    'Haken rechts in der Liste setzen, um bis zu drei Gestalten zu vergleichen.',
+    'Tick the boxes on the right of the list to compare up to three forms.'
+  ],
   'haus.insLeere': ['Diesen Eintrag gibt es nicht.', 'This entry does not exist.']
 } as const;
 

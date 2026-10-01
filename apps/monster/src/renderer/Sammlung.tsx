@@ -112,9 +112,9 @@ export function Sammlung({ eintraege, onOeffnen, onLoeschen }: Props) {
       {gefunden.length === 0 ? (
         <p className="hinweis">{t('sammlung.nichts')}</p>
       ) : alsKacheln ? (
-        <ul className="kacheln">
+        <ul className="kacheln" data-pfeile="raster">
           {gefunden.map((eintrag) => (
-            <li key={eintrag.id}>
+            <li data-pfeil key={eintrag.id}>
               <button type="button" className="monsterkachel" onClick={() => onOeffnen(eintrag.id)}>
                 <span className="monsterkachel__cr">{eintrag.cr}</span>
                 <span className="monsterkachel__name">{eintrag.name}</span>

@@ -7,3 +7,5 @@ export * from '../src/tand';
 export * from '../src/magische-gegenstaende';
 export * from '../src/zauber';
 export * from '../src/ausruestung';
+export * from '../src/gestalten';
+export * from '../src/waffen';

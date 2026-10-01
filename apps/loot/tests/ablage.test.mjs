@@ -143,7 +143,7 @@ test('Waffen, Ruestung und Ausruestung aus dem SRD, mit Preis und ohne Zwischenz
   assert.ok(waffen.eintraege.some((e) => e.text === 'Langschwert (15 GM)'), JSON.stringify(waffen.eintraege.slice(0, 3)));
 });
 
-test('der Bestand des Magic Item Creators wird zu Tabellen, leere Seltenheiten fehlen', () => {
+test('der Bestand des Magic Item Generators wird zu Tabellen, leere Seltenheiten fehlen', () => {
   const liste = [
     { name: 'Klinge des Morgenrots', seltenheit: 'rare' },
     { name: 'Amulett der Stille', seltenheit: 'rare' },
@@ -225,4 +225,21 @@ test('der von hier gesetzte Wuerfel waechst mit einer neuen Zeile', () => {
 
 test('sehr lange Namen ergeben eine kurze Kennung', () => {
   assert.ok(L.zuId('x'.repeat(300)).length <= 80);
+});
+
+test('Homebrew: eigene Tabelle, magische zusätzlich nach Seltenheit', () => {
+  const t = L.gegenstandsTabellen(
+    [
+      { name: 'Sturmklinge', seltenheit: '', herkunft: 'homebrew' },
+      { name: 'Funkelring', seltenheit: 'rare', herkunft: 'homebrew' },
+      { name: 'Klinge des Morgenrots', seltenheit: 'rare' }
+    ],
+    'de'
+  );
+  const hb = t.find((x) => x.id === 'mi-homebrew');
+  assert.deepEqual(hb.eintraege.map((e) => e.text).sort(), ['Funkelring', 'Sturmklinge'].sort());
+  const alle = t.find((x) => x.id === 'mi-alle');
+  assert.ok(!alle.eintraege.some((e) => e.text === 'Sturmklinge'), 'eine Waffe ohne Seltenheit ist kein magischer Gegenstand');
+  assert.ok(alle.eintraege.some((e) => e.text === 'Funkelring'));
+  assert.deepEqual(L.gegenstandsTabellen([{ name: 'Nur', seltenheit: '', herkunft: 'homebrew' }], 'de').map((x) => x.id), ['mi-homebrew']);
 });

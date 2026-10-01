@@ -20,7 +20,7 @@ fs.writeFileSync(
   JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'charakterbogen'] })
 );
 
-// Ein eigener Gegenstand aus dem Magic Item Creator (Homebrew).
+// Ein eigener Gegenstand aus dem Magic Item Generator (Homebrew).
 const mi = path.join(userData, 'magicitems', 'gegenstaende');
 fs.mkdirSync(mi, { recursive: true });
 fs.writeFileSync(
@@ -115,6 +115,8 @@ app.whenReady().then(async () => {
   pruefe((await js(`document.querySelector('[data-mod="ges"]').textContent`)) === '+3', 'GES 16 ergibt +3');
   pruefe((await js(`document.querySelector('[data-pb]').dataset.pb`)) === '3', 'Stufe 5 ergibt Uebungsbonus +3');
 
+  // Rueckfragen (lange Rast) im Test immer bejahen.
+  await js(`window.confirm = () => true; true`);
   // Heimlichkeit dreimal: halbe Uebung, Uebung, dann Expertise.
   const klickeHeimlichkeit = () => js(`document.querySelector('[data-fertigkeit="heimlichkeit"]').click(); true`);
   await klickeHeimlichkeit();
@@ -143,6 +145,14 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-feld="alleskoenner"]').click(); true`);
   await warte(150);
   pruefe((await akro()) === '+4', 'mit Alleskoenner: +4');
+  // Mit Alleskoenner: ein Klick geht von halb gleich auf voll (Rueckmeldung).
+  await js(`document.querySelector('[data-fertigkeit="akrobatik"]').click(); true`);
+  await warte(150);
+  pruefe((await akro()) === '+6', 'Alleskoenner: ein Klick auf eine ungeuebte Fertigkeit gibt volle Uebung');
+  await js(`document.querySelector('[data-fertigkeit="akrobatik"]').click(); true`);
+  await js(`document.querySelector('[data-fertigkeit="akrobatik"]').click(); true`);
+  await warte(150);
+  pruefe((await akro()) === '+4', 'und zwei weitere Klicks fuehren ueber Expertise zurueck');
   pruefe((await js(`document.querySelector('[data-feld="initiative"]').placeholder`)) === '+4', 'und die Initiative auch');
   await js(`document.querySelector('[data-feld="alleskoenner"]').click(); true`);
   // Erschoepfung als Punkte, Inspiration als Knopf.
@@ -171,6 +181,21 @@ app.whenReady().then(async () => {
     'die mitgelieferte Schrift ist geladen'
   );
   await js(`document.querySelector('[data-design-knopf]').click(); true`);
+
+  // Ein Bild mit Rahmen (1x1-PNG, ueber das Dateifeld).
+  await js(`(async () => {
+    const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+    const feld = document.querySelector('[data-bild-datei]');
+    const liste = new DataTransfer();
+    liste.items.add(new File([png], 'mira.png', { type: 'image/png' }));
+    feld.files = liste.files;
+    feld.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-portraet] img'))`)), 'ein Bild steht im Kopf');
+  await js(`document.querySelector('[data-bild-rahmen] [data-wert="schild"]').click(); true`);
+  await warte(100);
+  pruefe(await js(`Boolean(document.querySelector('.portraet__rahmen--schild'))`), 'der Rahmen laesst sich wechseln');
 
   // Eigene Zustaende aus dem Status Effect Creator stehen zur Wahl.
   await js(`document.querySelector('[data-zustand-dazu] button').click(); true`);
@@ -215,12 +240,35 @@ app.whenReady().then(async () => {
     // Zurueck zum Bogen fuer den Rest.
     await wechsle('/Charakter/');
     await warte(1500);
+
+    // Stetiger Abgleich: Schalter an, Feld aendern, die Notiz zieht nach; eigener Text dort bleibt.
+    const notizDatei = () => {
+      for (const k of fs.readdirSync(kampagnen)) {
+        const o = path.join(kampagnen, k, 'notes');
+        if (!fs.existsSync(o)) continue;
+        for (const d of fs.readdirSync(o)) if (/Heimlichkeit/.test(fs.readFileSync(path.join(o, d), 'utf8'))) return path.join(o, d);
+      }
+      return null;
+    };
+    await js(`document.querySelector('[data-story-sync]').click(); true`);
+    pruefe(await bis(async () => /charakterbogen:anfang/.test(fs.readFileSync(notizDatei(), 'utf8')), 6000), 'Synchron an: die Notiz bekommt den markierten Abschnitt');
+    fs.appendFileSync(notizDatei(), '\n\nEigener Satz der Spielerin.\n');
+    await js(tippe('[data-feld="sprachen"]', 'Sylvanisch'));
+    pruefe(
+      await bis(async () => {
+        const t = fs.readFileSync(notizDatei(), 'utf8');
+        return /Sylvanisch/.test(t) && /Eigener Satz der Spielerin/.test(t);
+      }, 8000),
+      'eine Aenderung am Bogen landet in der Notiz, eigener Text dort bleibt'
+    );
   }
 
   // --- Trefferpunkte -------------------------------------------------------
   await js(tippe('[data-feld="tp-max"]', '30'));
   await js(tippe('[data-feld="tp-aktuell"]', '30'));
   await js(tippe('[data-feld="tp-temp"]', '5'));
+  await warte(100);
+  pruefe(await js(`Boolean(document.querySelector('[data-tp-temp-balken]'))`), 'temporaere TP stehen als eigenes Stueck im Balken');
   await warte(200);
   const enter = `document.querySelector('[data-feld="tp-betrag"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`;
   await js(tippe('[data-feld="tp-betrag"]', '-12'));
@@ -268,6 +316,76 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
   pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
+
+  // --- Kompaktansicht (docs/charakterbogen-kompakt.md) ---------------------
+  await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
+  await warte(300);
+  pruefe(
+    (await js(`Boolean(document.querySelector('[data-kompakt]'))`)) && !(await js(`Boolean(document.querySelector('[data-feld="attribut-int"]'))`)),
+    'Kompakt: nur die Kampfwerte, keine Attribute'
+  );
+  pruefe(await js(`Boolean(document.querySelector('[data-kompakt-plaetze] [data-platz="1-0"]'))`), 'Kompakt: Zauberplaetze stehen da');
+  await js(`document.querySelector('[data-kompakt-plaetze] [data-platz="1-0"]').click(); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 1, 'Kompakt: ein Klick verbraucht einen Platz');
+  await js(tippe('[data-feld="tp-betrag"]', '-5'));
+  await js(enter);
+  await warte(300);
+  pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '25', 'Kompakt: Schaden wirkt wie im vollen Bogen');
+  pruefe(await js(`Boolean(document.querySelector('[data-block="inventar"]'))`), 'Kompakt: das Inventar bleibt');
+  await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-feld="attribut-int"]'))`), 'zurueck zum vollen Bogen');
+  await js(`document.querySelector('[data-rast="lang"]').click(); true`);
+  await warte(300);
+
+  // --- Tiergestalt (docs/tiergestalt.md) ------------------------------------
+  pruefe(!(await js(`Boolean(document.querySelector('[data-block="tiergestalt"]'))`)), 'ohne Druidenstufe kein Tiergestalt-Block');
+  await js(tippe('[data-feld="klasse-0"]', 'Druide'));
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-block="tiergestalt"]'))`), 'als Druide erscheint der Block Tiergestalt');
+  pruefe(/HG bis 1\/2/.test(await js(`document.querySelector('[data-tg-regel]').textContent`)), 'Stufe 5: HG bis 1/2 (SRD-Tabelle)');
+  await js(`document.querySelector('[data-tg-lernen] .suchwahl__knopf').click(); true`);
+  await warte(200);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-tg-lernen] [data-wert="owl"]'))`)), 'die Eule (fliegt) steht nicht zur Wahl');
+  pruefe(!(await js(`Boolean(document.querySelector('[data-tg-lernen] [data-wert="brown-bear"]'))`)), 'der Braunbaer (HG 1) auch nicht');
+  await js(`document.querySelector('[data-tg-lernen] [data-wert="wolf"]').click(); true`);
+  await warte(200);
+  pruefe(await js(`Boolean(document.querySelector('[data-tg-gestalt="wolf"]'))`), 'der Wolf ist als Gestalt bekannt');
+  const tempVorher = Number(await js(`document.querySelector('[data-feld="tp-temp"]').value`));
+  await js(`document.querySelector('[data-tg-verwandeln="wolf"]').click(); true`);
+  await warte(300);
+  pruefe(await js(`Boolean(document.querySelector('[data-gestaltkasten="wolf"]'))`), 'Verwandeln: der Kasten des Wolfs liegt neben dem Bogen');
+  pruefe(
+    Number(await js(`document.querySelector('[data-feld="tp-temp"]').value`)) === Math.max(tempVorher, 5),
+    'und gibt 5 temporaere TP (Druidenstufe)'
+  );
+  pruefe((await js(`document.querySelector('[data-tg-nutzungen]').dataset.tgNutzungen`)) === '1', 'eine Nutzung ist verbraucht');
+  await js(`document.querySelector('[data-gestaltkasten] [data-tg-zurueck]').click(); true`);
+  await warte(300);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-gestaltkasten]'))`)), 'Zurueckverwandeln nimmt den Kasten weg');
+  // Nachschlagen: das Nachschlagewerk oeffnet sich mit dem Filter der Figur.
+  await js(`document.querySelector('[data-tg-nachschlagen]').click(); true`);
+  const nachschlage = () => fenster.contentView.children.find((v) => v.webContents?.getURL().includes('/apps/nachschlagewerk/'));
+  pruefe(
+    await bis(async () => {
+      const v = nachschlage();
+      return Boolean(v) && (await v.webContents.executeJavaScript(`Boolean(document.querySelector('[data-gestalten]'))`));
+    }),
+    'Nachschlagen oeffnet die Ansicht Gestalten'
+  );
+  const njs = (a) => nachschlage().webContents.executeJavaScript(a);
+  pruefe(await bis(async () => njs(`Boolean(document.querySelector('[data-gestalt="wolf"] [data-gestalt-bekannt]'))`)), 'der Wolf ist dort als bekannt markiert');
+  pruefe(!(await njs(`Boolean(document.querySelector('[data-gestalt="brown-bear"]'))`)), 'und nur Gestalten bis HG 1/2 stehen da');
+  // Zurueck zum Bogen.
+  await hjs(`document.querySelector('[data-schiene="charakterbogen"]').click(); true`);
+  pruefe(await bis(async () => js(`document.hasFocus() || document.visibilityState === 'visible'`)), 'der Bogen ist wieder vorn');
+  await warte(500);
+
+  await js(tippe('[data-feld="tp-temp"]', '0'));
+  await js(`document.querySelector('[data-feld="tp-temp"]').blur(); true`);
+  await js(tippe('[data-feld="klasse-0"]', 'Schurkin'));
+  await warte(300);
 
   // --- Waffenangriffe ----------------------------------------------------------
   const waehle = (auswahl, wert) =>
@@ -364,7 +482,7 @@ app.whenReady().then(async () => {
   await warte(200);
   await js(`document.querySelector('[data-geben-ok]').click(); true`);
   await warte(900);
-  pruefe((await js(`document.querySelectorAll('[data-gegenstand-name]').length`)) === 0, 'Geben nimmt das Seil aus der Gruppe');
+  pruefe((await js(`document.querySelectorAll('[data-gegenstand-name], [data-gegenstand-titel]').length`)) === 0, 'Geben nimmt das Seil aus der Gruppe');
   // Geld aufteilen (nur Mira ist Figur): alles geht an sie.
   await js(`document.querySelector('[data-aufteilen]').click(); true`);
   await warte(200);
@@ -398,7 +516,8 @@ app.whenReady().then(async () => {
   await new Promise((r) => setTimeout(r, 30));
   return true;
 })()`);
-  const namen = () => js(`[...document.querySelectorAll('[data-gegenstand-name]')].map((e) => e.value).join('|')`);
+  // Der Name ist ein Knopf zum Aufklappen; nur beim Umbenennen ein Eingabefeld.
+  const namen = () => js(`[...document.querySelectorAll('[data-gegenstand-name], [data-gegenstand-titel]')].map((e) => e.value || e.textContent.replace(/^[▸▾]\\s*/, '')).join('|')`);
   await js(`document.querySelector('[data-aus-quelle]').click(); true`);
   await warte(200);
   await js(tippe('[data-quelle-suche]', 'ritterrüstung'));
@@ -415,7 +534,7 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-quelle-reiter="eigene"]').click(); true`);
   pruefe(
     await bis(async () => js(`Boolean(document.querySelector('[data-quelle-dazu="sturmklinge"]'))`)),
-    'Homebrew: die Sturmklinge aus dem Magic Item Creator steht zur Wahl'
+    'Homebrew: die Sturmklinge aus dem Magic Item Generator steht zur Wahl'
   );
   await js(`document.querySelector('[data-quelle-dazu="sturmklinge"]').click(); true`);
   await warte(200);
@@ -428,6 +547,18 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-loot-dazu]').click(); true`);
   await warte(200);
   pruefe((await namen()).split('|').length === vorher + 1, 'und landet als Gegenstand im Inventar');
+  // Klick auf den Namen klappt die Iteminfo auf, der Stift rechts benennt um.
+  const tid = await js(`document.querySelector('[data-gegenstand-titel]')?.dataset.gegenstandTitel ?? ''`);
+  const offenVorher = await js(`document.querySelectorAll('.gegenstand__detail').length`);
+  await js(`document.querySelector('[data-gegenstand-titel="${tid}"]').click(); true`);
+  await warte(150);
+  pruefe((await js(`document.querySelectorAll('.gegenstand__detail').length`)) !== offenVorher, 'Klick auf den Namen klappt die Iteminfo auf oder zu');
+  await js(`document.querySelector('[data-umbenennen="${tid}"]').click(); true`);
+  await warte(150);
+  pruefe(await js(`document.activeElement?.dataset?.gegenstandName === ${JSON.stringify(tid)}`), 'der Stift macht den Namen zum Eingabefeld');
+  await ereignis(`[data-gegenstand-name="${tid}"]`, 'keydown', ", key: 'Enter'");
+  await warte(150);
+  pruefe(await js(`Boolean(document.querySelector('[data-gegenstand-titel="${tid}"]'))`), 'Enter beendet das Umbenennen');
   await warte(1200);
   const gruppe = fs.readFileSync(path.join(ordner, dateien().find((d) => !d.startsWith('neue-figur'))), 'utf8');
   pruefe(/"art": "magicitem",\s*"kennung": "sturmklinge"/.test(gruppe), 'die Herkunft steht in der Datei');

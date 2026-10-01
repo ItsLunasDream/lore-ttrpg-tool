@@ -58,6 +58,8 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
   const figur = bogen.art === 'figur';
   const s = summen(bogen.gegenstaende, bogen.muenzen, bogen.muenzgewicht);
   const [offen, setOffen] = useState<string | null>(null);
+  /** Welcher Gegenstand gerade umbenannt wird (Stift rechts); sonst ist der Name ein Knopf zum Aufklappen. */
+  const [umbenennen, setUmbenennen] = useState<string | null>(null);
   const [geben, setGeben] = useState<{ id: string; anzahl: number; an: string } | null>(null);
   const [geldGeben, setGeldGeben] = useState<{ betrag: Partial<Muenzen>; an: string } | null>(null);
   const [aufteilen, setAufteilen] = useState<Set<string> | null>(null);
@@ -222,13 +224,36 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
         {bogen.gegenstaende.map((g) => (
           <div key={g.id} className="gegenstand">
             <div className={`gegenstand__zeile ${figur ? '' : 'gegenstand--gruppe'}`}>
-              <input
-                aria-label={t('gegenstand.name')}
-                data-gegenstand-name={g.id}
-                value={g.name}
-                maxLength={120}
-                onChange={(e) => setG(g.id, (x) => ({ ...x, name: e.target.value }))}
-              />
+              {umbenennen === g.id ? (
+                <input
+                  aria-label={t('gegenstand.name')}
+                  data-gegenstand-name={g.id}
+                  value={g.name}
+                  maxLength={120}
+                  autoFocus
+                  onChange={(e) => setG(g.id, (x) => ({ ...x, name: e.target.value }))}
+                  onBlur={() => setUmbenennen(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      e.preventDefault();
+                      setUmbenennen(null);
+                    }
+                  }}
+                />
+              ) : (
+                // Klick auf den Namen klappt die Iteminfo auf (Rückmeldung:
+                // „durch Klick auf den Namen aufklappen"); umbenannt wird über den Stift.
+                <button
+                  type="button"
+                  className="gegenstand__titel"
+                  data-gegenstand-titel={g.id}
+                  aria-expanded={offen === g.id}
+                  title={t('gegenstand.mehr')}
+                  onClick={() => setOffen(offen === g.id ? null : g.id)}
+                >
+                  <span aria-hidden="true">{offen === g.id ? '▾' : '▸'}</span> {g.name || t('gegenstand.ohneName')}
+                </button>
+              )}
               <input
                 aria-label={t('gegenstand.anzahl')}
                 inputMode="numeric"
@@ -269,8 +294,15 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                   }}
                 />
               ) : null}
-              <button type="button" className="knopf--klein" data-mehr={g.id} aria-label={t('gegenstand.mehr')} onClick={() => setOffen(offen === g.id ? null : g.id)}>
-                {offen === g.id ? '▴' : '▾'}
+              <button
+                type="button"
+                className="knopf--klein"
+                data-umbenennen={g.id}
+                aria-label={t('gegenstand.umbenennen')}
+                title={t('gegenstand.umbenennen')}
+                onClick={() => setUmbenennen(umbenennen === g.id ? null : g.id)}
+              >
+                ✎
               </button>
             </div>
             {offen === g.id ? (
@@ -380,6 +412,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
           const neu = neuerGegenstand('');
           aendere((b) => ({ ...b, gegenstaende: [...b.gegenstaende, neu] }));
           setOffen(neu.id);
+          setUmbenennen(neu.id);
           window.setTimeout(() => (document.querySelector(`[data-gegenstand-name="${neu.id}"]`) as HTMLInputElement | null)?.focus(), 30);
         }}
       >

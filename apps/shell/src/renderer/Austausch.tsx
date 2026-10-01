@@ -281,9 +281,9 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
               )}
             </label>
           ))}
-          <ul className="auswahl__liste">
+          <ul className="auswahl__liste" data-pfeile="liste">
             {ankuenfte.map((a) => (
-              <li
+              <li data-pfeil
                 key={a.nummer}
                 data-ankunft={a.nummer}
                 onMouseEnter={(ev) =>
@@ -455,9 +455,9 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
                 {raumPakete.length === 0 ? (
                   <p className="einst__satz">{t('share.nothingArrived')}</p>
                 ) : (
-                  <ul className="auswahl__liste" data-raumpakete>
+                  <ul className="auswahl__liste" data-pfeile="liste" data-raumpakete>
                     {raumPakete.map((p) => (
-                      <li
+                      <li data-pfeil
                         key={p.id}
                         className="auswahl__karte"
                         onDoubleClick={() => void window.shell.raum.paketAnsehen(p.id).then((a) => zeige(a, { art: 'raum', paket: p.id }))}

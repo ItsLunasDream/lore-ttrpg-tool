@@ -1115,3 +1115,16 @@ details[open] > *:not(summary) {
   transition: background var(--motion-feedback) var(--motion-ease-standard),
     border-color var(--motion-feedback) var(--motion-ease-standard);
 }
+
+/* Variantenwahl am Prop: Zähler zwischen den Pfeilen, feste Breite gegen Springen. */
+.row-inline .variante {
+  min-width: 3.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sichtbarer Fokus für die Bedienung per Tastatur (packages/tastatur). */
+:focus-visible {
+  outline: 2px solid var(--f-betont, #4da3ff);
+  outline-offset: 2px;
+}

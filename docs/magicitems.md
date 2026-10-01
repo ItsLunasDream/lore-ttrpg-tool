@@ -1,4 +1,4 @@
-# Konzept: Magic Item Creator
+# Konzept: Magic Item Generator
 
 Ein weiteres Werkzeug in derselben Form wie der Monster Creator und der
 Status Effect Creator: magische Gegenstände erzeugen, in einer Sammlung
@@ -39,10 +39,10 @@ Export heißt in der Oberfläche „Export as JSON“; das Format bleibt das von
 Foundry.
 
 Der Foundry-Export (Stufe 3) ist gebaut. Die Eichung (Stufe 4) ebenfalls:
-31 Eichpunkte aus dem SRD (`src/shared/eichpunkte.ts`, erzeugt von
+31 Eichpunkte aus dem SRD (`packages/magie/src/eichpunkte.ts`, erzeugt von
 `packages/srd/werkzeug/gegenstaende_eichung.py`). Welcher SRD-Gegenstand für
 welche Wirkung steht, ist von Hand gewählt; Seltenheit, Bonus und
-Heilformel sind aus dem PDF gelesen. `tests/eichung.test.mjs` prüft, ob der
+Heilformel sind aus dem PDF gelesen. `packages/magie/tests/eichung.test.mjs` prüft, ob der
 Erzeuger bei dieser Seltenheit diese Wirkung mit denselben Zahlen liefert.
 Korrigiert hat die Eichung: Rüstung +1 ist selten (nicht ungewöhnlich),
 Schild eigene Wirkung, Rettungswurf-Bonus fest +1, Attribut und Fliegen ab

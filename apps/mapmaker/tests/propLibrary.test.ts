@@ -35,7 +35,8 @@ describe('Prop-Bibliothek', () => {
       expect(p.size.w, p.id).toBeGreaterThan(0);
       expect(p.size.h, p.id).toBeGreaterThan(0);
       // Ein Prop, das größer als vier Tiles ist, sprengt jede Battlemap.
-      expect(Math.max(p.size.w, p.size.h), p.id).toBeLessThanOrEqual(400);
+      // Ausnahme Gebäude: eine Burg ist zehn Felder groß, das ist ihr Zweck.
+      expect(Math.max(p.size.w, p.size.h), p.id).toBeLessThanOrEqual(p.category === 'gebaeude' ? 1000 : 400);
       expect(p.tags.length, p.id).toBeGreaterThan(0);
       expect(p.variants, p.id).toBeGreaterThan(0);
     }
@@ -52,7 +53,7 @@ describe('Prop-Bibliothek', () => {
       if (!p.draw) continue;
       for (const seed of [1, 7, 99]) {
         const g = new Graphics();
-        expect(() => p.draw?.(g, new Rng(seed)), `${p.id}/${seed}`).not.toThrow();
+        expect(() => p.draw?.(g, new Rng(seed), seed % p.variants), `${p.id}/${seed}`).not.toThrow();
         expect(g.context.instructions.length, `${p.id}/${seed}`).toBeGreaterThan(0);
         g.destroy();
       }
@@ -79,7 +80,7 @@ describe('Prop-Bibliothek', () => {
       // eine kleine Stichprobe verfehlt.
       for (let seed = 1; seed <= 16; seed++) {
         const g = new Graphics();
-        p.draw(g, new Rng(seed));
+        p.draw(g, new Rng(seed), seed % p.variants);
         const b = g.getLocalBounds();
         g.destroy();
         const dx = Math.max(-b.minX, b.maxX) / ((p.size.w / 2) * luft + 4);

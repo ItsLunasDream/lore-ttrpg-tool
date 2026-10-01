@@ -8,6 +8,7 @@
  * wäre bei zwanzig Kilometern je Feld nur noch grünes Rauschen.
  */
 
+import type { Graphics } from 'pixi.js';
 import type { Rng } from '@/model/rng';
 import type { PropDef } from '../propTypes';
 import { def } from './defineProp';
@@ -33,6 +34,36 @@ function blobUmriss(rng: Rng, radius: number, wobble: number, count = 18): numbe
     pts.push(Math.cos(a) * r, Math.sin(a) * r * 0.8);
   }
   return pts;
+}
+
+
+/** Boden-Schatten unter einer Signatur: flache Ellipse, hält sie auf der Karte. */
+function bodenschatten(g: Graphics, x: number, y: number, rx: number, ry: number): void {
+  g.ellipse(x, y, rx, ry).fill({ color: 0x000000, alpha: 0.18 });
+}
+
+/**
+ * Häuschen von schräg vorn, wie auf gezeichneten Karten: Giebelseite mit
+ * Tür und Fenster, Dachfläche daneben dunkler. `y` ist die Traufkante unten.
+ */
+function haeuschen(g: Graphics, x: number, y: number, w: number, h: number, wand: number, dach: number): void {
+  const tiefe = w * 0.55;
+  const dh = h * 0.75;
+  // Seitenwand (rechts, im Schatten) und Dachfläche darüber.
+  g.poly([x + w / 2, y, x + w / 2 + tiefe, y - tiefe * 0.35, x + w / 2 + tiefe, y - h - tiefe * 0.35, x + w / 2, y - h])
+    .fill({ color: shade(wand, -0.22) });
+  g.poly([x, y - h - dh, x + w / 2, y - h, x + w / 2 + tiefe, y - h - tiefe * 0.35, x + tiefe, y - h - dh - tiefe * 0.35])
+    .fill({ color: shade(dach, -0.12) });
+  // Giebelseite vorn.
+  g.poly([x - w / 2, y, x + w / 2, y, x + w / 2, y - h, x, y - h - dh, x - w / 2, y - h]).fill({ color: wand });
+  g.poly([x - w / 2 - 1.5, y - h + 1, x, y - h - dh - 1, x + w / 2 + 1.5, y - h + 1, x + w / 2, y - h + 3, x, y - h - dh + 3, x - w / 2, y - h + 3])
+    .fill({ color: dach });
+  g.rect(x - w * 0.12, y - h * 0.55, w * 0.24, h * 0.55).fill({ color: shade(wand, -0.55) });
+  if (w > 9) g.rect(x - w * 0.36, y - h * 0.8, w * 0.16, h * 0.2).fill({ color: 0xe8d9a0, alpha: 0.85 });
+  const umriss = [x - w / 2, y, x + w / 2, y, x + w / 2 + tiefe, y - tiefe * 0.35, x + w / 2 + tiefe, y - h - tiefe * 0.35,
+    x + tiefe, y - h - dh - tiefe * 0.35, x, y - h - dh, x - w / 2, y - h];
+  g.poly(umriss).stroke({ width: 1.1, color: TINTE, alpha: 0.8 });
+  g.moveTo(x + w / 2, y).lineTo(x + w / 2, y - h).lineTo(x, y - h - dh).stroke({ width: 0.9, color: TINTE, alpha: 0.55 });
 }
 
 export const worldProps: PropDef[] = [
@@ -87,45 +118,86 @@ export const worldProps: PropDef[] = [
     }
   }),
 
-  def('w_town', 'Ortschaft', 'welt', 60, ['stadt', 'dorf', 'ort', 'welt'], (g, rng) => {
-    const c = jitterColor(0x8a5a3c, rng, 0.12);
-    // Ein paar Giebel nebeneinander — Häuser von der Seite, wie auf alten Karten.
-    const n = rng.int(2, 4);
-    for (let i = 0; i < n; i++) {
-      const x = -14 + i * 12;
-      const h = rng.range(10, 16);
-      g.rect(x - 5, 12 - h, 10, h).fill({ color: c });
-      g.poly([x - 7, 12 - h, x, 12 - h - 7, x + 7, 12 - h]).fill({ color: shade(c, -0.25) });
-      g.rect(x - 5, 12 - h, 10, h).stroke({ width: 1, color: TINTE, alpha: 0.7 });
+  def('w_town', 'Ortschaft', 'welt', 70, ['stadt', 'dorf', 'ort', 'welt'], (g, rng) => {
+    // Eine Handvoll Häuschen um einen Kirchturm, hinten kleiner und höher
+    // gesetzt: so liest sich das Zeichen als Ort und nicht als ein Haus.
+    bodenschatten(g, 2, 20, 30, 7);
+    const wand = jitterColor(0xd8c7a0, rng, 0.06);
+    const dach = jitterColor(rng.pick([0xa0503a, 0x8a4a36, 0x7a5a3a]), rng, 0.08);
+    // Kirchturm hinten.
+    const kx = rng.range(-6, 6);
+    g.rect(kx - 3.5, -18, 7, 22).fill({ color: shade(wand, -0.05) }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    g.poly([kx - 5, -18, kx, -32, kx + 5, -18]).fill({ color: shade(dach, -0.2) }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    g.rect(kx - 1, -12, 2, 4).fill({ color: TINTE, alpha: 0.7 });
+    const plaetze: Array<[number, number, number]> = [
+      [-16, 6, 0.85], [14, 5, 0.85], [-22, 18, 1], [0, 19, 1.05], [21, 17, 0.95],
+    ];
+    // Höchstens ein Haus fehlt: mit zwei Häusern wäre es kein Ort mehr.
+    const fehlt = rng.bool(0.5) ? rng.int(0, 1) : -1;
+    for (const [i, [x, y, f]] of plaetze.entries()) {
+      if (i === fehlt) continue;
+      haeuschen(g, x + rng.range(-1.5, 1.5), y, 11 * f, 7 * f, jitterColor(wand, rng, 0.05), jitterColor(dach, rng, 0.08));
     }
   }),
-
-  def('w_city', 'Stadt', 'welt', 80, ['stadt', 'burg', 'welt'], (g, rng) => {
-    const c = jitterColor(0x7d7468, rng, 0.1);
-    // Mauerring mit Türmen: das Zeichen für eine befestigte Stadt.
-    g.circle(0, 4, 22).fill({ color: shade(c, 0.15) });
-    g.circle(0, 4, 22).stroke({ width: 2.5, color: TINTE, alpha: 0.8 });
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI / 2 + (i / 5) * Math.PI * 2 + rng.range(-0.1, 0.1);
-      const x = Math.cos(a) * 22;
-      const y = 4 + Math.sin(a) * 22;
-      g.rect(x - 4, y - 9, 8, 12).fill({ color: c });
-      g.poly([x - 5, y - 9, x, y - 16, x + 5, y - 9]).fill({ color: shade(c, -0.3) });
-      g.rect(x - 4, y - 9, 8, 12).stroke({ width: 1, color: TINTE, alpha: 0.7 });
+  def('w_city', 'Stadt', 'welt', 96, ['stadt', 'burg', 'welt'], (g, rng) => {
+    // Befestigte Stadt: Mauer in Aufsicht von schräg vorn, Türme an den
+    // Ecken, dahinter Dächer und zwei Türme, die über die Mauer ragen.
+    bodenschatten(g, 2, 28, 42, 9);
+    const stein = jitterColor(0xb3a994, rng, 0.05);
+    const dach = jitterColor(0x9a4b36, rng, 0.08);
+    const wand = jitterColor(0xd8c7a0, rng, 0.05);
+    // Dächer hinter der Mauer.
+    for (let i = 0; i < 7; i++) {
+      const x = -30 + i * 10 + rng.range(-2, 2);
+      haeuschen(g, x, -2 + rng.range(-3, 2), 9, 6, wand, jitterColor(dach, rng, 0.1));
+    }
+    // Hohe Türme: Kathedrale und Burgfried.
+    g.rect(-10, -30, 8, 26).fill({ color: shade(stein, 0.05) }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    g.poly([-12, -30, -6, -44, 0, -30]).fill({ color: shade(dach, -0.2) }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    g.rect(12, -26, 10, 22).fill({ color: stein }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    for (let i = 0; i < 3; i++) g.rect(12 + i * 3.6, -29, 2.4, 3).fill({ color: stein }).stroke({ width: 0.8, color: TINTE, alpha: 0.7 });
+    // Vordere Mauer mit Zinnen und Tor.
+    g.rect(-36, 8, 72, 14).fill({ color: stein });
+    g.rect(-36, 8, 72, 14).stroke({ width: 1.3, color: TINTE, alpha: 0.85 });
+    for (let x = -35; x < 34; x += 5) g.rect(x, 5, 3, 3).fill({ color: stein }).stroke({ width: 0.7, color: TINTE, alpha: 0.7 });
+    g.moveTo(-5, 22).lineTo(-5, 15).arc(0, 15, 5, Math.PI, 0).lineTo(5, 22).closePath().fill({ color: 0x2a221a });
+    // Ecktürme.
+    for (const x of [-38, 38]) {
+      g.rect(x - 6, 0, 12, 24).fill({ color: shade(stein, x < 0 ? 0.06 : -0.08) });
+      g.poly([x - 7.5, 0, x, -12, x + 7.5, 0]).fill({ color: shade(dach, -0.1) });
+      g.rect(x - 6, 0, 12, 24).stroke({ width: 1.2, color: TINTE, alpha: 0.85 });
+      g.poly([x - 7.5, 0, x, -12, x + 7.5, 0]).stroke({ width: 1.1, color: TINTE, alpha: 0.85 });
+      g.rect(x - 1, 8, 2, 4).fill({ color: TINTE, alpha: 0.7 });
     }
   }),
-
   def('w_swamp', 'Sumpf', 'welt', { w: 108, h: 60 }, ['sumpf', 'moor', 'welt'], (g, rng) => {
-    const c = jitterColor(0x5c6b43, rng, 0.14);
-    for (let i = 0; i < rng.int(4, 7); i++) {
-      const y = rng.range(-18, 18);
-      const x = rng.range(-38, 20);
-      const len = rng.range(18, 34);
-      g.moveTo(x, y).lineTo(x + len, y).stroke({ width: 2.2, color: c, alpha: 0.9 });
-      g.moveTo(x + 4, y + 5).lineTo(x + len - 4, y + 5).stroke({ width: 1.6, color: c, alpha: 0.6 });
+    // Kartenzeichen für Sumpf: waagerechte Wasserlinien, dazwischen
+    // Grasbüschel aus fächerförmigen Halmen — die Büschel machen es lesbar.
+    const wasser = jitterColor(0x5f7f7a, rng, 0.08);
+    const gras = jitterColor(0x5c6b43, rng, 0.12);
+    for (let i = 0; i < 3; i++) {
+      const x = rng.range(-40, 10);
+      const y = rng.range(-14, 16);
+      g.ellipse(x + 14, y, rng.range(12, 20), rng.range(3, 5)).fill({ color: wasser, alpha: 0.45 });
+    }
+    for (let i = 0; i < 7; i++) {
+      const y = -18 + i * 6 + rng.range(-1, 1);
+      const x = rng.range(-44, 0);
+      const len = rng.range(14, 30);
+      g.moveTo(x, y).lineTo(x + len, y).stroke({ width: 1.3, color: shade(wasser, -0.25), alpha: 0.75 });
+    }
+    for (let i = 0; i < rng.int(5, 7); i++) {
+      const x = rng.range(-40, 40);
+      const y = rng.range(-12, 20);
+      const n = rng.int(4, 6);
+      for (let k = 0; k < n; k++) {
+        const a = -Math.PI / 2 + (k - (n - 1) / 2) * 0.32;
+        const l = rng.range(6, 10);
+        g.moveTo(x, y).lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l).stroke({ width: 1.2, color: gras, alpha: 0.95 });
+      }
+      g.moveTo(x - 4, y).lineTo(x + 4, y).stroke({ width: 1, color: TINTE, alpha: 0.6 });
     }
   }),
-
   def('w_dunes', 'Dünen', 'welt', { w: 100, h: 50 }, ['wueste', 'duene', 'sand', 'welt'], (g, rng) => {
     const c = jitterColor(0xc9ab72, rng, 0.1);
     for (let i = 0; i < rng.int(3, 5); i++) {
@@ -375,23 +447,31 @@ export const worldProps: PropDef[] = [
     g.poly([-12, 30 - h, 0, 30 - h - 14, 12, 30 - h]).stroke({ width: 1.2, color: TINTE, alpha: 0.8 });
   }),
 
-  def('w_ruin', 'Ruine', 'welt', { w: 88, h: 60 }, ['ruine', 'verfallen', 'welt'], (g, rng) => {
-    const c = jitterColor(0x8b8378, rng, 0.12);
-    // Abgebrochene Mauerstücke unterschiedlicher Höhe — nie eine ganze Wand.
-    for (let i = 0; i < rng.int(3, 5); i++) {
-      const x = -28 + i * 15 + rng.range(-3, 3);
-      const h = rng.range(8, 24);
-      g.rect(x, 20 - h, rng.range(7, 11), h).fill({ color: c });
-      g.rect(x, 20 - h, 8, h).stroke({ width: 1.1, color: TINTE, alpha: 0.7 });
-    }
-    for (let i = 0; i < rng.int(2, 4); i++) {
-      g.circle(rng.range(-30, 30), rng.range(18, 24), rng.range(1.5, 3)).fill({
-        color: shade(c, -0.3),
-        alpha: 0.8,
-      });
+  def('w_ruin', 'Ruine', 'welt', { w: 88, h: 64 }, ['ruine', 'verfallen', 'welt'], (g, rng) => {
+    // Ein halber Torbogen und abgebrochene Mauern mit ausgefranster Krone:
+    // am Bogen erkennt man ein Bauwerk, an der Krone den Verfall.
+    bodenschatten(g, 0, 22, 36, 6);
+    const c = jitterColor(0xa9a08f, rng, 0.08);
+    const krone = (x: number, w: number, h: number) => {
+      const pts = [x, 22, x + w, 22];
+      const n = 5;
+      for (let i = n; i >= 0; i--) pts.push(x + (w * i) / n, 22 - h + rng.range(-5, 3) * (i % 2 ? 1 : 0.4));
+      g.poly(pts).fill({ color: c });
+      g.poly(pts).stroke({ width: 1.1, color: TINTE, alpha: 0.8 });
+      for (let k = 1; k < 3; k++) g.moveTo(x, 22 - (h * k) / 3).lineTo(x + w, 22 - (h * k) / 3).stroke({ width: 0.8, color: TINTE, alpha: 0.35 });
+    };
+    krone(-34, 12, rng.range(10, 16));
+    // Bogen: linker Pfeiler ganz, rechter abgebrochen.
+    g.rect(-16, -6, 6, 28).fill({ color: c }).stroke({ width: 1.1, color: TINTE, alpha: 0.8 });
+    g.moveTo(-10, -6).arc(0, -6, 10, Math.PI, -Math.PI * 0.35).stroke({ width: 5, color: c });
+    g.moveTo(-10, -6).arc(0, -6, 10, Math.PI, -Math.PI * 0.35).stroke({ width: 1, color: TINTE, alpha: 0.75 });
+    g.rect(10, 8, 6, 14).fill({ color: c }).stroke({ width: 1.1, color: TINTE, alpha: 0.8 });
+    krone(22, 14, rng.range(8, 14));
+    for (let i = 0; i < 6; i++) {
+      g.poly([0, 0, 3, -1, 4, 2, 1, 3].map((v, k) => v * rng.range(0.8, 1.4) + (k % 2 ? rng.range(18, 24) : rng.range(-30, 34))))
+        .fill({ color: shade(c, -0.15) }).stroke({ width: 0.7, color: TINTE, alpha: 0.6 });
     }
   }),
-
   def('w_temple', 'Tempel', 'welt', { w: 80, h: 60 }, ['tempel', 'heiligtum', 'welt'], (g, rng) => {
     const c = jitterColor(0xd0c7b4, rng, 0.08);
     // Säulen und Giebel: das Zeichen für einen geweihten Ort.
@@ -421,26 +501,36 @@ export const worldProps: PropDef[] = [
     void rng;
   }),
 
-  def('w_farm', 'Felder', 'welt', { w: 140, h: 70 }, ['feld', 'acker', 'bauernhof', 'welt'], (g, rng) => {
-    // Ein paar schräg gestellte Parzellen, jede mit Furchen.
-    for (let i = 0; i < rng.int(2, 4); i++) {
-      const x = -34 + i * 26;
-      const y = rng.range(-14, 6);
-      const w = rng.range(20, 26);
-      const h = rng.range(16, 24);
-      const c = jitterColor(0xa9924f, rng, 0.16);
-      g.rect(x, y, w, h).fill({ color: c, alpha: 0.85 });
-      g.rect(x, y, w, h).stroke({ width: 1.2, color: TINTE, alpha: 0.7 });
-      for (let k = 1; k < 4; k++) {
-        g.moveTo(x, y + (k * h) / 4).lineTo(x + w, y + (k * h) / 4).stroke({
-          width: 0.9,
-          color: shade(c, -0.35),
-          alpha: 0.7,
-        });
+  def('w_farm', 'Felder', 'welt', { w: 140, h: 76 }, ['feld', 'acker', 'bauernhof', 'welt'], (g, rng) => {
+    // Flickenteppich aus Feldern in Schrägaufsicht, dazwischen ein Hof.
+    const farben = [0xb8a04f, 0x9aa55a, 0xc4ae62, 0x8a9a4e, 0xa98d4a];
+    const felder: Array<[number, number, number, number]> = [];
+    for (let r = 0; r < 2; r++) {
+      let x = -60 + r * 8;
+      while (x < 36) {
+        const w = Math.min(rng.range(20, 30), 58 - x);
+        felder.push([x, -12 + r * 16, w, 15]);
+        x += w + 1.5;
       }
     }
+    for (const [x, y, w, h] of felder) {
+      const c = jitterColor(rng.pick(farben), rng, 0.06);
+      // Parallelogramm statt Rechteck: die Karte ist leicht von schräg gesehen.
+      const pts = [x, y + h, x + w, y + h, x + w + 5, y, x + 5, y];
+      g.poly(pts).fill({ color: c });
+      const n = 4;
+      for (let k = 1; k < n; k++) {
+        const t = k / n;
+        g.moveTo(x + 5 * (1 - t), y + h * t).lineTo(x + w + 5 * (1 - t), y + h * t).stroke({ width: 0.8, color: shade(c, -0.35), alpha: 0.7 });
+      }
+      g.poly(pts).stroke({ width: 0.9, color: TINTE, alpha: 0.55 });
+    }
+    // Hecken am Rand und der Hof.
+    for (let i = 0; i < 8; i++) g.circle(-58 + i * 16 + rng.range(-3, 3), 22 + rng.range(-1, 1), 3).fill({ color: 0x4f6b38 }).stroke({ width: 0.7, color: TINTE, alpha: 0.5 });
+    const hx = rng.range(-20, 20);
+    bodenschatten(g, hx + 4, 21, 14, 4);
+    haeuschen(g, hx, 20, 12, 8, 0xd8c7a0, jitterColor(0xb89a5a, rng, 0.08));
   }),
-
   def('w_bridge', 'Brücke', 'welt', { w: 90, h: 50 }, ['bruecke', 'fluss', 'welt'], (g, rng) => {
     void rng;
     const c = 0x8b8378;
@@ -475,19 +565,33 @@ export const worldProps: PropDef[] = [
     g.moveTo(-13, 16).arc(0, 16, 13, Math.PI, 0).closePath().fill({ color: 0x1d1813 });
   }),
 
-  def('w_standingstones', 'Steinkreis', 'welt', 70, ['steinkreis', 'kult', 'welt'], (g, rng) => {
-    const n = rng.int(6, 9);
+  def('w_standingstones', 'Steinkreis', 'welt', 76, ['steinkreis', 'kult', 'welt'], (g, rng) => {
+    // Kreis in Schrägaufsicht: hintere Steine zuerst, kleiner; jeder Stein
+    // mit Sonnen- und Schattenseite und einem Deckstein über zwei Trägern.
+    bodenschatten(g, 0, 8, 34, 14);
+    g.ellipse(0, 6, 26, 11).fill({ color: 0x8a9460, alpha: 0.35 });
+    const n = rng.int(7, 9);
+    const steine: Array<[number, number, number]> = [];
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      const x = Math.cos(a) * 24;
-      const y = Math.sin(a) * 14;
-      const h = rng.range(10, 16);
-      const c = jitterColor(0x8b8378, rng, 0.14);
-      g.rect(x - 3, y - h, 6, h).fill({ color: c });
-      g.rect(x - 3, y - h, 6, h).stroke({ width: 1, color: TINTE, alpha: 0.7 });
+      const a = (i / n) * Math.PI * 2 + rng.range(-0.1, 0.1);
+      steine.push([Math.cos(a) * 26, 6 + Math.sin(a) * 11, a]);
     }
+    steine.sort((p, q) => p[1] - q[1]);
+    for (const [x, y] of steine) {
+      const f = 0.8 + ((y + 5) / 22) * 0.3;
+      const h = rng.range(13, 18) * f;
+      const w = 5.5 * f;
+      const c = jitterColor(0x9a9488, rng, 0.08);
+      const pts = [x - w / 2, y, x + w / 2, y, x + w / 2 - 0.8, y - h, x - w / 2 + 0.6, y - h + rng.range(-1, 1)];
+      g.poly(pts).fill({ color: c });
+      g.poly([x + 0.2, y, x + w / 2, y, x + w / 2 - 0.8, y - h, x + 0.2, y - h]).fill({ color: shade(c, -0.2) });
+      g.poly(pts).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    }
+    // Deckstein in der Mitte über zwei Trägern.
+    const c = jitterColor(0x9a9488, rng, 0.08);
+    for (const x of [-6, 6]) g.rect(x - 2.5, -8, 5, 16).fill({ color: c }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
+    g.rect(-10, -12, 20, 5).fill({ color: shade(c, 0.1) }).stroke({ width: 1, color: TINTE, alpha: 0.8 });
   }),
-
   def('w_barrow', 'Grabhügel', 'welt', { w: 70, h: 50 }, ['grab', 'huegel', 'welt'], (g, rng) => {
     const c = jitterColor(0x7d8a58, rng, 0.12);
     // Kuppe von der Seite, nicht von oben: sonst säße der Eingang mitten auf

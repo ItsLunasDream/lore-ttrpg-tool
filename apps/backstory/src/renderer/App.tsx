@@ -121,6 +121,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const draftRef = useRef<Note | null>(null);
   draftRef.current = draft;
   const dirtyRef = useRef(false);
+  /** Gebuendeltes Speichern der Handlungsstraenge. */
+  const straengeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   dirtyRef.current = dirty;
   const notesRef = useRef<Note[]>([]);
   notesRef.current = notes;
@@ -1025,6 +1027,21 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                   })
                 }
                 onClose={() => setShowGraph(false)}
+                campaignId={activeCampaignId}
+                plots={activeCampaign?.plots ?? []}
+                onSavePlots={(next) => {
+                  // Sofort zeigen, dann speichern: Tippen im Namen soll nicht haken.
+                  setCampaigns((previous) => previous.map((entry) => (entry.id === activeCampaignId ? { ...entry, plots: next } : entry)));
+                  // Tippen buendeln: sonst ueberholen sich parallele Schreibzugriffe.
+                  const id = activeCampaignId;
+                  if (straengeTimer.current) clearTimeout(straengeTimer.current);
+                  straengeTimer.current = setTimeout(() => {
+                    straengeTimer.current = null;
+                    void guard(async () => {
+                      await call(api.campaigns.savePlots(id, next));
+                    });
+                  }, 400);
+                }}
                 onOpenNote={(noteId) => {
                   openNote(noteId);
                   setShowGraph(false);

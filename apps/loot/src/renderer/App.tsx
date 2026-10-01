@@ -81,7 +81,7 @@ function alsNotiz(ergebnisse: readonly Ergebnis[]): string {
   return [...ergebnisse.map((e) => `- ${e.text}`), '', `*${[...namen].join(' · ')}*`, ''].join('\n');
 }
 
-/** Eingebaut und schreibgeschuetzt: aus dem SRD oder aus dem Magic Item Creator. */
+/** Eingebaut und schreibgeschuetzt: aus dem SRD oder aus dem Magic Item Generator. */
 function istFest(id: string): boolean {
   return istSrd(id) || istGegenstandstabelle(id);
 }
@@ -101,7 +101,7 @@ export function App() {
   const [, neuZeichnen] = useState(0);
   const [kacheln, setKacheln] = useState<readonly Kachel[]>([]);
   const [eigene, setEigene] = useState<readonly Gespeichert[]>([]);
-  const [gegenstaende, setGegenstaende] = useState<readonly { name: string; seltenheit: string }[]>([]);
+  const [gegenstaende, setGegenstaende] = useState<readonly { name: string; seltenheit: string; herkunft?: string }[]>([]);
   const [suche, setSuche] = useState('');
   const [offen, setOffen] = useState<Entwurf | null>(null);
   const [istNeu, setIstNeu] = useState(false);
@@ -141,7 +141,7 @@ export function App() {
 
   useEffect(() => {
     void ladeListe();
-    // Zurueck im Werkzeug: neu lesen. Im Magic Item Creator kann inzwischen
+    // Zurueck im Werkzeug: neu lesen. Im Magic Item Generator kann inzwischen
     // ein Gegenstand dazugekommen sein, und eine Datei kann von Hand
     // geaendert worden sein.
     const auffrischen = () => {
@@ -166,7 +166,7 @@ export function App() {
   const spr = getLanguage() === 'de' ? 'de' : 'en';
   // Die eingebauten Tabellen in der Sprache der Oberflaeche; ueber sie
   // laufen Verweise wie ueber jede eigene.
-  // Dazu der Bestand des Magic Item Creators. Beides schreibgeschuetzt.
+  // Dazu der Bestand des Magic Item Generators. Beides schreibgeschuetzt.
   const srd = useMemo(
     () => [...srdTabellen(spr), ...gegenstandsTabellen(gegenstaende, spr)],
     [spr, gegenstaende]
@@ -241,7 +241,7 @@ export function App() {
   }, [alle, aktuell]);
   const befunde = useMemo(() => (aktuell ? pruefe(aktuell, alle) : []), [aktuell, alle]);
   // Was das Wuerfeln sperrt. Nur bei eigenen Tabellen: die eingebauten und
-  // die aus dem Magic Item Creator kann hier niemand berichtigen.
+  // die aus dem Magic Item Generator kann hier niemand berichtigen.
   const sperre = befunde.filter(sperrt);
   // Eine eigene Tabelle mit dem Namen einer anderen: Verweise `[Name]`
   // treffen dann nur eine davon, und die eingebaute wird still verdeckt.
@@ -685,9 +685,9 @@ export function App() {
       ) : gefunden.length === 0 ? (
         <p className="hinweis">{t('liste.nichts')}</p>
       ) : (
-        <ul className="kacheln">
+        <ul className="kacheln" data-pfeile="raster">
           {gefunden.map((k) => (
-            <li key={k.id}>
+            <li data-pfeil key={k.id}>
               <button type="button" className="tabellenkachel" data-id={k.id} onClick={() => void oeffne(k.id)}>
                 <span className="tabellenkachel__name">
                   {k.name}

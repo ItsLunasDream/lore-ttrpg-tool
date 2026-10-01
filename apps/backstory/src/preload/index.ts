@@ -188,7 +188,9 @@ const api = {
   woerterbuch: {
     liste: () => invoke<string[]>('spell:list'),
     hinzufuegen: (wort: string) => invoke<string[]>('spell:add', wort),
-    entfernen: (wort: string) => invoke<string[]>('spell:remove', wort)
+    entfernen: (wort: string) => invoke<string[]>('spell:remove', wort),
+    /** Die im Text erkannten Sprachen melden (Pruefung bei „auto“). */
+    erkannt: (sprachen: string[]) => invoke<void>('spell:erkannt', sprachen)
   },
   ai: {
     status: () =>
@@ -232,6 +234,7 @@ const api = {
     get: (id: string) => invoke<Campaign>('campaign:get', id),
     updateNoteTypes: (id: string, types: NoteTypeDef[]) =>
       invoke<Campaign>('campaign:updateNoteTypes', id, types),
+    savePlots: (id: string, plots: unknown) => invoke<Campaign>('campaign:plots', id, plots),
     saveGraphPositions: (id: string, positions: Record<string, GraphPosition>) =>
       invoke<Campaign>('campaign:graphPositions', id, positions)
   },

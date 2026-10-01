@@ -297,8 +297,15 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
             </p>
           ))}
 
-          <Toggle label={t('uvtt.cleanup')} checked={cleanup} onChange={setCleanup} />
-          {cleanup ? (
+          {/*
+            Abschnitte ohne Inhalt fallen weg (Rückmeldung): kein Bereinigen,
+            wenn nichts zu bereinigen ist, kein Foundry-Hinweis und keine
+            Foundry-Makros bei einem anderen Ziel oder ohne Wände/Notizen.
+          */}
+          {isCleanupEmpty(plan) ? null : (
+            <Toggle label={t('uvtt.cleanup')} checked={cleanup} onChange={setCleanup} />
+          )}
+          {cleanup && !isCleanupEmpty(plan) ? (
             <>
               <p className="hint">{t('uvtt.cleanupHint')}</p>
               {isCleanupEmpty(plan) ? (
@@ -349,15 +356,17 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
             </>
           ) : null}
 
-          <div className="divider" />
-          <p className="hint">{t('uvtt.foundryHint')}</p>
-
-          <div className="divider" />
-          <h4>{t('wall.macroTitle')}</h4>
-          {wandStuecke === 0 ? (
-            <p className="hint">{t('wall.macroNone')}</p>
-          ) : (
+          {target === 'foundry' ? (
             <>
+              <div className="divider" />
+              <p className="hint">{t('uvtt.foundryHint')}</p>
+            </>
+          ) : null}
+
+          {target === 'foundry' && wandStuecke > 0 ? (
+            <>
+              <div className="divider" />
+              <h4>{t('wall.macroTitle')}</h4>
               <p className="hint">{t('wall.macroExplain')}</p>
               <p className="hint">{t('wall.macroCount', { n: wandStuecke })}</p>
               <div className="row-inline">
@@ -365,14 +374,12 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
                 <button onClick={copyWallMacro}>{t('wall.macroCopy')}</button>
               </div>
             </>
-          )}
+          ) : null}
 
-          <div className="divider" />
-          <h4>{t('note.macroTitle')}</h4>
-          {counts.notes.length === 0 ? (
-            <p className="hint">{t('note.macroNone')}</p>
-          ) : (
+          {target === 'foundry' && counts.notes.length > 0 ? (
             <>
+              <div className="divider" />
+              <h4>{t('note.macroTitle')}</h4>
               <p className="hint">{t('note.macroExplain')}</p>
               <p className="hint">{t('note.macroSteps')}</p>
               <div className="row-inline">
@@ -381,7 +388,7 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
                 {macroNote ? <span className="value">{macroNote}</span> : null}
               </div>
             </>
-          )}
+          ) : null}
         </div>
 
         <footer>

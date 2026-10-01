@@ -17,6 +17,8 @@ import {
   alleRegeln,
   alsRegel,
   glossarId,
+  homebrewAlsRegel,
+  type HomebrewEintrag,
   regelFuerGlossar,
   regelMitNamen,
   unterpunkt,
@@ -28,6 +30,7 @@ import { verlinke } from '../shared/verweise';
 import { zerlege, type Hausregel } from '../shared/hausregeln';
 import { findetStelle, markiere, nteStelle, vorkommenBei, type Notiz } from '../shared/notizen';
 import { Verweisfeld } from './Verweisfeld';
+import { Gestalten, LEERER_AUFRUF, leseAufruf, type Gestaltaufruf } from './Gestalten';
 
 /**
  * Die Notizen am Text: welche es gibt, und wie man eine oeffnet. Als Kontext
@@ -88,6 +91,8 @@ function andere(spr: Sprache): Sprache {
  * spielen.
  */
 function zweitName(regel: Regel, spr: Sprache): string | null {
+  // Selbst geschriebenes (Hausregel, Homebrew) hat nur einen Namen.
+  if (regel.art === 'hausregel' || regel.art === 'homebrew') return null;
   return spr === 'de' ? regel.name.en : null;
 }
 
@@ -112,6 +117,17 @@ export function App() {
   const [notizen, setNotizen] = useState<readonly Notiz[]>([]);
   /** Die Notiz im kleinen Fenster: eine neue oder eine, die man bearbeitet. */
   const [notizfenster, setNotizfenster] = useState<{ notiz: Notiz; rect: DOMRect; neu: boolean } | null>(null);
+  /**
+   * Regeln oder Gestalten (docs/tiergestalt.md). Ein neuer Aufruf von aussen
+   * (Charakterbogen) zaehlt `nr` hoch, damit die Ansicht mit seinen Werten
+   * neu anfaengt statt die alten Filter zu behalten.
+   */
+  const [ansicht, setAnsicht] = useState<'regeln' | 'gestalten'>('regeln');
+  const [gestaltaufruf, setGestaltaufruf] = useState<{ aufruf: Gestaltaufruf; nr: number }>({ aufruf: LEERER_AUFRUF, nr: 0 });
+  const zeigeGestalten = (aufruf: Gestaltaufruf) => {
+    setAnsicht('gestalten');
+    setGestaltaufruf((alt) => ({ aufruf, nr: alt.nr + 1 }));
+  };
 
   useEffect(() => {
     void api.notizen.liste().then(setNotizen, () => setNotizen([]));
@@ -138,9 +154,22 @@ export function App() {
     void ladeHausregeln();
   }, []);
 
+  /*
+   * Eintraege aus dem Homebrew Creator. Neu gelesen, wenn das Fenster den
+   * Fokus bekommt: wer dort etwas speichert und hierher wechselt, soll es
+   * sehen, ohne neu zu starten.
+   */
+  const [homebrew, setHomebrew] = useState<readonly HomebrewEintrag[]>([]);
+  useEffect(() => {
+    const lade = () => void api.homebrew.liste().then(setHomebrew, () => setHomebrew([]));
+    lade();
+    window.addEventListener('focus', lade);
+    return () => window.removeEventListener('focus', lade);
+  }, []);
+
   const regeln = useMemo(
-    () => [...hausregeln.map(alsRegel), ...alleRegeln()],
-    [hausregeln]
+    () => [...hausregeln.map(alsRegel), ...homebrew.map(homebrewAlsRegel), ...alleRegeln()],
+    [hausregeln, homebrew]
   );
   const regelnRef = useRef(regeln);
   regelnRef.current = regeln;
@@ -219,11 +248,16 @@ export function App() {
    * zum vorigen Eintrag oder zur Liste, nicht zum vorigen Werkzeug
    * (Rueckmeldung).
    */
-  useEffect(() => api.ort.melde(offenId), [offenId]);
+  useEffect(() => api.ort.melde(ansicht === 'gestalten' ? 'gestalten' : offenId), [offenId, ansicht]);
   useEffect(
     () =>
       api.ort.beiSprung((ziel) => {
         setBearbeitung(null);
+        if (ziel === 'gestalten') {
+          setAnsicht('gestalten');
+          return;
+        }
+        setAnsicht('regeln');
         setOffenId(ziel);
       }),
     []
@@ -238,6 +272,12 @@ export function App() {
         // der leere Hinweis.
         setBearbeitung(null);
         setSuche('');
+        const aufruf = leseAufruf(kennung);
+        if (aufruf) {
+          zeigeGestalten(aufruf);
+          return;
+        }
+        setAnsicht('regeln');
         // Eine Hausregel kann gerade erst angekommen sein (Austausch).
         if (kennung.startsWith('hausregel/')) void ladeHausregeln();
         if (!kennung.startsWith('notiz/')) {
@@ -279,10 +319,28 @@ export function App() {
       <header className="kopf">
         <h1>{t('titel')}</h1>
         <p>{t('untertitel')}</p>
+        <div className="kopf__ansicht" role="tablist">
+          {(['regeln', 'gestalten'] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              role="tab"
+              className={ansicht === a ? 'reiter reiter--an' : 'reiter'}
+              aria-selected={ansicht === a}
+              data-ansicht={a}
+              onClick={() => setAnsicht(a)}
+            >
+              {t(a === 'regeln' ? 'ansicht.regeln' : 'ansicht.gestalten')}
+            </button>
+          ))}
+        </div>
       </header>
 
+      {ansicht === 'gestalten' ? (
+        <Gestalten key={gestaltaufruf.nr} aufruf={gestaltaufruf.aufruf} spr={spr} />
+      ) : (
       <div className="spalten">
-        <nav className="liste" aria-label={t('titel')}>
+        <nav className="liste" data-pfeile="liste" aria-label={t('titel')}>
           <input
             className="liste__suche"
             type="search"
@@ -319,7 +377,7 @@ export function App() {
                       }}
                     >
                       <span className="eintrag__name">{regel.name[spr]}</span>
-                      {regel.art === 'hausregel' || !zweitName(regel, spr) ? null : (
+                      {regel.art === 'hausregel' || regel.art === 'homebrew' || !zweitName(regel, spr) ? null : (
                         <span className="eintrag__anders">{zweitName(regel, spr)}</span>
                       )}
                       {/* Die Fundstelle, wenn es nicht am Namen lag: sie ist
@@ -368,6 +426,7 @@ export function App() {
           )}
         </main>
       </div>
+      )}
 
       {/*
         Die Namensnennung, woertlich und in der Sprache der Huelle. Sie steht
@@ -1035,6 +1094,12 @@ function Verlinkt({
             data-notiz={stueck.notiz.id}
             title={stueck.notiz.text}
             onClick={(e) => oeffne(stueck.notiz, e.currentTarget.getBoundingClientRect(), false)}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              oeffne(stueck.notiz, e.currentTarget.getBoundingClientRect(), false);
+            }}
           >
             {stueck.text}
           </mark>

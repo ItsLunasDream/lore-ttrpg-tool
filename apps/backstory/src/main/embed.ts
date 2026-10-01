@@ -13,6 +13,7 @@
  * registrieren), die Pfade zu Preload und Oberflaeche, und das Sichern
  * ungespeicherter Aenderungen vor dem Schliessen.
  */
+import { vorlageNotiztypen } from '../shared/noteTypes';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { dialog, ipcMain, shell } from 'electron';
@@ -260,7 +261,7 @@ export interface BackstoryEmbed {
  * Beides ist der Grund, warum der Kommentar in `suche.ts` den Story Creator
  * lange als eigene Runde ausgewiesen hat.
  */
-export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]> {
+export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
   const vault = await vaultAus(datenordner);
   const heraus: SuchEintrag[] = [];
   let kampagnen: { id: string; name: string; noteTypes?: { id: string; label: string }[] }[];
@@ -277,8 +278,10 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
      * Die Beschriftungen gehoeren der Kampagne — jede darf eigene Typen
      * haben —, also kommen sie von dort und nicht aus einer Tabelle hier.
      */
+    // Vorlagentypen in der Sprache der Anzeige; nur wer einen Typ selbst
+    // umbenannt hat, sieht seinen eigenen Namen (Rueckmeldung: immer deutsch).
     const beschriftung = new Map(
-      (kampagne.noteTypes ?? []).map((typ) => [typ.id, typ.label])
+      (kampagne.noteTypes ?? []).map((typ) => [typ.id, typBeschriftung(typ.id, typ.label, sprache)])
     );
     let notizen;
     try {
@@ -303,6 +306,14 @@ export async function leseEintraege(datenordner: string): Promise<SuchEintrag[]>
     }
   }
   return heraus;
+}
+
+/** Beschriftung eines Notiztyps: Vorlagentypen folgen der Sprache, umbenannte bleiben. */
+function typBeschriftung(id: string, label: string, sprache: 'de' | 'en'): string {
+  const vorlage = (l: 'de' | 'en') => vorlageNotiztypen(l).find((t) => t.id === id)?.label;
+  const de = vorlage('de');
+  const en = vorlage('en');
+  return label === de || label === en ? (vorlage(sprache) ?? label) : label;
 }
 
 /** Der Vault, wie ihn der Story Creator beim naechsten Start oeffnen wuerde. */

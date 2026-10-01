@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { findNoteType } from '../../shared/noteTypes';
 import type { NoteIndex } from '../noteIndex';
 import type { GraphPosition } from '../../shared/types';
 import { buildGraphEdges, buildGraphNodes, type GraphMode } from '../graph/build';
 import { layoutGraph, type GraphNode } from '../graph/layout';
 import { typFarbe } from '../../shared/graphFarben';
 import { useT } from '../i18n';
+import { InfoCard } from './InfoCard';
+import { Zeitstrahl } from './Zeitstrahl';
+import { Handlungsstraenge } from './Handlungsstraenge';
+import type { Strang } from '../../shared/straenge';
+import type { Note } from '../../shared/types';
+import { alsKnopf } from '@suite/tastatur';
 
 interface Props {
   index: NoteIndex;
@@ -15,6 +20,11 @@ interface Props {
   onSavePositions: (positions: Record<string, GraphPosition>) => void;
   onOpenNote: (noteId: string) => void;
   onClose: () => void;
+  /** Fuer die Bilder in der Kurzinfo. */
+  campaignId: string;
+  /** Handlungsstraenge der Kampagne. */
+  plots: Strang[];
+  onSavePlots: (plots: Strang[]) => void;
 }
 
 const WIDTH = 1200;
@@ -72,11 +82,31 @@ const LABEL_SIDE = 2.4;
 
 /** Feste Farbreihe, damit Notiztypen wiedererkennbar bleiben. */
 
-export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose }: Props) {
+export function GraphView({ index, activeNoteId, positions: saved, onSavePositions, onOpenNote, onClose, campaignId, plots, onSavePlots }: Props) {
   const t = useT();
   const [mode, setMode] = useState<GraphMode>('both');
   const [seed, setSeed] = useState(42);
   const [hovered, setHovered] = useState<string | null>(null);
+  /** Graph oder Zeitstrahl (Rueckmeldung: Ereignisse in zeitlicher Folge). */
+  const [ansicht, setAnsicht] = useState<'graph' | 'zeit' | 'straenge'>('graph');
+  /*
+   * Kurzinfo beim Ueberfahren (Rueckmeldung), leicht verzoegert: sonst
+   * flackerten beim Ueberstreichen des Graphen Karten auf.
+   */
+  const [karte, setKarte] = useState<{ note: Note; rect: DOMRect } | null>(null);
+  const kartenTakt = useRef<number | null>(null);
+  const zeigeKarte = useCallback((note: Note | null, rect: DOMRect | null) => {
+    if (kartenTakt.current !== null) window.clearTimeout(kartenTakt.current);
+    kartenTakt.current = null;
+    if (!note || !rect) {
+      setKarte(null);
+      return;
+    }
+    kartenTakt.current = window.setTimeout(() => setKarte({ note, rect }), 350);
+  }, []);
+  useEffect(() => () => {
+    if (kartenTakt.current !== null) window.clearTimeout(kartenTakt.current);
+  }, []);
   /** Waehrend des Ziehens, damit der Knoten sofort folgt. */
   const [dragged, setDragged] = useState<Record<string, GraphPosition>>({});
   /**
@@ -255,8 +285,19 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
   return (
     <div className="graph">
       <header className="graph__bar">
-        <strong>{t('graph.title')}</strong>
+        <div className="graph__ansichten" role="tablist">
+          <button type="button" role="tab" data-ansicht="graph" aria-selected={ansicht === 'graph'} className={ansicht === 'graph' ? 'is-active' : undefined} onClick={() => setAnsicht('graph')}>
+            {t('graph.title')}
+          </button>
+          <button type="button" role="tab" data-ansicht="zeit" aria-selected={ansicht === 'zeit'} className={ansicht === 'zeit' ? 'is-active' : undefined} onClick={() => { setKarte(null); setAnsicht('zeit'); }}>
+            {t('timeline.title')}
+          </button>
+          <button type="button" role="tab" data-ansicht="straenge" aria-selected={ansicht === 'straenge'} className={ansicht === 'straenge' ? 'is-active' : undefined} onClick={() => { setKarte(null); setAnsicht('straenge'); }}>
+            {t('plots.title')}
+          </button>
+        </div>
 
+        {ansicht === 'graph' ? (<>
         <div className="graph__modes">
           {(['relations', 'mentions', 'both'] as GraphMode[]).map((entry) => (
             <button
@@ -327,16 +368,20 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
         >
           {t('graph.recalculate')}
         </button>
+        </>) : <span className="graph__rest" />}
         <button type="button" onClick={onClose}>
           {t('graph.close')}
         </button>
       </header>
 
+      {ansicht === 'graph' ? (<>
       {edges.length === 0 ? <p className="graph__empty">{t('graph.empty')}</p> : null}
 
       <svg
         ref={svgRef}
         className="graph__canvas"
+        // Knoten mit den Pfeilen nach ihrer Lage auf dem Schirm erreichen.
+        data-pfeile="raster"
         viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
         preserveAspectRatio="xMidYMid meet"
         onWheel={(event) => zoomAt(event.deltaY > 0 ? 1.12 : 0.89, toSvgPoint(event))}
@@ -453,14 +498,31 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
                */
               style={{ animationDelay: `${Math.min(nummer, 20) * 18}ms` }}
               transform={`translate(${node.x} ${node.y})`}
-              onMouseEnter={() => setHovered(node.id)}
-              onMouseLeave={() => setHovered(null)}
+              onMouseEnter={(event) => {
+                setHovered(node.id);
+                zeigeKarte(note, (event.currentTarget as SVGGElement).getBoundingClientRect());
+              }}
+              onMouseLeave={() => {
+                setHovered(null);
+                zeigeKarte(null, null);
+              }}
               onMouseDown={(event) => {
                 event.preventDefault();
                 dragRef.current = { id: node.id, at: null, von: toSvgPoint(event) };
               }}
+              // Tastatur: Enter öffnet, der Fokus zeigt die Kurzinfo wie das Überfahren.
+              {...alsKnopf(() => onOpenNote(node.id))}
+              data-pfeil
+              aria-label={note.title}
+              onFocus={(event) => {
+                setHovered(node.id);
+                zeigeKarte(note, (event.currentTarget as SVGGElement).getBoundingClientRect());
+              }}
+              onBlur={() => {
+                setHovered(null);
+                zeigeKarte(null, null);
+              }}
             >
-              <title>{`${note.title} · ${findNoteType(index.types, note.type).label}`}</title>
               <circle r={radius} fill={typeColor(note.type)} />
               {/* Der Umriss in Hintergrundfarbe haelt die Beschriftung ueber
                   Kanten und anderen Knoten lesbar. */}
@@ -473,6 +535,15 @@ export function GraphView({ index, activeNoteId, positions: saved, onSavePositio
       </svg>
 
       <p className="graph__hint">{t('graph.hintFull')}</p>
+      </>
+      ) : ansicht === 'zeit' ? (
+        <Zeitstrahl index={index} activeNoteId={activeNoteId} onOpenNote={onOpenNote} onHover={zeigeKarte} />
+      ) : (
+        <Handlungsstraenge index={index} straenge={plots} speichern={onSavePlots} activeNoteId={activeNoteId} onOpenNote={onOpenNote} onHover={zeigeKarte} />
+      )}
+      {karte ? (
+        <InfoCard note={karte.note} types={index.types} campaignId={campaignId} rect={karte.rect} onOpen={(id) => onOpenNote(id)} />
+      ) : null}
     </div>
   );
 }

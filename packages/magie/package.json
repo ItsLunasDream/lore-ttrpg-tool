@@ -1,0 +1,25 @@
+{
+  "name": "@suite/magie",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "description": "Magische Gegenstände: Wirkungen, Erzeuger, Grenzen je Seltenheit und Eichpunkte aus dem SRD; geteilt von Magic Item Generator und Homebrew Creator",
+  "type": "module",
+  "exports": {
+    "./tabellen": "./src/tabellen.ts",
+    "./eichpunkte": "./src/eichpunkte.ts",
+    "./erzeuge": "./src/erzeuge.ts",
+    "./pruefung": "./src/pruefung.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@suite/srd": "*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

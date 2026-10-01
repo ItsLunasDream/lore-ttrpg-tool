@@ -1,7 +1,7 @@
 /**
  * Woher Gegenstaende ins Inventar kommen (docs/charakterbogen.md,
  * Schritt 7): SRD-Ausruestung (Waffen, Ruestungen, Abenteurerausruestung),
- * magische Gegenstaende des SRD, eigene aus dem Magic Item Creator und
+ * magische Gegenstaende des SRD, eigene aus dem Magic Item Generator und
  * Wuerfe auf Loot-Tabellen.
  *
  * Hier stehen nur die SRD-Quellen und die Umwandlung in einen Gegenstand.
@@ -10,10 +10,10 @@
  */
 import { AUSRUESTUNG } from '@suite/srd/ausruestung';
 import { MAGISCHE_GEGENSTAENDE } from '@suite/srd/magische-gegenstaende';
-import { neueKennung, type Gegenstand } from './inventar';
+import { neueKennung, type EigeneWaffe, type Gegenstand } from './inventar';
 import { WAFFEN } from './waffen';
 
-export type Quellart = 'srd' | 'srd-magie' | 'magicitem' | 'loot';
+export type Quellart = 'srd' | 'srd-magie' | 'magicitem' | 'homebrew' | 'loot';
 
 export interface Quelleintrag {
   readonly quelle: Quellart;
@@ -27,7 +27,7 @@ export interface Quelleintrag {
   readonly wert: number | null;
   readonly beschreibung: string;
   readonly einstimmung?: boolean;
-  readonly waffe?: { readonly id: string; readonly magie: number; readonly geuebt: boolean };
+  readonly waffe?: { readonly id: string; readonly magie: number; readonly geuebt: boolean; readonly eigen?: EigeneWaffe };
 }
 
 type Reihe = readonly string[];
@@ -150,6 +150,74 @@ export function srdMagie(sprache: 'de' | 'en'): Quelleintrag[] {
   return heraus;
 }
 
+/** Name zum Vergleichen: klein, ohne Klammern, ohne Mengenangabe, ohne Satzzeichen. */
+function vergleichsname(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/^\s*\d+\s*[x×]?\s+/, '')
+    .replace(/[^a-z0-9äöüß]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Ein Wurf auf eine Loot-Tabelle als Quelleintrag.
+ *
+ * Rückmeldung: aus der Tabelle „Weapons" kam „Longsword (15 GP)" ins
+ * Inventar — ohne Wert und nur mit „Longsword (15GP) (Loot table: Weapons)"
+ * als Beschreibung. Jetzt wird der Wurf mit den bekannten Gegenständen
+ * abgeglichen (SRD-Ausrüstung, magische Gegenstände des SRD, eigene aus dem
+ * Magic Item Generator); passt einer, kommen Wert, Gewicht, Beschreibung und
+ * Waffenwerte mit. Die Herkunft aus der Tabelle bleibt als letzte Zeile.
+ * Passt keiner, wird wenigstens der Preis aus der Klammer gelesen.
+ */
+export function lootAlsEintrag(
+  wurf: string,
+  tabellenId: string,
+  tabellenName: string,
+  sprache: 'de' | 'en',
+  eigene: readonly Quelleintrag[] = []
+): Quelleintrag {
+  const gesucht = vergleichsname(wurf);
+  const anders = sprache === 'de' ? 'en' : 'de';
+  const herkunft = `${sprache === 'de' ? 'Loot-Tabelle' : 'Loot table'}: ${tabellenName}`;
+  const kandidaten: Array<[readonly Quelleintrag[], readonly Quelleintrag[]]> = [
+    [eigene, eigene],
+    [srdAusruestung(sprache), srdAusruestung(sprache)],
+    [srdMagie(sprache), srdMagie(sprache)],
+    // Tabellen in der anderen Sprache: dort finden, in dieser Sprache übernehmen.
+    [srdAusruestung(anders), srdAusruestung(sprache)],
+    [srdMagie(anders), srdMagie(sprache)]
+  ];
+  for (const [suche, ziel] of kandidaten) {
+    const treffer = suche.find((e) => vergleichsname(e.name) === gesucht);
+    if (!treffer) continue;
+    const e = ziel.find((x) => x.kennung === treffer.kennung) ?? treffer;
+    return {
+      ...e,
+      // Der eigene Preis im Wurf (etwa ein Sonderangebot) gilt vor dem Listenpreis.
+      wert: preisAusText(wurf) ?? e.wert,
+      beschreibung: `${e.beschreibung}${e.beschreibung ? '\n\n' : ''}(${herkunft})`
+    };
+  }
+  const name = wurf.replace(/\s*\([^)]*\)\s*$/, '').trim() || wurf;
+  return {
+    quelle: 'loot',
+    kennung: tabellenId,
+    name: name.length > 80 ? `${name.slice(0, 79)}…` : name,
+    art: tabellenName,
+    gewicht: null,
+    wert: preisAusText(wurf),
+    beschreibung: `${wurf === name ? '' : `${wurf}\n\n`}(${herkunft})`
+  };
+}
+
+/** „Longsword (15 GP)", „Heiltrank, 50 GM" → Gold; sonst null. */
+function preisAusText(text: string): number | null {
+  const m = /(\d[\d.,]*)\s*(GP|SP|CP|GM|SM|KM|PP|PM|EP|EM)\b/i.exec(text);
+  return m ? preisInGold(`${m[1]} ${m[2]}`) : null;
+}
+
 /** Suche ueber Name und Art, alle Worte muessen passen. */
 export function sucheQuellen(liste: readonly Quelleintrag[], anfrage: string, hoechstens = 60): Quelleintrag[] {
   const worte = anfrage.toLowerCase().split(/\s+/).filter(Boolean);
@@ -158,7 +226,7 @@ export function sucheQuellen(liste: readonly Quelleintrag[], anfrage: string, ho
 
 /** Ein Quelleintrag als Gegenstand im Inventar. */
 export function alsGegenstand(e: Quelleintrag, anzahl = 1): Gegenstand {
-  const art = e.quelle === 'magicitem' ? 'magicitem' : e.quelle === 'loot' ? 'loot' : 'srd';
+  const art = e.quelle === 'magicitem' ? 'magicitem' : e.quelle === 'homebrew' ? 'homebrew' : e.quelle === 'loot' ? 'loot' : 'srd';
   return {
     id: neueKennung(),
     name: e.name.slice(0, 120),
@@ -169,6 +237,6 @@ export function alsGegenstand(e: Quelleintrag, anzahl = 1): Gegenstand {
     ausgeruestet: false,
     eingestimmt: false,
     quelle: { art, kennung: e.kennung.slice(0, 120) },
-    ...(e.waffe ? { waffe: { ...e.waffe } } : {})
+    ...(e.waffe ? { waffe: { ...e.waffe, ...(e.waffe.eigen ? { eigen: { ...e.waffe.eigen, art: [...e.waffe.eigen.art] as [string, string] } } : {}) } } : {})
   };
 }

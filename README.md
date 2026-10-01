@@ -22,7 +22,7 @@ connection you set up yourself.
   the official ones.
 - **Encounter Creator**: encounters from 331 SRD monsters and your own,
   difficulty per the rules, one click into the tracker.
-- **Magic Item Creator**: magic items by type and rarity, values per the SRD.
+- **Magic Item Generator**: magic items by type and rarity, values per the SRD.
 - **Loot Generator**: your own nested random tables.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
@@ -77,7 +77,7 @@ apps/monster/         Monster Creator
 apps/zustaende/       Status Effect Creator
 apps/encounter/       Encounter Creator
 apps/nachschlagewerk/ Reference
-apps/magicitems/      Magic Item Creator
+apps/magicitems/      Magic Item Generator
 apps/loot/            Loot Generator
 packages/dice/        Dice expressions
 packages/i18n/        Language and text substitution
@@ -160,6 +160,10 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   lists come out as they went in.
 - **Export**: PDF with table of contents, graph and jump links; Markdown with
   an alias header where the file name differs from the title.
+- **Graph window** with three views: relationship web, timeline (by the
+  "Date" field) and **plot threads**: plots as sequences of notes that can
+  branch off at a note of another thread and merge into another one. Stored
+  in `campaign.json` (`plots`).
 
 ## Character Sheet
 
@@ -172,7 +176,8 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - Works out modifiers, proficiency bonus, skills and passive scores.
 - **Look per sheet**: accent colour, paper and font (seven free fonts are
   bundled). Few drop-downs: segments, dots and searchable pickers instead.
-- **Story Creator**: create a note for the character and open it later.
+- **Story Creator**: create a note for the character, open it later, and
+  optionally keep it in step with the sheet (your own text in the note stays).
 - **Damage / Healing**: `-7` or `7` subtracts, `+5` heals, dice work
   (`2d6+3`); temporary HP first. Rests follow SRD 5.2.
 - **Spells**: save DC and attack, slots per level (Pact Magic too), list
@@ -360,7 +365,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `encounter.md` | Encounter Creator |
 | `austausch.md` | Sharing and rooms |
 | `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
-| `magicitems.md` | Magic Item Creator |
+| `magicitems.md` | Magic Item Generator |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |

@@ -10,7 +10,7 @@
  * Grenze: Was jemand selbst in den Text geschrieben hat, bleibt, wie es ist.
  */
 import { SELTENHEIT_NAME, type Seltenheit } from '@suite/srd';
-import { ART_NAME, type Art as GegenstandsArt } from '../../../magicitems/src/shared/tabellen';
+import { ART_NAME, type Art as GegenstandsArt } from '@suite/magie/tabellen';
 import { ROLLEN, THEMEN as MONSTERTHEMEN } from '../../../monster/src/shared/tabellen';
 import { ARTEN as ZUSTANDSARTEN, HAERTEN, THEMEN as ZUSTANDSTHEMEN } from '../../../zustaende/src/shared/tabellen';
 

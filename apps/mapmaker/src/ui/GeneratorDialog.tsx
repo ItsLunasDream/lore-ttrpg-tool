@@ -7,13 +7,12 @@
  * einer Kette aus Anwenden und Rückgängig.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEditor } from '@/model/store';
 import { canHoldObjects } from '@/model/document';
 import {
   GENERATOR_IDS,
   buildGeneratorCommands,
-  defaultGeneratorParams,
   generatorCommand,
   runGenerator,
   type GeneratorId,
@@ -32,6 +31,8 @@ import {
   type TownSurround,
 } from '@/model/generators/town';
 import { TEMPLATE_IDS, templateSize, type TemplateId } from '@/model/generators/template';
+import type { ForestWater } from '@/model/generators/forest';
+import { ladeGeneratorMerker, speichereGeneratorMerker, type GeneratorZiel } from './generatorMerker';
 
 const NAME: Record<GeneratorId, StringKey> = {
   template: 'gen.template',
@@ -55,7 +56,17 @@ const BESCHREIBUNG: Record<GeneratorId, StringKey> = {
 
 const zufallsSeed = () => Math.floor(Math.random() * 0xffffff);
 
-export function GeneratorDialog({ onClose }: { onClose: () => void }) {
+export function GeneratorDialog({
+  onClose,
+  neueKarte,
+}: {
+  onClose: () => void;
+  /**
+   * Legt eine leere Karte an, mit derselben Rückfrage wie „Neu" im
+   * Datei-Menü; false, wenn abgebrochen wurde.
+   */
+  neueKarte?: () => boolean;
+}) {
   const { t } = useT();
   useEscapeClose(onClose);
   const doc = useEditor((s) => s.doc);
@@ -63,10 +74,16 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
   const activeLayerId = useEditor((s) => s.activeLayerId);
   const setStatus = useEditor((s) => s.setStatusMessage);
 
-  const [id, setId] = useState<GeneratorId>('dungeon');
-  const [params, setParams] = useState<GeneratorParams>(defaultGeneratorParams);
+  // Einstellungen bleiben über Sitzungen erhalten (generatorMerker.ts).
+  const [start] = useState(ladeGeneratorMerker);
+  const [id, setId] = useState<GeneratorId>(start.id);
+  const [params, setParams] = useState<GeneratorParams>(start.params);
   const [seed, setSeed] = useState(zufallsSeed);
-  const [resize, setResize] = useState(true);
+  const [resize, setResize] = useState(start.resize);
+  const [ziel, setZiel] = useState<GeneratorZiel>(start.ziel);
+  useEffect(() => {
+    speichereGeneratorMerker({ id, params, resize, ziel });
+  }, [id, params, resize, ziel]);
 
   const ergebnis = useMemo(
     () => runGenerator(id, params, seed, doc.grid.tileSize),
@@ -78,21 +95,29 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
   };
 
   const anwenden = () => {
-    if (!canHoldObjects(doc, activeLayerId)) {
+    // In eine neue Karte: dieselbe Rückfrage wie bei „Neu", wenn die jetzige
+    // Inhalt hat (Rückmeldung: „auch hier nachfragen").
+    const inNeue = ziel === 'neu' && !!neueKarte;
+    if (inNeue && !neueKarte!()) return;
+    const st = useEditor.getState();
+    const aktDoc = st.doc;
+    const layer = inNeue ? st.activeLayerId : activeLayerId;
+    if (!canHoldObjects(aktDoc, layer)) {
       setStatus(t('gen.layerLocked'));
       return;
     }
     const label = t('gen.command', { name: t(NAME[id]) });
-    const teile = buildGeneratorCommands(doc, ergebnis, activeLayerId, activeLayerId, label);
+    const teile = buildGeneratorCommands(aktDoc, ergebnis, layer, layer, label);
     // Die Karte zuerst passend machen: sonst ragt der Grundriss über den Rand.
-    if (resize) {
+    // Eine neue Karte bekommt immer die Größe des Ergebnisses.
+    if (resize || inNeue) {
       teile.unshift(new ResizeMap(ergebnis.size.cols, ergebnis.size.rows, 'top-left'));
     }
     const cmd = generatorCommand(teile, label);
     if (cmd) exec(cmd);
     // Die Karte hat jetzt meist eine andere Größe; ohne Einpassen stünde die
     // Kamera weiter auf dem alten Ausschnitt und man sähe eine Ecke.
-    if (resize) getRenderer()?.fitToDocument();
+    if (resize || inNeue) getRenderer()?.fitToDocument();
     onClose();
   };
 
@@ -166,13 +191,16 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
               onChange={(v) => patch('forest', { path: v })} />
             <Toggle label={t('gen.undergrowth')} checked={p.undergrowth}
               onChange={(v) => patch('forest', { undergrowth: v })} />
-            <Select<'none' | 'pond' | 'stream'>
+            <Select<ForestWater>
               label={t('gen.water')}
               value={p.water}
               options={[
+                { value: 'random', label: t('gen.waterRandom') },
                 { value: 'none', label: t('gen.waterNone') },
                 { value: 'pond', label: t('gen.waterPond') },
                 { value: 'stream', label: t('gen.waterStream') },
+                { value: 'lake', label: t('gen.waterLake') },
+                { value: 'river', label: t('gen.waterRiver') },
               ]}
               onChange={(v) => patch('forest', { water: v })}
             />
@@ -187,14 +215,22 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
         const p = params.town;
         return (
           <>
-            <Slider label={t('gen.buildingCount')} min={3} max={300} value={p.buildingCount}
-              onChange={(v) => patch('town', { buildingCount: v })} />
-            <Slider label={t('gen.buildingMin')} min={2} max={10} value={p.buildingMin}
-              onChange={(v) => patch('town', { buildingMin: Math.min(v, p.buildingMax) })} />
-            <Slider label={t('gen.buildingMax')} min={2} max={16} value={p.buildingMax}
-              onChange={(v) => patch('town', { buildingMax: Math.max(v, p.buildingMin) })} />
-            <Slider label={t('gen.streetWidth')} min={2} max={6} value={p.streetWidth}
-              onChange={(v) => patch('town', { streetWidth: v })} />
+            <Toggle label={t('gen.overview')} checked={!!p.uebersicht}
+              onChange={(v) => patch('town', { uebersicht: v })} />
+            {p.uebersicht ? (
+              <p className="hint">{t('gen.overviewHint')}</p>
+            ) : (
+              <>
+                <Slider label={t('gen.buildingCount')} min={3} max={300} value={p.buildingCount}
+                  onChange={(v) => patch('town', { buildingCount: v })} />
+                <Slider label={t('gen.buildingMin')} min={2} max={10} value={p.buildingMin}
+                  onChange={(v) => patch('town', { buildingMin: Math.min(v, p.buildingMax) })} />
+                <Slider label={t('gen.buildingMax')} min={2} max={16} value={p.buildingMax}
+                  onChange={(v) => patch('town', { buildingMax: Math.max(v, p.buildingMin) })} />
+                <Slider label={t('gen.streetWidth')} min={2} max={6} value={p.streetWidth}
+                  onChange={(v) => patch('town', { streetWidth: v })} />
+              </>
+            )}
             <Toggle label={t('gen.market')} checked={p.market}
               onChange={(v) => patch('town', { market: v })} />
             <Toggle label={t('gen.cityWall')} checked={p.cityWall}
@@ -224,13 +260,6 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
         const p = params.template;
         return (
           <>
-            <Select<TemplateId>
-              label={t('gen.templateVariant')}
-              value={p.variant}
-              options={TEMPLATE_IDS.map((v) => ({ value: v, label: t(`template.${v}` as StringKey) }))}
-              onChange={(v) => patch('template', { variant: v })}
-            />
-            <p className="hint">{t(`template.${p.variant}Hint` as StringKey)}</p>
             <Toggle label={t('gen.decorate')} checked={p.furnish}
               onChange={(v) => patch('template', { furnish: v })} />
             <Toggle label={t('gen.templateLights')} checked={p.lights}
@@ -324,13 +353,28 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
 
         <div className="modal-body gen-body">
           <div className="gen-controls">
-            <Select<GeneratorId>
+            {/*
+              Die Vorlagen stehen einzeln in der Liste (Rückmeldung: „Was ist
+              Template für eine Vorlage? Mach daraus extra Vorlagen für Taverne
+              etc."), intern bleiben sie ein Generator mit Variante.
+            */}
+            <Select<string>
               label={t('gen.type')}
-              value={id}
-              options={GENERATOR_IDS.map((g) => ({ value: g, label: t(NAME[g]) }))}
-              onChange={setId}
+              value={id === 'template' ? `template:${params.template.variant}` : id}
+              options={[
+                ...TEMPLATE_IDS.map((v) => ({ value: `template:${v}`, label: t(`template.${v}` as StringKey) })),
+                ...GENERATOR_IDS.filter((g) => g !== 'template').map((g) => ({ value: g, label: t(NAME[g]) })),
+              ]}
+              onChange={(v) => {
+                if (v.startsWith('template:')) {
+                  setId('template');
+                  patch('template', { variant: v.slice('template:'.length) as TemplateId });
+                } else setId(v as GeneratorId);
+              }}
             />
-            <p className="hint">{t(BESCHREIBUNG[id])}</p>
+            <p className="hint">
+              {id === 'template' ? t(`template.${params.template.variant}Hint` as StringKey) : t(BESCHREIBUNG[id])}
+            </p>
 
             <div className="divider" />
 
@@ -358,7 +402,20 @@ export function GeneratorDialog({ onClose }: { onClose: () => void }) {
             {felder()}
 
             <div className="divider" />
-            <Toggle label={t('gen.resize')} checked={resize} onChange={setResize} />
+            {neueKarte ? (
+              <Select<GeneratorZiel>
+                label={t('gen.target')}
+                value={ziel}
+                options={[
+                  { value: 'aktuell', label: t('gen.targetCurrent') },
+                  { value: 'neu', label: t('gen.targetNew') },
+                ]}
+                onChange={setZiel}
+              />
+            ) : null}
+            {ziel === 'neu' && neueKarte ? null : (
+              <Toggle label={t('gen.resize')} checked={resize} onChange={setResize} />
+            )}
             <p className="hint">{t('gen.applyHint')}</p>
           </div>
 

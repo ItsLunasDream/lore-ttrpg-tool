@@ -110,8 +110,8 @@ const TEXTE = {
   ],
   'mi.marke': ['Magic Items', 'Magic Items'],
   'mi.hinweis': [
-    'Aus dem Magic Item Creator. Geändert wird dort; hier nur würfeln oder als eigene Tabelle kopieren.',
-    'From the Magic Item Creator. Edit it there; here you can roll it or copy it as your own table.'
+    'Aus dem Magic Item Generator. Geändert wird dort; hier nur würfeln oder als eigene Tabelle kopieren.',
+    'From the Magic Item Generator. Edit it there; here you can roll it or copy it as your own table.'
   ],
   'srd.kopie': ['Als eigene Tabelle kopieren', 'Copy as your own table'],
   'srd.kopieName': ['{name} (Kopie)', '{name} (copy)'],

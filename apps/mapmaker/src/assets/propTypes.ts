@@ -15,6 +15,7 @@ export type PropCategory =
   | 'struktur'
   | 'deko'
   | 'welt'
+  | 'gebaeude'
   | 'import';
 
 export interface PropDef {
@@ -36,7 +37,7 @@ export interface PropDef {
    * Zeichnet eine Variante zentriert um (0,0). Nur bei prozeduralen Props.
    * Der Renderer ruft das einmal je Variante und cached das Ergebnis als Textur.
    */
-  draw?: (g: Graphics, rng: Rng) => void;
+  draw?: (g: Graphics, rng: Rng, variant: number) => void;
   /** Bei importierten Assets: Objekt-URL der Bilddatei. */
   textureUrl?: string;
 }
@@ -51,6 +52,7 @@ export const CATEGORY_ORDER: PropCategory[] = [
   'dungeon',
   'struktur',
   'deko',
+  'gebaeude',
   'welt',
   'import',
 ];

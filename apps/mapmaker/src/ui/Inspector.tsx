@@ -22,9 +22,14 @@ import { makeId } from '@/model/ids';
 import { canAnchor } from '@/model/labelAnchor';
 import { guidesOf } from '@/model/guides';
 import { getProp, propName } from '@/assets/library';
+import { seedFuerVariante, variantFor } from '@/assets/varianten';
 import { importFont, importedFonts } from '@/assets/fontStore';
 import { worldAABB } from '@/engine/hitTest';
 import type { DrawSettings, RouteSettings } from '@/model/toolSettings';
+import { defaultTerrain } from '@/model/toolSettings';
+import { istWasser, WASSER_FARBE } from '@/model/wasser';
+import type { PropLight } from '@/model/types';
+import { lichtFuerProp } from '@/assets/propLights';
 import { PATTERN_KINDS } from '@/model/types';
 import { gridDistance } from '@/model/grid';
 import type {
@@ -326,11 +331,52 @@ export function GridSettings() {
 /** Terrain-Pinsel: Bodenflächen malen. */
 export function TerrainSettingsPanel() {
   const { t } = useT();
-  const terrain = useEditor((s) => s.terrain);
-  const patch = useEditor((s) => s.patchTerrain);
+  const vorgabe = useEditor((s) => s.terrain);
+  const patchVorgabe = useEditor((s) => s.patchTerrain);
+  const doc = useEditor((s) => s.doc);
+  const selection = useEditor((s) => s.selection);
+  const exec = useEditor((s) => s.exec);
+  const rev = useEditor((s) => s.rev);
+  void rev;
+  // Terrainflächen: gefüllte, ungestrichene Polygone (so legt der Pinsel sie an).
+  const flaechen = selection
+    .map((id) => doc.objects[id])
+    .filter((o): o is ShapeObj => !!o && o.kind === 'shape' && o.shape === 'polygon' && !!o.fill && (!o.stroke || istWasser(o.fill)));
+  const f0 = flaechen[0];
+  const terrain = f0?.fill ? { ...vorgabe, color: f0.fill.color, alpha: f0.fill.alpha } : vorgabe;
+  /** Farbe und Deckkraft wirken auch auf die Auswahl; Breite und Glättung stecken in der Form. */
+  const patch = (p: Partial<typeof vorgabe>) => {
+    patchVorgabe(p);
+    if (flaechen.length === 0 || (p.color === undefined && p.alpha === undefined)) return;
+    exec(
+      new PatchObjects(
+        new Map(
+          flaechen.map((o) => [
+            o.id,
+            { fill: { ...o.fill!, ...(p.color !== undefined ? { color: p.color } : {}), ...(p.alpha !== undefined ? { alpha: p.alpha } : {}) } },
+          ]),
+        ),
+        t('cmd.terrain'),
+        `terrain-panel:${Object.keys(p).join(',')}`,
+      ),
+    );
+  };
 
   return (
     <Section title={t('terrain.title')}>
+      <Toggle
+        label={t('terrain.water')}
+        checked={!!vorgabe.water}
+        onChange={(v) =>
+          // Beim Umschalten auf Wasser die Bodenfarbe gegen Wasserblau
+          // tauschen; eine selbst gewählte Farbe bleibt.
+          patchVorgabe({
+            water: v,
+            ...(v && vorgabe.color === defaultTerrain().color ? { color: WASSER_FARBE } : {}),
+            ...(!v && vorgabe.color === WASSER_FARBE ? { color: defaultTerrain().color } : {}),
+          })
+        }
+      />
       <ColorField label={t('terrain.color')} value={terrain.color} onChange={(v) => patch({ color: v })} />
       <Slider
         label={t('terrain.width')}
@@ -359,7 +405,8 @@ export function TerrainSettingsPanel() {
         onChange={(v) => patch({ smoothing: v })}
         format={pct}
       />
-      <p className="hint">{t('terrain.hint')}</p>
+      {flaechen.length > 0 ? <p className="hint">{t('terrain.selectionHint')}</p> : null}
+      <p className="hint">{t(vorgabe.water ? 'terrain.waterHint' : 'terrain.hint')}</p>
     </Section>
   );
 }
@@ -681,6 +728,25 @@ export function ObjectInspector() {
     for (const o of objects) map.set(o.id, p);
     exec(new PatchObjects(map, label, key));
   };
+  /** Ändert das Licht aller ausgewählten leuchtenden Props, jedes vom eigenen Stand aus. */
+  const patchLicht = (p: Partial<PropLight>, key?: string) => {
+    const map = new Map<string, Record<string, unknown>>();
+    for (const o of objects) {
+      if (o.kind === 'prop' && o.light) map.set(o.id, { light: { ...o.light, ...p } });
+    }
+    if (map.size > 0) exec(new PatchObjects(map, t('sel.propLight'), key));
+  };
+  /** Alle ausgewählten Props derselben Art eine Variante weiter oder zurück. */
+  const wechsleVariante = (schritt: number) => {
+    if (first.kind !== 'prop') return;
+    const ziel = variantFor(first.propId, first.seed) + schritt;
+    const map = new Map<string, Record<string, unknown>>();
+    for (const o of objects) {
+      if (o.kind !== 'prop' || o.propId !== first.propId) continue;
+      map.set(o.id, { seed: seedFuerVariante(o.propId, o.seed, ziel) });
+    }
+    if (map.size > 0) exec(new PatchObjects(map, t('sel.variant')));
+  };
   const shiftBy = (axis: 'x' | 'y', target: number) => {
     const delta = target - first[axis];
     const map = new Map<string, Record<string, unknown>>();
@@ -816,6 +882,66 @@ export function ObjectInspector() {
               <button onClick={() => patchAll({ flipY: !first.flipY }, t('sel.mirror'))}>↕</button>
             </div>
           </Row>
+          {/*
+            Variante wählen: bei Gebäuden der Grundriss, bei Steinen und
+            Bäumen die Form. Wirkt auf alle ausgewählten Props derselben Art.
+          */}
+          {(getProp(first.propId)?.variants ?? 1) > 1 ? (
+            <Row label={t('sel.variant')}>
+              <div className="row-inline">
+                <button
+                  aria-label={t('sel.variantPrev')}
+                  onClick={() => wechsleVariante(-1)}
+                >
+                  ◀
+                </button>
+                <span className="variante">
+                  {variantFor(first.propId, first.seed) + 1} / {getProp(first.propId)?.variants}
+                </span>
+                <button
+                  aria-label={t('sel.variantNext')}
+                  onClick={() => wechsleVariante(1)}
+                >
+                  ▶
+                </button>
+              </div>
+            </Row>
+          ) : null}
+          {/* Licht als Teil des Props (model/propLights.ts): hier und nur hier bearbeitet. */}
+          <Toggle
+            label={t('sel.propLight')}
+            checked={!!first.light}
+            onChange={(v) => {
+              const map = new Map<string, Record<string, unknown>>();
+              for (const o of objects) {
+                if (o.kind !== 'prop') continue;
+                map.set(o.id, { light: v ? (o.light ?? lichtFuerProp(o.propId) ?? { range: 4, color: 0xffcc88, intensity: 1 }) : null });
+              }
+              exec(new PatchObjects(map, t('sel.propLight')));
+            }}
+          />
+          {first.light ? (
+            <>
+              <Slider
+                label={t('light.range')}
+                min={0.5}
+                max={30}
+                step={0.5}
+                value={first.light.range}
+                onChange={(v) => patchLicht({ range: v }, 'prop-licht-range')}
+                format={(v) => (v === 1 ? t('light.rangeUnitOne') : t('light.rangeUnit', { n: v }))}
+              />
+              <ColorField label={t('light.color')} value={first.light.color} onChange={(v) => patchLicht({ color: v })} />
+              <Slider
+                label={t('light.intensity')}
+                min={0}
+                max={4}
+                step={0.05}
+                value={first.light.intensity}
+                onChange={(v) => patchLicht({ intensity: v }, 'prop-licht-int')}
+              />
+            </>
+          ) : null}
         </>
       ) : null}
 

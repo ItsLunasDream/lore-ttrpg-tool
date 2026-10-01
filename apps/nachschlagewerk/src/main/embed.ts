@@ -16,7 +16,7 @@ import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag } from '@suite/eintraege';
 import type { Teilnehmer } from '@suite/austausch';
-import { ART_NAME, alleRegeln, regelNach } from '../shared/bestand';
+import { ART_NAME, alleRegeln, regelNach, type HomebrewEintrag } from '../shared/bestand';
 import { kanal } from '../shared/kanaele';
 import {
   alsMarkdown,
@@ -125,6 +125,8 @@ export interface NachschlagewerkEmbedOptions {
   readonly devServerUrl?: string;
   readonly language?: string;
   readonly onLanguageChange?: (language: string) => void;
+  /** Eintraege aus dem Homebrew Creator, von der Huelle durchgereicht. */
+  readonly homebrew?: () => Promise<HomebrewEintrag[]>;
 }
 
 export interface NachschlagewerkEmbed {
@@ -200,7 +202,15 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
       stichworte: ['Note', notiz.stelle, notiz.text.slice(0, 300), regel?.name.en ?? ''].join(' ')
     };
   });
-  return [...eigene, ...notizEintraege, ...alleRegeln().map((regel) => ({
+  // Die Ansicht „Gestalten" (docs/tiergestalt.md) als ein Treffer.
+  const gestalten: Eintrag = {
+    werkzeug: WERKZEUG,
+    kennung: 'gestalten?vorgabe=tiergestalt',
+    name: sprache === 'de' ? 'Tiergestalten' : 'Beast forms',
+    art: sprache === 'de' ? 'Gestalten' : 'Forms',
+    stichworte: 'Tiergestalt Wild Shape Gestalten Beast forms Druide Druid Vertrauter Familiar Verwandlung Polymorph Animal Shapes SRD'
+  };
+  return [gestalten, ...eigene, ...notizEintraege, ...alleRegeln().map((regel) => ({
     werkzeug: WERKZEUG,
     kennung: regel.id,
     // Name und Art in der Sprache der Sammlung; der andere Name bleibt als
@@ -228,6 +238,13 @@ export async function mountNachschlagewerk(
   };
 
   handle('hausregeln:liste', async (): Promise<Hausregel[]> => leseHausregeln(ordner));
+  handle('homebrew:liste', async (): Promise<HomebrewEintrag[]> => {
+    try {
+      return (await options.homebrew?.()) ?? [];
+    } catch {
+      return [];
+    }
+  });
 
   /*
    * Beim ANLEGEN eine freie Kennung, beim Bearbeiten die alte: zwei
@@ -307,6 +324,7 @@ export async function mountNachschlagewerk(
 export function unmountNachschlagewerk(): void {
   for (const name of [
     'hausregeln:liste',
+    'homebrew:liste',
     'hausregeln:speichern',
     'hausregeln:loeschen',
     'notizen:liste',

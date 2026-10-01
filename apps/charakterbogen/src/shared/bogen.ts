@@ -9,7 +9,8 @@
 import { rollExpression, type RandomSource } from '@suite/dice';
 import { ATTRIBUTE, FERTIGKEITEN, fertigkeitsBonus, modifikator, uebungsbonus, type Attribut, type Uebung } from './regeln';
 import { bereinigeZauberei, fuellePlaetze, type Zauberei } from './zauber';
-import { bereinigeGegenstaende, type Gegenstand } from './inventar';
+import { bereinigeGegenstaende, type EigeneWaffe, type Gegenstand } from './inventar';
+import { bereinigeTiergestalt, rasteTiergestalt, type Tiergestalt } from './tiergestalt';
 
 export const SCHEMA = 1;
 
@@ -61,6 +62,8 @@ export interface Angriff {
   zweihaendig?: boolean;
   /** Nur gerechnet, nie gespeichert: der Angriff kommt von diesem Gegenstand. */
   ausInventar?: string;
+  /** Nur gerechnet, nie gespeichert: die Werte einer eigenen Waffe (Homebrew Creator). */
+  eigeneWaffe?: EigeneWaffe;
 }
 
 export interface Werte {
@@ -89,6 +92,8 @@ export interface Werte {
   angriffe: Angriff[];
   /** Nur bei Figuren, die zaubern. */
   zauber?: Zauberei;
+  /** Nur bei Druiden (docs/tiergestalt.md). */
+  tiergestalt?: Tiergestalt;
   // --- Was ein Bogen sonst noch hat (Spielerbogen 2024) ---
   ep: number;
   gesinnung: string;
@@ -111,6 +116,12 @@ export interface Werte {
   immunitaeten: string;
   anfaelligkeiten: string;
 }
+
+/** Rahmenformen fuer das Bild. */
+export const RAHMEN = ['kreis', 'oval', 'eckig', 'bogen', 'schild', 'rauten'] as const;
+export type Rahmen = (typeof RAHMEN)[number];
+/** Groesste erlaubte Bilddaten (die Oberflaeche verkleinert vorher). */
+export const BILD_HOECHSTENS = 600_000;
 
 /** Wie der Bogen aussieht; je Bogen. Kennungen aus `shared/design.ts`. */
 export interface Design {
@@ -143,8 +154,10 @@ export interface Bogen {
   notizen: string;
   /** Aussehen dieses Bogens; fehlt es, gilt die Vorgabe. */
   design?: Design;
+  /** Ein Bild der Figur (verkleinert, als data:-Adresse) mit Rahmen. */
+  bild?: { daten: string; rahmen: Rahmen };
   /** Verknuepfte Notiz im Story Creator (`<Kampagne>/<Notiz>`). */
-  storyNotiz?: { kennung: string; titel: string };
+  storyNotiz?: { kennung: string; titel: string; sync?: boolean };
   /** Zaehlt bei jeder gespeicherten Aenderung hoch. */
   fassung: number;
   geaendert: string;
@@ -322,7 +335,8 @@ export function langeRast(w: Werte): Werte {
     ressourcen: fuelleRessourcen(w.ressourcen, 'lang'),
     // Zauberplaetze kommen nach einer langen Rast zurueck (Klassenmerkmal
     // aller Zauberklassen im SRD).
-    ...(w.zauber ? { zauber: fuellePlaetze(w.zauber) } : {})
+    ...(w.zauber ? { zauber: fuellePlaetze(w.zauber) } : {}),
+    ...(w.tiergestalt ? { tiergestalt: { ...w.tiergestalt, verbraucht: 0 } } : {})
   };
 }
 
@@ -355,7 +369,7 @@ export function kurzeRast(
   // Paktmagie: die Plaetze kommen auch nach einer kurzen Rast zurueck.
   const zauber = w.zauber?.kurzeRast ? fuellePlaetze(w.zauber) : w.zauber;
   const geheilt = wendeBetragAn(
-    { ...w, trefferwuerfel, ressourcen: fuelleRessourcen(w.ressourcen, 'kurz'), ...(zauber ? { zauber } : {}) },
+    rasteTiergestalt({ ...w, trefferwuerfel, ressourcen: fuelleRessourcen(w.ressourcen, 'kurz'), ...(zauber ? { zauber } : {}) }, 'kurz'),
     summe
   );
   return { werte: geheilt, wuerfe };
@@ -385,8 +399,16 @@ export function bereinige(roh: unknown, id: string): Bogen {
   const d = (r.design && typeof r.design === 'object' ? r.design : null) as Record<string, unknown> | null;
   const kennwort = (x: unknown) => (typeof x === 'string' && /^[a-z0-9-]{1,30}$/.test(x) ? x : '');
   const design: Design | null = d ? { farbe: kennwort(d.farbe), papier: kennwort(d.papier), schrift: kennwort(d.schrift) } : null;
+  const bl = (r.bild && typeof r.bild === 'object' ? r.bild : null) as Record<string, unknown> | null;
+  const bild =
+    bl && typeof bl.daten === 'string' && bl.daten.length <= BILD_HOECHSTENS && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(bl.daten)
+      ? { daten: bl.daten, rahmen: (RAHMEN as readonly string[]).includes(String(bl.rahmen)) ? (bl.rahmen as Rahmen) : 'kreis' }
+      : null;
   const sn = (r.storyNotiz && typeof r.storyNotiz === 'object' ? r.storyNotiz : null) as Record<string, unknown> | null;
-  const story = sn && typeof sn.kennung === 'string' && sn.kennung ? { kennung: sn.kennung.slice(0, 200), titel: text(sn.titel, 200) } : null;
+  const story =
+    sn && typeof sn.kennung === 'string' && sn.kennung
+      ? { kennung: sn.kennung.slice(0, 200), titel: text(sn.titel, 200), ...(sn.sync === true ? { sync: true } : {}) }
+      : null;
   const bogen: Bogen = {
     ...basis,
     muenzen: {
@@ -404,6 +426,7 @@ export function bereinige(roh: unknown, id: string): Bogen {
     }),
     notizen: text(r.notizen, 100_000),
     ...(design ? { design } : {}),
+    ...(bild ? { bild } : {}),
     ...(story ? { storyNotiz: story } : {}),
     fassung: zahl(r.fassung, 0, 0),
     geaendert: text(r.geaendert, 40)
@@ -470,6 +493,7 @@ export function bereinige(roh: unknown, id: string): Bogen {
         })
       : [],
     ...(bereinigeZauberei(w.zauber) ? { zauber: bereinigeZauberei(w.zauber) } : {}),
+    ...(bereinigeTiergestalt(w.tiergestalt) ? { tiergestalt: bereinigeTiergestalt(w.tiergestalt) } : {}),
     ep: zahl(w.ep, 0, 0, 10_000_000),
     gesinnung: text(w.gesinnung, 60),
     groesse: text(w.groesse, 40),

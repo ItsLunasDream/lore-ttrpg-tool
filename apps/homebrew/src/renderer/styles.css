@@ -1,0 +1,787 @@
+/*
+ * Aussehen des Homebrew Creators (Grundlage wie im Magic Item Generator).
+ *
+ * Die Farben kommen aus dem Thema der Huelle (`--f-*`, siehe
+ * packages/farben). Die Rueckfallwerte hier gelten nur, wenn das Werkzeug
+ * einmal ohne Huelle laeuft — fest eingetragene Farben daneben waeren
+ * genau der Fehler, der die hellen Themen unlesbar gemacht hat.
+ */
+
+:root {
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --rand: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --radius: 10px;
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.rahmen {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+}
+
+.kopf h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.kopf p {
+  margin: 4px 0 18px;
+  color: var(--text-leise);
+}
+
+.leiste {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.leiste__luecke {
+  flex: 1;
+}
+
+.leiste__suche {
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+
+.knopf {
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.knopf:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
+}
+
+.knopf:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  /* Der Grund des Themas steht immer im Gegensatz zur Betonung — auf einem
+     hellen Thema hell, auf einem dunklen dunkel. */
+  color: var(--grund);
+  font-weight: 600;
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.karte {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.karte--schmal {
+  max-width: 460px;
+}
+
+.karte h2,
+.karte h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.feld {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.feld__name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.feld__eingabe,
+.feld__wahl,
+.feld__flaeche {
+  width: 100%;
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+}
+
+.feld__wahl {
+  width: auto;
+}
+
+.feld__flaeche {
+  line-height: 1.5;
+  /* So hoch wie der Text, ohne Ziehen von Hand (Rueckmeldung). */
+  field-sizing: content;
+  min-height: 2.6em;
+  resize: none;
+  overflow: hidden;
+}
+
+.anzahl {
+  color: var(--text-leise);
+  margin: 0 0 10px;
+}
+
+.hinweis {
+  color: var(--text-leise);
+  line-height: 1.5;
+}
+
+.hinweis--klein {
+  font-size: 12px;
+  margin-top: -8px;
+}
+
+.meldung {
+  color: var(--betont);
+}
+
+.fehler {
+  color: var(--gefahr);
+}
+
+.kacheln {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.kacheln li {
+  position: relative;
+}
+
+.gegenstandskachel {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+}
+
+.gegenstandskachel:hover {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.gegenstandskachel__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.gegenstandskachel__zahl {
+  font-size: 12px;
+  color: var(--betont);
+}
+
+/* Die Gegner darunter: eine Zeile, der Rest wird abgeschnitten. */
+.gegenstandskachel__unten {
+  font-size: 12px;
+  color: var(--text-leise);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Der Loeschknopf erscheint erst beim Darueberfahren.
+ *
+ * Immer sichtbar waere er ein Angebot, das niemand braucht — und einer, der
+ * neben jedem Namen steht, wird irgendwann versehentlich getroffen.
+ */
+.gegenstandskachel__weg {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--lasur);
+  color: var(--text-leise);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.kacheln li:hover .gegenstandskachel__weg,
+.gegenstandskachel__weg:focus-visible {
+  opacity: 1;
+}
+
+.gegenstandskachel__weg:hover {
+  background: var(--gefahr);
+  color: #fff;
+}
+
+/* ==========================================================================
+   Aufklappbare Abschnitte
+   ========================================================================== */
+
+.klappe {
+  margin-top: 18px;
+}
+
+.klappe__kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rand);
+  color: var(--text);
+  padding: 4px 0 6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.klappe__pfeil {
+  display: inline-block;
+  color: var(--text-leise);
+  transition: transform 120ms ease-out;
+}
+
+.klappe.is-auf .klappe__pfeil {
+  transform: rotate(90deg);
+}
+
+.klappe__titel {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.klappe__zusatz {
+  margin-left: auto;
+  color: var(--text-leise);
+  font-size: 12px;
+}
+
+.klappe__inhalt {
+  padding-top: 10px;
+}
+
+/* ==========================================================================
+   Gegenstaende
+   ========================================================================== */
+
+.gegenstandskachel {
+  border-left: 4px solid var(--marke, var(--rand));
+}
+
+.gegenstandskachel__zeichen {
+  font-size: 22px;
+  color: var(--marke, var(--text-leise));
+}
+
+.seltenheit {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--marke, var(--text-leise));
+}
+
+.erzeuger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1px dashed var(--rand);
+  border-radius: var(--radius);
+}
+
+.wirkungsliste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.wirkungsliste li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.wirkungsliste textarea {
+  flex: 1;
+}
+
+.kopfzeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.kopfzeile .feld {
+  flex: 1 1 180px;
+}
+
+.wert {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-leise);
+}
+
+.fluch textarea:not(:placeholder-shown) {
+  border-color: color-mix(in srgb, var(--gefahr) 60%, var(--rand));
+}
+
+.anpassen {
+  margin: -4px 0 14px;
+}
+
+
+/* ---------- Bewegung (packages/motion) ----------
+ * Knoepfe und Felder reagieren weich, Kacheln kommen gestaffelt herein,
+ * eine Karte blendet beim Oeffnen ein. Bei weniger Bewegung bleibt nur das
+ * Einblenden (siehe motion.css).
+ */
+.knopf,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    color var(--motion-feedback) var(--motion-ease-standard),
+    box-shadow var(--motion-feedback) var(--motion-ease-standard),
+    transform var(--motion-feedback) var(--motion-ease-standard);
+}
+
+.knopf:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.karte {
+  animation: motion-erscheinen var(--motion-state) var(--motion-ease-enter) backwards;
+}
+
+.gegenstandskachel {
+  transition:
+    background-color var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    box-shadow var(--motion-state) var(--motion-ease-standard),
+    transform var(--motion-state) var(--motion-ease-standard);
+}
+
+.gegenstandskachel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.kacheln > li {
+  animation: motion-eintritt var(--motion-place) var(--motion-ease-enter) backwards;
+}
+
+.kacheln > li:nth-child(2) {
+  animation-delay: 25ms;
+}
+.kacheln > li:nth-child(3) {
+  animation-delay: 50ms;
+}
+.kacheln > li:nth-child(4) {
+  animation-delay: 75ms;
+}
+.kacheln > li:nth-child(5) {
+  animation-delay: 100ms;
+}
+.kacheln > li:nth-child(6) {
+  animation-delay: 125ms;
+}
+.kacheln > li:nth-child(7) {
+  animation-delay: 150ms;
+}
+.kacheln > li:nth-child(8) {
+  animation-delay: 175ms;
+}
+.kacheln > li:nth-child(9) {
+  animation-delay: 200ms;
+}
+.kacheln > li:nth-child(10) {
+  animation-delay: 225ms;
+}
+.kacheln > li:nth-child(11) {
+  animation-delay: 250ms;
+}
+.kacheln > li:nth-child(12) {
+  animation-delay: 275ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gegenstandskachel:hover {
+    transform: none;
+  }
+}
+
+/* Neu wuerfeln und Entfernen neben jeder Wirkung, untereinander. */
+/* Wuerfeln, KI und Loeschen nebeneinander rechts neben dem Feld. */
+.zeilenknoepfe {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.knopfreihe--neu {
+  align-items: center;
+}
+
+.knopfreihe__titel {
+  font-size: 13px;
+  color: var(--text-leise);
+  margin-right: 2px;
+}
+
+/* Abstand zu den Knoepfen der Wirkungen darueber. */
+.fluch__titel {
+  margin-top: 28px;
+}
+
+.fluch textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feld__name--mitknopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.knopf--klein {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.erzeuger__wunsch {
+  width: 100%;
+  margin: -4px 0 12px;
+}
+
+/* Was die Pruefung an einem Vorschlag der KI gezogen hat. */
+.kiHinweis {
+  border: 1px solid var(--rand);
+  border-left: 3px solid var(--betont, #7aa2f7);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.kiHinweis ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.erzeuger__etikett {
+  color: var(--text-leise);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+.feld__eingabe--kurz { width: 110px; }
+
+/* ==========================================================================
+   Homebrew Creator
+   ========================================================================== */
+
+.leiste--neu {
+  flex-wrap: wrap;
+}
+
+.leiste__titel {
+  color: var(--text-leise);
+  font-size: 13px;
+}
+
+.leiste__art {
+  color: var(--text-leise);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chips legend {
+  margin-bottom: 4px;
+}
+
+.chip {
+  padding: 3px 10px;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip--an {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.hbkachel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  background: var(--grund-hoch);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hbkachel:hover {
+  border-color: var(--betont);
+}
+
+.hbkachel__bild {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.hbkachel__zeichen {
+  width: 48px;
+  font-size: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.hbkachel__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.hbkachel__name {
+  font-weight: 600;
+}
+
+.hbkachel__kurz {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+
+.kacheln li {
+  position: relative;
+}
+
+.hbkachel__weg {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border: 0;
+  background: none;
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.bearbeiten {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .bearbeiten {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kopfteil {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.kopfteil__felder {
+  flex: 1;
+  min-width: 0;
+}
+
+.zeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.artfelder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.paar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.feld--haken {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.bildwahl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.bildwahl__rahmen {
+  width: 110px;
+  height: 110px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px dashed var(--rand);
+  border-radius: 12px;
+  background: var(--grund-tief);
+  color: var(--text-leise);
+  cursor: pointer;
+}
+
+.bildwahl__rahmen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.eichung {
+  position: sticky;
+  top: 8px;
+}
+
+.eichung h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.eichung__urteil {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.eichung__urteil--im_rahmen {
+  background: color-mix(in srgb, #4caf6a 25%, transparent);
+}
+
+.eichung__urteil--unter {
+  background: color-mix(in srgb, #4a8fe0 25%, transparent);
+}
+
+.eichung__urteil--ueber {
+  background: color-mix(in srgb, #e0a33a 30%, transparent);
+}
+
+.eichung__urteil--weit_ueber {
+  background: color-mix(in srgb, #e05a4a 35%, transparent);
+}
+
+.eichung__befunde {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+
+.befund--warnung {
+  color: #e0a33a;
+}
+
+.leise {
+  color: var(--text-leise);
+  font-size: 12px;
+}

@@ -26,6 +26,7 @@ import { useT } from '@/i18n/useT';
 import { getThumbnail } from './propThumbnail';
 import { Section } from './controls';
 import { AssetImport } from './AssetImport';
+import { alsKnopf } from '@suite/tastatur';
 
 export function PropLibrary({ rendererReady }: { rendererReady: boolean }) {
   const { t, language } = useT();
@@ -310,7 +311,7 @@ export function PropLibrary({ rendererReady }: { rendererReady: boolean }) {
       {props.length === 0 ? (
         <div className="empty">{activeGroupId ? t('propGroups.viewEmpty') : t('props.none')}</div>
       ) : (
-        <div className="prop-grid">
+        <div className="prop-grid" data-pfeile="raster">
           {props.map((def) => (
             <PropCard
               key={def.id}
@@ -418,6 +419,10 @@ function PropCard({
       className={`prop-card${active ? ' active' : ''}`}
       title={`${propName(def)}${def.tags.length ? ` · ${def.tags.map(tagLabel).join(', ')}` : ''}`}
       onClick={(e) => onPick(e.ctrlKey || e.metaKey || e.shiftKey)}
+      {...alsKnopf(() => onPick(false))}
+      data-pfeil
+      aria-label={propName(def)}
+      aria-pressed={active}
     >
       <div ref={holder} style={{ width: 46, height: 46 }} />
       <span className="label">{propName(def)}</span>

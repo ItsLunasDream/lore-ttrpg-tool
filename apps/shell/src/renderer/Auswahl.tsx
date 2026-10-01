@@ -235,12 +235,12 @@ export const Auswahl = memo(function Auswahl({ teilbar, zuletzt = LEER, gewaehlt
                   </button>
                 </header>
                 {aufgeklappt ? (
-                <ul className="auswahl__liste">
+                <ul className="auswahl__liste" data-pfeile="liste">
                   {eintraege.map((e) => {
                     const k = eintragsSchluessel(e);
                     const an = gewaehlt.has(k);
                     return (
-                      <li key={k}>
+                      <li data-pfeil key={k}>
                         <label
                           className={an ? 'auswahl__karte is-an' : 'auswahl__karte'}
                           onMouseEnter={(ev) => zeigeVorschau(e, ev.currentTarget)}

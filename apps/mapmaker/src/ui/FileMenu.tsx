@@ -649,6 +649,7 @@ export function FileMenu() {
             </button>
             {saveTarget ? <p className="menu-note">{t('file.targetIs', { name: saveTarget })}</p> : null}
             <div className="menu-sep" />
+            <p className="menu-note">{t('file.exportTitle')}</p>
             <button onClick={() => run(() => setShowExport(true))} title={t('file.imageHint')}>
               {t('file.image')}
             </button>
@@ -717,7 +718,7 @@ export function FileMenu() {
       {status ? <span className="toast">{status}</span> : null}
       {showExport ? <ExportDialog onClose={() => setShowExport(false)} /> : null}
       {showUvtt ? <UvttDialog onClose={() => setShowUvtt(false)} /> : null}
-      {showGen ? <GeneratorDialog onClose={() => setShowGen(false)} /> : null}
+      {showGen ? <GeneratorDialog onClose={() => setShowGen(false)} neueKarte={() => onNew()} /> : null}
       <SaveAsDialog
         offen={showSaveAs}
         name={doc.meta.name}

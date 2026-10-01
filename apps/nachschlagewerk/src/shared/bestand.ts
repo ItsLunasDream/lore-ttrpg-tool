@@ -26,6 +26,7 @@ import type { Hausregel } from './hausregeln';
  */
 export const ARTEN = [
   'hausregel',
+  'homebrew',
   'regel',
   'zustand',
   'aktion',
@@ -40,6 +41,7 @@ export type Art = (typeof ARTEN)[number];
 
 export const ART_NAME: Record<Art, Paar> = {
   hausregel: { de: 'Hausregel', en: 'House rule' },
+  homebrew: { de: 'Homebrew', en: 'Homebrew' },
   regel: { de: 'Regel', en: 'Rule' },
   zustand: { de: 'Zustand', en: 'Condition' },
   aktion: { de: 'Aktion', en: 'Action' },
@@ -54,6 +56,7 @@ export const ART_NAME: Record<Art, Paar> = {
 /** Die Ueberschrift einer Gruppe in der Liste: Mehrzahl. */
 export const ART_GRUPPE: Record<Art, Paar> = {
   hausregel: { de: 'Hausregeln', en: 'House rules' },
+  homebrew: { de: 'Homebrew', en: 'Homebrew' },
   regel: { de: 'Regeln', en: 'Rules' },
   zustand: { de: 'Zustände', en: 'Conditions' },
   aktion: { de: 'Aktionen', en: 'Actions' },
@@ -112,6 +115,37 @@ export function alsRegel(hausregel: Hausregel): Regel {
       .filter((absatz) => absatz.trim())
       .map((absatz) => ({ typ: 'absatz' as const, text: { de: absatz, en: absatz } })),
     verweise: hausregel.bezug ? [hausregel.bezug] : []
+  };
+}
+
+/**
+ * Ein Eintrag aus dem Homebrew Creator, wie die Huelle ihn durchreicht
+ * (docs/homebrew-creator.md). Er steht neben dem SRD, nicht darin, wie die
+ * Hausregeln; geaendert wird er im Homebrew Creator.
+ */
+export interface HomebrewEintrag {
+  readonly id: string;
+  readonly name: string;
+  /** „Homebrew · Waffe · Kriegsnahkampfwaffe · 1W8 Hieb …" je Sprache. */
+  readonly unterzeile: Paar;
+  /** Beschreibung, Wirkungen usw. je Sprache, Absatz fuer Absatz. */
+  readonly absaetze: { readonly de: readonly string[]; readonly en: readonly string[] };
+}
+
+export function homebrewAlsRegel(h: HomebrewEintrag): Regel {
+  const n = Math.max(h.absaetze.de.length, h.absaetze.en.length);
+  const bloecke: Glossarblock[] = Array.from({ length: n }, (_, i) => ({
+    typ: 'absatz' as const,
+    text: { de: h.absaetze.de[i] ?? h.absaetze.en[i] ?? '', en: h.absaetze.en[i] ?? h.absaetze.de[i] ?? '' }
+  }));
+  return {
+    id: `homebrew/${h.id}`,
+    art: 'homebrew',
+    name: { de: h.name, en: h.name },
+    unterzeile: h.unterzeile,
+    text: { de: h.absaetze.de.join('\n\n'), en: h.absaetze.en.join('\n\n') },
+    bloecke,
+    verweise: []
   };
 }
 

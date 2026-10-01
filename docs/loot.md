@@ -45,7 +45,7 @@ wurde:
 - **Story Creator:** „In den Story Creator" legt den Wurf als Notiz in der
   zuletzt benutzten Kampagne an, mit den beteiligten Tabellen darunter.
 
-- **Bestand des Magic Item Creators:** die Hülle reicht Name und Seltenheit
+- **Bestand des Magic Item Generators:** die Hülle reicht Name und Seltenheit
   der abgelegten Gegenstände durch (die Werkzeuge kennen einander nicht).
   Daraus werden schreibgeschützte Tabellen „Magische Gegenstände" und je
   vorhandener Seltenheit „Magische Gegenstände (Selten)" usw., erreichbar
@@ -139,11 +139,11 @@ voneinander ab.
 Für die Sammlung heißt das: Stufe 1 bis 3 gehen ohne SRD, Stufe 4 wartet auf
 `packages/srd/`.
 
-## Abgrenzung zum Magic Item Creator
+## Abgrenzung zum Magic Item Generator
 
 Sie überschneiden sich an genau einer Stelle, und die ist auflösbar:
 
-- Der **Magic Item Creator** *erzeugt* einen Gegenstand und legt ihn ab.
+- Der **Magic Item Generator** *erzeugt* einen Gegenstand und legt ihn ab.
 - Der **Loot Generator** *zieht* etwas — und wenn das etwas Magisches ist,
   soll er auf die abgelegten Gegenstände zeigen können, nicht einen eigenen
   erfinden. Gemeint sind nur die, die dort ausdrücklich „an den Loot
@@ -153,7 +153,7 @@ Also: ein Eintrag kann nicht nur auf eine andere Tabelle zeigen, sondern auch
 auf einen Bestand eines anderen Werkzeugs („irgendein magischer Gegenstand
 der Seltenheit *selten*"). Das ist dieselbe Form wie `packages/eintraege`,
 nur in die andere Richtung gelesen — und es ist der Grund, diese Kopplung
-erst zu bauen, wenn der Magic Item Creator steht. Bis dahin zeigt ein Eintrag
+erst zu bauen, wenn der Magic Item Generator steht. Bis dahin zeigt ein Eintrag
 auf eine eigene Tabelle, und das reicht.
 
 ## Wie es an die Sammlung andockt

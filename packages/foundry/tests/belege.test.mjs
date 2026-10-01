@@ -9,7 +9,7 @@
  *
  * Die acht `item-equipment-*`, `item-consumable-*` und `item-weapon*`-
  * Belege gehoeren noch zu keinem Export von uns: sie sind die Vorarbeit
- * fuer den Magic Item Creator (docs/magicitems.md) und stehen hier, damit
+ * fuer den Magic Item Generator (docs/magicitems.md) und stehen hier, damit
  * die Form beim Bauen belegt ist und nicht geraten wird.
  *
  * Geprueft wird die eine Eigenschaft, auf die es ankommt: **wir erfinden

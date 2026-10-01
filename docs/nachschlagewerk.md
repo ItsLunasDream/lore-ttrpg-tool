@@ -80,7 +80,7 @@ Ohne diese beiden Gründe braucht niemand diese Anwendung, und das gehört so
 gesagt, bevor jemand anfängt, mehrere hundert Seiten zu erfassen.
 
 Der zweite Nutzen ist nach innen gerichtet: dieselben Daten tragen die
-Eichung des Magic Item Creators (`docs/magicitems.md`) und die
+Eichung des Magic Item Generators (`docs/magicitems.md`) und die
 Schwierigkeitszahlen des Encounter Creators (`docs/encounter.md`). Das
 Nachschlagewerk ist die sichtbare Seite eines Bestands, den es ohnehin
 geben muss.
@@ -138,7 +138,7 @@ ein schmaler Ausschnitt:
 | **Zustände** | Das Meistgesuchte überhaupt, und kurz |
 | **Regel-Glossar** | „Was heißt nochmal Cover?" — genau dafür |
 | **Zauber** | Lang, aber ständig gebraucht |
-| **Magische Gegenstände** | Trägt zugleich die Eichung für den Magic Item Creator |
+| **Magische Gegenstände** | Trägt zugleich die Eichung für den Magic Item Generator |
 | **Ausrüstung** | Waffeneigenschaften, Reichweiten, Preise |
 
 | Draußen | Warum |
@@ -156,7 +156,7 @@ Das ist die eine Entscheidung, die jetzt fällt und später teuer wäre. Drei
 Werkzeuge brauchen denselben Bestand:
 
 - das Nachschlagewerk den Text,
-- der Magic Item Creator die Gegenstände als Eichpunkte,
+- der Magic Item Generator die Gegenstände als Eichpunkte,
 - der Encounter Creator die Schwierigkeitszahlen.
 
 Läge er in der Anwendung, die ihn zuerst braucht, hätten die anderen beiden

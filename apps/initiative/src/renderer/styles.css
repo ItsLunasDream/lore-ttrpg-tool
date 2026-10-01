@@ -1075,3 +1075,20 @@ input[type='number'] {
   font-size: 22px;
   cursor: pointer;
 }
+
+/* Ein Treffer aus der Suche (Strg+K) blinkt kurz auf. */
+.ist-gesucht {
+  outline: 2px solid var(--betont, #7aa2f7);
+  outline-offset: 2px;
+  transition: outline-color 400ms ease;
+}
+
+/*
+ * Breite Knoepfe nicht schrumpfen lassen: beim Namen einer Zeile wanderte
+ * der linke Rand dabei rund 10 px nach rechts, und wer ganz links drueckte,
+ * liess ausserhalb los — der Klick zaehlte nicht, die Zeile klappte nicht
+ * auf (Rueckmeldung).
+ */
+.zeile__name:active:not(:disabled) {
+  transform: none;
+}

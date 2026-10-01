@@ -24,6 +24,7 @@ import { SYSTEM_GRID, SYSTEM_VTT, isSystemLayer, type BlendMode, type Layer, typ
 import { useT } from '@/i18n/useT';
 import type { StringKey } from '@/i18n';
 import { Row, Section, Select, Slider } from './controls';
+import { alsKnopf } from '@suite/tastatur';
 
 const BLEND_MODES: BlendMode[] = [
   'normal',
@@ -127,7 +128,7 @@ export function LayerPanel() {
         </div>
       }
     >
-      <div className="layer-list" style={{ flexDirection: 'column' }}>
+      <div className="layer-list" data-pfeile="liste" style={{ flexDirection: 'column' }}>
         {flat.map((layer) => (
           <LayerRow
             key={layer.id}
@@ -302,6 +303,9 @@ function LayerRow({
       className={`layer${active ? ' active' : ''}${system ? ' system' : ''}`}
       style={{ paddingLeft: 6 + depth * 12, opacity: isDragging ? 0.5 : 1 }}
       onClick={onSelect}
+      {...alsKnopf(onSelect)}
+      data-pfeil
+      aria-pressed={active}
       draggable={!system}
       onDragStart={onDragStart}
       onDragOver={(e) => e.preventDefault()}

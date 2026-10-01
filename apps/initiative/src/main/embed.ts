@@ -115,20 +115,38 @@ const CSP = [
  * sondern der Zustand des Abends. Die Teilnehmer gehoeren als Stichworte
  * dazu — wer eine Begegnung sucht, weiss oft nur noch, wer darin vorkam.
  */
+/** Suchtreffer auf einen Teilnehmer des laufenden Kampfs statt auf eine Begegnung. */
+export const KAMPF_PRAEFIX = 'kampf:';
+
 export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<SuchEintrag[]> {
   try {
     // `datenordner` ist die Wurzel der Huelle, nicht der Ordner dieses
     // Werkzeugs: jedes Werkzeug haengt seinen eigenen Unterordner an (siehe
     // `datenordner(id)` in der Huelle). Ohne das `initiative` hier laese die
     // Ablage in der Wurzel — und faende stumm nichts.
-    const begegnungen = await new Ablage(path.join(datenordner, 'initiative')).listeBegegnungen();
-    return begegnungen.map((begegnung) => ({
+    const ablage = new Ablage(path.join(datenordner, 'initiative'));
+    const begegnungen = await ablage.listeBegegnungen();
+    const heraus: SuchEintrag[] = begegnungen.map((begegnung) => ({
       werkzeug: 'initiative',
       kennung: begegnung.id,
       name: begegnung.name,
       art: sprache === 'de' ? 'Begegnung' : 'Encounter',
       stichworte: begegnung.teilnehmer.map((teilnehmer) => teilnehmer.name).join(' ')
     }));
+    // Wer gerade im Kampf steht, ist einzeln zu finden (Rueckmeldung): der
+    // Treffer springt im Tracker zu der Zeile, statt eine Begegnung zu laden.
+    const kampf = await ablage.leseKampf();
+    for (const t of kampf?.teilnehmer ?? []) {
+      if (!t.name?.trim()) continue;
+      heraus.push({
+        werkzeug: 'initiative',
+        kennung: `${KAMPF_PRAEFIX}${t.id}`,
+        name: t.name,
+        art: sprache === 'de' ? 'Im Kampf' : 'In combat',
+        stichworte: sprache === 'de' ? 'Teilnehmer Initiative Kampf' : 'participant initiative combat'
+      });
+    }
+    return heraus;
   } catch {
     return [];
   }

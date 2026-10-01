@@ -13,11 +13,13 @@ import type { Eintrag } from './verlaufTypen';
 
 interface Props {
   readonly eintraege: readonly Eintrag[];
+  /** Der Eintrag, dessen Wuerfel gerade auf dem Tisch liegen. */
+  readonly aktiv?: number | null;
   onZurueckholen(eintrag: Eintrag): void;
   onLeeren(): void;
 }
 
-export function Verlauf({ eintraege, onZurueckholen, onLeeren }: Props) {
+export function Verlauf({ eintraege, aktiv, onZurueckholen, onLeeren }: Props) {
   return (
     <section className="verlauf">
       <header className="verlauf__kopf">
@@ -35,10 +37,17 @@ export function Verlauf({ eintraege, onZurueckholen, onLeeren }: Props) {
       {eintraege.length === 0 ? (
         <p className="verlauf__leer">{t('verlauf.leer')}</p>
       ) : (
-        <ol className="verlauf__liste">
+        <ol className="verlauf__liste" data-pfeile="liste">
           {eintraege.map((eintrag) => (
-            <li key={eintrag.id}>
-              <button type="button" onClick={() => onZurueckholen(eintrag)} title={t('verlauf.holen')}>
+            <li data-pfeil key={eintrag.id}>
+              <button
+                type="button"
+                className={eintrag.id === aktiv ? 'ist-an' : ''}
+                aria-current={eintrag.id === aktiv ? 'true' : undefined}
+                data-verlauf-eintrag={eintrag.id}
+                onClick={() => onZurueckholen(eintrag)}
+                title={t('verlauf.holen')}
+              >
                 <span className="verlauf__ausdruck">{eintrag.wurf.ausdruck}</span>
                 <span className="verlauf__einzeln">{fasseZusammen(eintrag)}</span>
                 <span className="verlauf__summe">{eintrag.wurf.summe}</span>

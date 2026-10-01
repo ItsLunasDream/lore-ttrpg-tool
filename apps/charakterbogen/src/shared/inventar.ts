@@ -20,9 +20,54 @@ export interface Gegenstand {
   ausgeruestet: boolean;
   eingestimmt: boolean;
   /** Woher er kam, zum spaeteren Auffrischen. */
-  quelle?: { art: 'magicitem' | 'srd' | 'loot'; kennung: string };
-  /** Eine SRD-Waffe: ausgeruestet wird sie von selbst zum Angriff. */
-  waffe?: { id: string; magie: number; geuebt: boolean };
+  quelle?: { art: 'magicitem' | 'homebrew' | 'srd' | 'loot'; kennung: string };
+  /**
+   * Eine Waffe: ausgeruestet wird sie von selbst zum Angriff. SRD-Waffen
+   * stehen nur mit Kennung da; eine eigene aus dem Homebrew Creator bringt
+   * ihre Kampfwerte mit (`eigen`), weil der Bogen jene Sammlung nicht kennt.
+   */
+  waffe?: { id: string; magie: number; geuebt: boolean; eigen?: EigeneWaffe };
+}
+
+/** Die Kampfwerte einer eigenen Waffe, so viel wie der Bogen zum Rechnen braucht. */
+export interface EigeneWaffe {
+  kategorie: 'einfach' | 'kriegs';
+  fern: boolean;
+  /** „1d8", „2d6" oder „1". */
+  wuerfel: string;
+  vielseitig: string | null;
+  /** Schadensart [de, en]. */
+  art: [string, string];
+  finesse: boolean;
+  /** Wie gedruckt [de, en], zum Anzeigen. */
+  eigenschaften: [string, string];
+  meisterschaft: [string, string];
+}
+
+function wuerfelOk(x: unknown): x is string {
+  return typeof x === 'string' && /^(\d{1,2}d\d{1,3}|\d{1,3})$/.test(x);
+}
+
+/** Prueft die mitgebrachten Werte einer eigenen Waffe; Unsinn → undefined. */
+export function bereinigeEigeneWaffe(roh: unknown): EigeneWaffe | undefined {
+  if (!roh || typeof roh !== 'object') return undefined;
+  const r = roh as Record<string, unknown>;
+  if (!wuerfelOk(r.wuerfel)) return undefined;
+  const paar = (x: unknown): [string, string] => {
+    const a = Array.isArray(x) ? x : [];
+    return [String(a[0] ?? '').slice(0, 200), String(a[1] ?? '').slice(0, 200)];
+  };
+  const art = Array.isArray(r.art) ? r.art : [];
+  return {
+    eigenschaften: paar(r.eigenschaften),
+    meisterschaft: paar(r.meisterschaft),
+    kategorie: r.kategorie === 'einfach' ? 'einfach' : 'kriegs',
+    fern: r.fern === true,
+    wuerfel: r.wuerfel,
+    vielseitig: wuerfelOk(r.vielseitig) ? r.vielseitig : null,
+    art: [String(art[0] ?? '').slice(0, 30), String(art[1] ?? '').slice(0, 30)],
+    finesse: r.finesse === true
+  };
 }
 
 export const MUENZARTEN = ['pm', 'gm', 'em', 'sm', 'km'] as const;
@@ -192,13 +237,18 @@ export function bereinigeGegenstaende(roh: unknown): Gegenstand[] {
     if (!name.trim()) return [];
     const q = r.quelle && typeof r.quelle === 'object' ? (r.quelle as Record<string, unknown>) : null;
     const quelle =
-      q && ['magicitem', 'srd', 'loot'].includes(q.art as string) && typeof q.kennung === 'string'
-        ? { art: q.art as 'magicitem' | 'srd' | 'loot', kennung: q.kennung.slice(0, 120) }
+      q && ['magicitem', 'homebrew', 'srd', 'loot'].includes(q.art as string) && typeof q.kennung === 'string'
+        ? { art: q.art as 'magicitem' | 'homebrew' | 'srd' | 'loot', kennung: q.kennung.slice(0, 120) }
         : undefined;
     const w = r.waffe && typeof r.waffe === 'object' ? (r.waffe as Record<string, unknown>) : null;
     const waffe =
       w && typeof w.id === 'string' && /^[a-z0-9-]{1,40}$/.test(w.id)
-        ? { id: w.id, magie: Math.max(0, Math.min(3, Math.round(Number(w.magie) || 0))), geuebt: w.geuebt !== false }
+        ? {
+            id: w.id,
+            magie: Math.max(0, Math.min(3, Math.round(Number(w.magie) || 0))),
+            geuebt: w.geuebt !== false,
+            ...(bereinigeEigeneWaffe(w.eigen) ? { eigen: bereinigeEigeneWaffe(w.eigen) as EigeneWaffe } : {})
+          }
         : undefined;
     return [
       {

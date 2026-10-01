@@ -1,5 +1,5 @@
 /**
- * Die Bruecke des Magic Item Creators: Ablage, Sprache und die Spruenge aus
+ * Die Bruecke des Magic Item Generators: Ablage, Sprache und die Spruenge aus
  * der Suche der Huelle. Der Erzeuger laeuft in der Oberflaeche selbst.
  */
 import { contextBridge, ipcRenderer } from 'electron';

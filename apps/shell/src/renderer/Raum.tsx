@@ -213,9 +213,9 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         {raeume.length === 0 ? (
           <p className="einst__satz">{t('room.noneFound')}</p>
         ) : (
-          <ul className="austausch__liste">
+          <ul className="austausch__liste" data-pfeile="liste">
             {raeume.map((r) => (
-              <li key={`${r.adresse}:${r.port}`} className="austausch__zeile">
+              <li data-pfeil key={`${r.adresse}:${r.port}`} className="austausch__zeile">
                 <span className="austausch__name">{r.raum}</span>
                 <span className="austausch__art">
                   {r.gastgeber}
@@ -264,15 +264,8 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             ))}
           </ul>
         )}
+        <h3 className="raum__kopf">{t('room.direct')}</h3>
         <div className="raum__reihe">
-          <input
-            className="suche__feld raum__eingabe"
-            type="password"
-            data-beitritt-passwort
-            value={beitrittPasswort}
-            placeholder={t('room.password')}
-            onChange={(e) => setBeitrittPasswort(e.target.value)}
-          />
           <input
             className="suche__feld raum__eingabe"
             data-adresse
@@ -280,6 +273,17 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             placeholder={t('room.address')}
             title={t('room.addressHint', { port: String(RAUM_INTERNETPORT) })}
             onChange={(e) => setAdresse(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && ziel) beitreten(ziel.host, ziel.port);
+            }}
+          />
+          <input
+            className="suche__feld raum__eingabe"
+            type="password"
+            data-beitritt-passwort
+            value={beitrittPasswort}
+            placeholder={t('room.password')}
+            onChange={(e) => setBeitrittPasswort(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && ziel) beitreten(ziel.host, ziel.port);
             }}
@@ -369,6 +373,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           )}
         </div>
         {internet && <p className="einst__satz raum__warnung">{t('room.internetHint')}</p>}
+        {internet && <HostingAnleitung t={t} />}
         {eigenerFehler && (
           <p className="einst__satz austausch__fehler" data-raum-eroeffnen-fehler>
             {eigenerFehler}
@@ -384,9 +389,9 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           {gespeicherte.length === 0 ? (
             <p className="einst__satz">{t('room.savedEmpty')}</p>
           ) : (
-            <ul className="austausch__liste">
+            <ul className="austausch__liste" data-pfeile="liste">
               {gespeicherte.map((r) => (
-                <li key={r.id} className="austausch__zeile" data-gespeichert={r.name}>
+                <li data-pfeil key={r.id} className="austausch__zeile" data-gespeichert={r.name}>
                   {umbenennenId === r.id ? (
                     <input
                       className="suche__feld raum__eingabe"
@@ -723,7 +728,7 @@ function Adressen({
     .join('\n');
   return (
     <div className="raum__adressen" data-raum-adressen>
-      <ul className="austausch__liste">
+      <ul className="austausch__liste" data-pfeile="liste">
         {lan.map((a) => zeile(t('room.addrLan'), alsAdresse(a, port), 'lan'))}
         {zustand.internet && zustand.ipv6.map((a) => zeile('IPv6', alsAdresse(a, port), 'ipv6'))}
         {zustand.internet && v4 && zeile(t('room.addrPublic'), alsAdresse(v4, port), 'ipv4')}
@@ -750,9 +755,24 @@ function Adressen({
             {t('room.forwardHint', { port: String(port), lan: lan[0] })}
           </p>
           {zustand.ipv6.length === 0 && <p className="einst__satz raum__warnung">{t('room.noIpv6')}</p>}
+          <HostingAnleitung t={t} />
         </>
       )}
     </div>
+  );
+}
+
+/** Kurzanleitung zum Hosten uebers Internet (Rueckmeldung); ausfuehrlich in docs/raum-online.md. */
+function HostingAnleitung({ t }: { t: (key: MessageKey, params?: MessageParams) => string }) {
+  return (
+    <details className="raum__anleitung" data-raum-anleitung>
+      <summary>{t('room.guide')}</summary>
+      <ol>
+        {(['room.guide.1', 'room.guide.2', 'room.guide.3', 'room.guide.4', 'room.guide.5', 'room.guide.6'] as const).map((k) => (
+          <li key={k}>{t(k)}</li>
+        ))}
+      </ol>
+    </details>
   );
 }
 

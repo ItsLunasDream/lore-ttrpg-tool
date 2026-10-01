@@ -60,7 +60,7 @@ import {
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
-  setzeSuchtaste,
+  setzeSuchtaste, setzeFokustaste,
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
@@ -447,6 +447,21 @@ function zeigeInStory(kennung: string): void {
   huelle.webContents.send('app:oeffne', 'backstory');
 }
 
+/** Ein Eintrag, den das Nachschlagewerk nach dem Laden zeigen soll (vom Charakterbogen). */
+let wartendesNachschlagen: string | null = null;
+
+/** Holt das Nachschlagewerk nach vorn und zeigt dort einen Eintrag oder Filter (`gestalten?…`). */
+function zeigeImNachschlagewerk(kennung: string): void {
+  if (!huelle) return;
+  const montiert = offen.get('nachschlagewerk');
+  if (aktiveApp === 'nachschlagewerk' && montiert?.istGeladen()) {
+    void montiert.zeigeEintrag?.(kennung);
+  } else {
+    wartendesNachschlagen = kennung;
+  }
+  huelle.webContents.send('app:oeffne', 'nachschlagewerk');
+}
+
 /** Figuren aus dem Charakterbogen, die auf einen noch nicht geladenen Tracker warten. */
 let wartendeFiguren: readonly unknown[] | null = null;
 
@@ -566,6 +581,7 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     inDenTracker: oeffneBegegnungImTracker,
     figurenAnTracker,
     zeigeInStory,
+    zeigeImNachschlagewerk,
     bogenTp: (kennung, hp, temp) =>
       void montiereImHintergrund('charakterbogen')
         .then(() => offen.get('charakterbogen')?.setzeTp?.(kennung, hp, temp))
@@ -1568,6 +1584,13 @@ function registriereKanaele(): void {
       void montiert.zeigeEintrag(kennung);
     }
 
+    // Ein Filter aus dem Charakterbogen fuer das Nachschlagewerk.
+    if (id === 'nachschlagewerk' && wartendesNachschlagen && montiert.zeigeEintrag) {
+      const kennung = wartendesNachschlagen;
+      wartendesNachschlagen = null;
+      void montiert.zeigeEintrag(kennung);
+    }
+
     // Figuren aus dem Charakterbogen, die auf den Tracker warten.
     if (wartendeFiguren && montiert.figuren) {
       montiert.figuren(wartendeFiguren, true);
@@ -1683,6 +1706,17 @@ function registriereKanaele(): void {
   const oeffneSuche = () => huelle?.webContents.send('suche:oeffnen');
   setzeSuchtaste(oeffneSuche);
   ipcMain.on('suche:taste', oeffneSuche);
+
+  // F6 wechselt zwischen Hülle und Werkzeug (Bedienung ohne Maus): aus dem
+  // Werkzeug in die Schiene, aus der Hülle zurück ins Werkzeug.
+  setzeFokustaste(() => {
+    huelle?.webContents.focus();
+    huelle?.webContents.send('fokus:huelle');
+  });
+  ipcMain.on('fokus:werkzeug', () => {
+    const montiert = aktiveApp ? offen.get(aktiveApp) : undefined;
+    montiert?.sicht.webContents.focus();
+  });
 
   ipcMain.on('bewegung:reduziert', (_event, reduziert: boolean) => {
     wenigerBewegung = Boolean(reduziert);

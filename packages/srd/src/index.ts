@@ -4,7 +4,7 @@
  * WARUM EIN EIGENES PAKET
  * =======================
  * Drei Werkzeuge brauchen denselben Bestand: das Nachschlagewerk den
- * Text, der Magic Item Creator die Gegenstaende als Eichpunkte, der
+ * Text, der Magic Item Generator die Gegenstaende als Eichpunkte, der
  * Encounter Creator die Schwierigkeitszahlen. Laege er in der
  * Anwendung, die ihn zuerst braucht, haetten die anderen beiden
  * entweder eine Kopie oder eine Abhaengigkeit auf eine Anwendung — und

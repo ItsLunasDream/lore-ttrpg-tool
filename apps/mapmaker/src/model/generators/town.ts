@@ -20,7 +20,6 @@ import { Rng } from '../rng';
 import { strokeBand } from '../geometry';
 import {
   centroid,
-  cityPlan,
   clipHalf,
   convexHull,
   imPoly,
@@ -31,6 +30,7 @@ import {
 } from './cityPlan';
 import { CellGrid } from './grid';
 import { assignBuildingKinds, HOUSE_KIND } from './buildingKinds';
+import { baueNetz, type Pkt, type Strassenzug } from './stadtNetz';
 import { emptyResult, type BaseOptions, type GeneratedMap } from './types';
 
 /**
@@ -40,8 +40,8 @@ import { emptyResult, type BaseOptions, type GeneratedMap } from './types';
  * mit sternförmigen Hauptstraßen, `river` das Dorf an einem Ufer. Mehr Formen
  * wären schnell beliebig; diese drei decken ab, was auf einer Karte vorkommt.
  */
-export type TownShape = 'grid' | 'round' | 'river';
-export const TOWN_SHAPES: TownShape[] = ['grid', 'round', 'river'];
+export type TownShape = 'grid' | 'round' | 'river' | 'harbor' | 'hill';
+export const TOWN_SHAPES: TownShape[] = ['grid', 'round', 'river', 'harbor', 'hill'];
 
 /** Womit der Rand um die Siedlung gefüllt wird. */
 export type TownSurround = 'none' | 'meadow' | 'forest' | 'water';
@@ -68,6 +68,12 @@ export interface TownOptions extends BaseOptions {
    */
   margin: number;
   surround: TownSurround;
+  /**
+   * Übersichtskarte der ganzen Stadt (Rückmeldung C): kleine Häuser, schmale
+   * Gassen, keine VTT-Wände je Haus — bei Hunderten Häusern wären das
+   * Tausende Wände, die auf einer Übersicht niemand braucht.
+   */
+  uebersicht?: boolean;
 }
 
 export function defaultTownOptions(): Omit<TownOptions, 'seed' | 'tileSize'> {
@@ -98,9 +104,10 @@ export function defaultTownOptions(): Omit<TownOptions, 'seed' | 'tileSize'> {
  * Gassen für eine Stadt, große Höfe und breite Wege für ein Dorf. Gesucht wird
  * binär, weil die Zahl mit dem Maßstab fällt; fünf Anläufe genügen.
  */
-const MASSSTAEBE = Array.from({ length: 22 }, (_, i) => 0.55 * 1.11 ** i);
+const MASSSTAEBE = Array.from({ length: 24 }, (_, i) => 0.45 * 1.11 ** i);
 
 export function generateTown(opts: TownOptions): GeneratedMap {
+  if (opts.uebersicht) return ortBauen(opts, 1, Infinity).map;
   const ziel = Math.max(1, opts.buildingCount);
   const versuche = new Map<number, { map: GeneratedMap; gebaut: number }>();
   const bauen = (i: number) => {
@@ -143,6 +150,21 @@ function radiusEllipse(w: number, a: number, b: number): number {
  * Wo trifft ein Strahl aus `(cx,cy)` das konvexe Polygon, und wie liegt dort
  * die Kante? Für Tore: das Tor muss *in* der Mauer liegen, nicht quer dazu.
  */
+/**
+ * Wie viele Ringgassen passen zwischen Markt und Rand? Zwischen zwei Gassen
+ * sollen zwei Häuserreihen Rücken an Rücken stehen, mehr nicht — sonst bleibt
+ * innen Land, das an keine Straße grenzt.
+ */
+function ringeFuer(teil: Poly, mitte: { x: number; y: number }, breite: number, tiefe: number, berg: boolean): number[] {
+  if (berg) return [0.3, 0.55, 0.8];
+  let summe = 0;
+  for (let i = 0; i < teil.length; i += 2) summe += Math.hypot(teil[i] - mitte.x, teil[i + 1] - mitte.y);
+  const radius = summe / (teil.length / 2);
+  const abstand = tiefe * 2.6 + breite * 0.8;
+  const n = Math.max(1, Math.round(radius / abstand) - 1);
+  return Array.from({ length: n }, (_, i) => (i + 1) / (n + 1) + 0.04);
+}
+
 function strahlAufPoly(
   poly: number[],
   cx: number,
@@ -196,14 +218,18 @@ function ortBauen(
   const ergebnis = emptyResult(opts.cols, opts.rows);
   const s = opts.tileSize;
 
-  const hausMin = Math.max(2, Math.round(opts.buildingMin * massstab));
-  const hausMax = Math.max(hausMin + 1, Math.round(opts.buildingMax * massstab));
+  const klein = !!opts.uebersicht;
+  // Halbe Felder genügen als Raster: ganze Felder ließen zwischen 2 und 3
+  // keinen Zwischenschritt, und die große Stadt fand keinen passenden Maßstab.
+  const halb = (v: number) => Math.round(v * 2) / 2;
+  const hausMin = klein ? 0.9 : Math.max(1.5, halb(opts.buildingMin * massstab));
+  const hausMax = klein ? 2.2 : Math.max(hausMin + 1, halb(opts.buildingMax * massstab));
   // Tiefer als breit sähe ein Haus aus wie ein Turm; flacher als zwei Felder
   // wäre es ein Gang.
-  const hausTiefe = Math.max(2, Math.round(((hausMin + hausMax) / 2) * 0.62));
+  const hausTiefe = klein ? 1.3 : Math.max(2, Math.round(((hausMin + hausMax) / 2) * 0.62));
   // Straßen wachsen mit, aber gedämpft: in einer Stadt aus dreihundert Häusern
   // sollen die Gassen eng sein, im Dorf der Weg trotzdem befahrbar.
-  const strassenBreite = Math.max(2, opts.streetWidth * Math.min(1.3, Math.max(0.8, massstab)));
+  const strassenBreite = klein ? 1.4 : Math.max(2, opts.streetWidth * Math.min(1.3, Math.max(0.8, massstab)));
 
   const rand = (opts.cityWall ? 3 : 1) + Math.max(0, Math.round(opts.margin));
   const flaecheW = opts.cols - rand * 2;
@@ -314,6 +340,11 @@ function ortBauen(
    * mit Spiel genug, dass das Wasser im Schnittband bleibt.
    */
   const teilflaechen: Poly[] = [];
+  const brueckenMitten: Array<[number, number]> = [];
+  /** Zusätzliche Straßenzüge vor dem Netz (der Kai der Hafenstadt). */
+  const vorgabeZuege: Strassenzug[] = [];
+  /** Richtung, in der das Meer liegt (Hafenstadt); Ausfälle zeigen davon weg. */
+  let meerRichtung: number | null = null;
 
   if (opts.shape === 'river') {
     const lauf = Math.PI / 2 + rng.range(-0.55, 0.55);
@@ -383,6 +414,7 @@ function ortBauen(
         -(mitte - halb - 1),
       );
       if (bruecke.length >= 6) {
+        brueckenMitten.push(centroid(bruecke));
         flaeche(bruecke, 0x8b8175);
         rastern(bruecke, strasse);
         // Über dem Wasser ist die Brücke begehbar.
@@ -391,144 +423,238 @@ function ortBauen(
             if (imPoly(bruecke, c + 0.5, r + 0.5, -0.6)) gesperrt.set(c, r, 0);
       }
     }
+  } else if (opts.shape === 'harbor') {
+    /**
+     * Hafenstadt: eine Seite des Ortes liegt am Wasser. Die Küste läuft
+     * leicht schräg, am Ufer entlang der Kai, von ihm aus Anleger ins
+     * Wasser. Die Häuser stehen mit der Front zum Kai.
+     */
+    const w = rng.int(0, 3) * (Math.PI / 2) + rng.range(-0.25, 0.25);
+    meerRichtung = w;
+    const nx = Math.cos(w);
+    const ny = Math.sin(w);
+    // Küstenlinie: gut ein Drittel der Ortsbreite von der Mitte zum Wasser hin.
+    const ausdehnung = Math.abs(nx) * flaecheW / 2 + Math.abs(ny) * flaecheH / 2;
+    const kueste = mx * nx + my * ny + ausdehnung * rng.range(0.25, 0.4);
+    const karte = [0, 0, opts.cols, 0, opts.cols, opts.rows, 0, opts.rows];
+    const meer = clipHalf(orient(karte), -nx, -ny, -kueste);
+    flaeche(meer, 0x3d6b7d);
+    rastern(meer, gesperrt);
+    const kaiBreite = Math.max(2, strassenBreite);
+    const land = clipHalf(outline, nx, ny, kueste - kaiBreite);
+    if (polyArea(land) > 4) teilflaechen.push(land);
+    // Kai als Straßenzug an der Küste entlang.
+    const tx = -ny;
+    const ty = nx;
+    const kaiLinie = kueste - kaiBreite / 2;
+    const laengs = Math.abs(tx) * opts.cols + Math.abs(ty) * opts.rows;
+    const laengsMitte = mx * tx + my * ty;
+    const kai: Pkt[] = [];
+    for (let t = -laengs; t <= laengs; t += 2) {
+      // Punkt auf der Geraden n·p = kaiLinie, entlang der Küste verschoben.
+      const x = nx * kaiLinie + tx * (laengsMitte + t);
+      const y = ny * kaiLinie + ty * (laengsMitte + t);
+      if (x >= -1 && y >= -1 && x <= opts.cols + 1 && y <= opts.rows + 1) kai.push({ x, y });
+    }
+    if (kai.length >= 2) vorgabeZuege.push({ punkte: kai, breite: kaiBreite, art: 'kai' });
+    // Anleger: Holzstege ins Wasser, mit Booten und Poller.
+    const anleger = rng.int(2, 4);
+    for (let i = 0; i < anleger && kai.length > 4; i++) {
+      const p = kai[Math.floor(((i + 0.5 + rng.range(-0.2, 0.2)) / anleger) * (kai.length - 1))];
+      const laenge = rng.range(4, 8);
+      const b = 1.4;
+      const steg = [
+        p.x + tx * -b / 2, p.y + ty * -b / 2,
+        p.x + tx * b / 2, p.y + ty * b / 2,
+        p.x + tx * b / 2 + nx * laenge, p.y + ty * b / 2 + ny * laenge,
+        p.x + tx * -b / 2 + nx * laenge, p.y + ty * -b / 2 + ny * laenge,
+      ];
+      flaeche(steg, 0x7a5c3a);
+      rastern(steg, strasse);
+      for (let r = 0; r < opts.rows; r++)
+        for (let c = 0; c < opts.cols; c++) if (imPoly(steg, c + 0.5, r + 0.5, -0.6)) gesperrt.set(c, r, 0);
+      if (opts.decorate) {
+        const seite = rng.bool() ? 1 : -1;
+        ergebnis.props.push({ propId: 'rowboat', x: (p.x + tx * seite * 1.6 + nx * laenge * 0.6) * s, y: (p.y + ty * seite * 1.6 + ny * laenge * 0.6) * s, scale: rng.range(0.9, 1.1), rotation: w });
+        ergebnis.props.push({ propId: 'mooring_post', x: (p.x + tx * seite * 0.6 + nx * laenge * 0.9) * s, y: (p.y + ty * seite * 0.6 + ny * laenge * 0.9) * s, scale: 0.8, rotation: 0 });
+        for (const id of ['crate', 'barrel', 'fishing_net']) {
+          if (rng.bool(0.6)) ergebnis.props.push({ propId: id, x: (p.x + tx * rng.range(-2, 2) - nx * 0.6) * s, y: (p.y + ty * rng.range(-2, 2) - ny * 0.6) * s, scale: rng.range(0.7, 0.9), rotation: rng.range(0, Math.PI) });
+        }
+      }
+    }
   } else {
     teilflaechen.push(outline);
   }
 
-  // --- Grundriss -----------------------------------------------------------
-  /** Steht ein Polygon auf trockenem Bauland? */
-  const erlaubt = (poly: Poly) => {
-    for (let i = 0; i < poly.length; i += 2) {
-      if (gesperrt.filled(Math.floor(poly[i]), Math.floor(poly[i + 1]))) return false;
-    }
-    const [cx, cy] = centroid(poly);
-    return !gesperrt.filled(Math.floor(cx), Math.floor(cy));
-  };
-
-  const planOpts = {
-    streetWidth: strassenBreite,
-    buildingMin: hausMin,
-    buildingMax: hausMax,
-    buildingDepth: hausTiefe,
-    plazaChance: 0.07,
-    wildChance: opts.shape === 'round' ? 0.16 : 0.24,
-    // Sternförmige Hauptstraßen machen die runde Stadt aus; anderswo kommen sie
-    // gelegentlich auch vor — genau das nimmt dem Raster die Regelmäßigkeit.
-    radialCuts: opts.shape === 'round' ? rng.int(2, 4) : rng.bool(0.3) ? 1 : 0,
-    maxDepth: 12,
-    erlaubt,
-  };
-
-  const strassen: Poly[] = [];
-  const plaetze: Poly[] = [];
-  const bloecke: Poly[] = [];
-  let haeuser: CityHouse[] = [];
-  teilflaechen.forEach((teil, i) => {
-    const plan = cityPlan(teil, opts.seed + i * 5407, planOpts);
-    strassen.push(...plan.streets);
-    for (const b of plan.blocks) {
-      bloecke.push(b.poly);
-      if (b.plaza) plaetze.push(b.poly);
-    }
-    haeuser.push(...plan.houses);
-  });
-
-  // --- Marktplatz ----------------------------------------------------------
   /**
-   * Der Markt ist ein Block, kein aufgemaltes Rechteck.
-   *
-   * Genommen wird der mittigste Block, der groß genug für einen Platz ist; die
-   * Häuser darin fallen weg. Ein eigenes Rechteck darüberzulegen ging schief —
-   * es passte zu keiner Straße und schnitt quer durch die Bebauung.
+   * Bergstadt: der Ort liegt auf einem Hügel. Hellere Ringe deuten die Höhe
+   * an, oben steht eine Burg mit Hof; die Gassen laufen in Ringen um den Berg.
    */
-  let markt: Poly | null = null;
-  if (opts.market) {
-    let beste = Infinity;
-    for (const b of bloecke) {
-      if (polyArea(b) < hausMax * hausMax * 0.8) continue;
-      const [cx, cy] = centroid(b);
-      const d = (cx - mx) ** 2 + (cy - my) ** 2;
-      if (d < beste) {
-        beste = d;
-        markt = b;
+  if (opts.shape === 'hill') {
+    for (const [f, farbe] of [[0.72, 0x756a59], [0.46, 0x7e735f], [0.22, 0x877b66]] as Array<[number, number]>) {
+      const ring: number[] = [];
+      for (let i = 0; i < 24; i++) {
+        const w = (i / 24) * Math.PI * 2;
+        const rr = f * rng.range(0.94, 1.04);
+        ring.push(mx + Math.cos(w) * (flaecheW / 2) * rr, my + Math.sin(w) * (flaecheH / 2) * rr);
       }
-    }
-    if (markt) {
-      const m = markt;
-      if (!plaetze.includes(m)) plaetze.push(m);
-      haeuser = haeuser.filter((h) => {
-        const [cx, cy] = centroid(h.points);
-        return !imPoly(m, cx, cy, 0);
-      });
+      flaeche(ring, farbe);
     }
   }
+
+  // --- Grundriss -----------------------------------------------------------
+
+  // --- Straßennetz und Häuser (stadtNetz.ts) --------------------------------
+  const zuege: Strassenzug[] = [...vorgabeZuege];
+  const plaetze: Poly[] = [];
+  let markt: Poly | null = null;
+  let haeuser: CityHouse[] = [];
+  let marktHaeuser: CityHouse[] = [];
+  const ausfaelle: number[] = [];
+  let ortsMitte: Pkt = { x: mx, y: my };
+  const frei = (x: number, y: number) =>
+    x >= 0 && y >= 0 && x < opts.cols && y < opts.rows && !gesperrt.filled(Math.floor(x), Math.floor(y));
+
+  // Der größte Teil bekommt den Markt.
+  const groesster = teilflaechen.reduce((a, b) => (polyArea(b) > polyArea(a) ? b : a), teilflaechen[0] ?? outline);
+  teilflaechen.forEach((teil) => {
+    const [cx, cy] = centroid(teil);
+    // Die Mitte zur Kartenmitte hin, sonst liegt der Markt am Ufer.
+    let mitte: Pkt = teil === groesster ? { x: (cx * 2 + mx) / 3, y: (cy * 2 + my) / 3 } : { x: cx, y: cy };
+    // Der Markt der Hafenstadt liegt zum Wasser hin, der Handel kommt übers Meer.
+    if (meerRichtung !== null) {
+      const zumKai = Math.max(flaecheW, flaecheH) * 0.12;
+      mitte = { x: mitte.x + Math.cos(meerRichtung) * zumKai, y: mitte.y + Math.sin(meerRichtung) * zumKai };
+    }
+    if (teil === groesster) ortsMitte = mitte;
+    const anzahl = opts.shape === 'hill' ? rng.int(2, 3) : teilflaechen.length > 1 ? rng.int(2, 3) : rng.int(3, 5);
+    const basis = rng.range(0, Math.PI * 2);
+    const richtungen: number[] = [];
+    for (let i = 0; i < anzahl; i++) {
+      let w = basis + (i / anzahl) * Math.PI * 2 + rng.range(-0.35, 0.35);
+      // In der Hafenstadt führen die Ausfälle landeinwärts.
+      if (meerRichtung !== null) {
+        const gegen = meerRichtung + Math.PI;
+        w = gegen + ((i + 0.5) / anzahl - 0.5) * Math.PI * 1.3;
+      }
+      richtungen.push(w);
+    }
+    const ziele: Pkt[] = brueckenMitten
+      .filter(([bx, by]) => Math.hypot(bx - cx, by - cy) < Math.max(flaecheW, flaecheH))
+      .map(([bx, by]) => ({ x: bx, y: by }));
+    if (vorgabeZuege.length > 0) {
+      // Vom Markt eine oder zwei Straßen hinunter zum Kai.
+      const kai = vorgabeZuege[0].punkte;
+      for (let i = 0; i < rng.int(1, 2); i++) ziele.push(kai[Math.floor(kai.length * rng.range(0.3, 0.7))]);
+    }
+    const netz = baueNetz(rng, {
+      flaeche: teil,
+      mitte,
+      ausfaelle: richtungen,
+      ziele,
+      markt: opts.market && teil === groesster,
+      hauptBreite: strassenBreite,
+      gassenBreite: Math.max(klein ? 1 : 1.6, strassenBreite * 0.7),
+      hausMin,
+      hausMax,
+      hausTiefe,
+      ringe: ringeFuer(teil, mitte, strassenBreite, hausTiefe, opts.shape === 'hill'),
+      schwung: opts.shape === 'hill' ? 1.6 : opts.shape === 'grid' ? 0.5 : 1,
+      frei,
+      cols: opts.cols,
+      rows: opts.rows,
+      vorgabe: teil === groesster ? vorgabeZuege : [],
+    });
+    zuege.push(...netz.zuege.filter((z) => !vorgabeZuege.includes(z)));
+    haeuser.push(...netz.haeuser);
+    marktHaeuser.push(...netz.amMarkt.map((i) => netz.haeuser[i]));
+    if (netz.markt) {
+      markt = netz.markt;
+      plaetze.push(netz.markt);
+    }
+    ausfaelle.push(...richtungen.map((w) => w));
+    // Ausfallstraßen vom Ortsrand bis zur Kartenkante.
+    for (const w of richtungen) {
+      let t = 0;
+      while (imPoly(teil, mitte.x + Math.cos(w) * (t + 0.5), mitte.y + Math.sin(w) * (t + 0.5), 0)) t += 0.5;
+      const rx = mitte.x + Math.cos(w) * t;
+      const ry = mitte.y + Math.sin(w) * t;
+      const [zx, zy] = strahlAufRechteck(rx, ry, Math.cos(w), Math.sin(w), 0, 0, opts.cols, opts.rows);
+      zuege.push({ punkte: [{ x: rx, y: ry }, { x: zx, y: zy }], breite: strassenBreite, art: 'haupt' });
+    }
+  });
 
   // --- Häuser auf die Zielzahl bringen -------------------------------------
   const gebaut = haeuser.length;
   if (gebaut > ziel) {
-    // Gleichmäßig ausdünnen statt hinten abschneiden: sonst fehlte dem Ort ein
-    // ganzes Viertel statt hier und da ein Haus.
-    const behalten: CityHouse[] = [];
-    let akku = 0;
-    for (const h of haeuser) {
-      akku += ziel;
-      if (akku >= gebaut) {
-        akku -= gebaut;
-        behalten.push(h);
-      }
+    // Von außen nach innen ausdünnen: ein Ort ist in der Mitte dicht und
+    // franst zum Rand hin aus. Gleichmäßiges Ausdünnen ließ überall Lücken
+    // in den Reihen. Die großen Häuser am Markt bleiben, sie tragen Kirche
+    // und Rathaus.
+    const gross = new Set(marktHaeuser);
+    const abstand = (h: CityHouse) => {
+      const [hx, hy] = centroid(h.points);
+      // Etwas Zufall, damit der Rand nicht als glatter Kreis endet.
+      return Math.hypot(hx - ortsMitte.x, hy - ortsMitte.y) * rng.range(0.9, 1.1);
+    };
+    const bewertet = haeuser.map((h) => ({ h, d: gross.has(h) ? -1 : abstand(h) }));
+    bewertet.sort((p, q) => p.d - q.d);
+    haeuser = bewertet.slice(0, ziel).map((x) => x.h);
+  }
+  // Gassen, an denen kein Haus mehr steht, fallen weg; Hauptstraßen und der
+  // Kai bleiben, sie führen irgendwohin.
+  if (haeuser.length > 0) {
+    const mitten = haeuser.map((h) => centroid(h.points));
+    const reichweite = hausTiefe * 1.6 + strassenBreite;
+    for (let i = zuege.length - 1; i >= 0; i--) {
+      const z = zuege[i];
+      if (z.art !== 'gasse') continue;
+      const genutzt = z.punkte.some((p) => mitten.some(([hx, hy]) => Math.abs(hx - p.x) < reichweite && Math.abs(hy - p.y) < reichweite));
+      if (!genutzt) zuege.splice(i, 1);
     }
-    haeuser = behalten;
   }
 
   /**
-   * Gebäudearten statt anonymer Rechtecke.
-   *
-   * Ohne Thema (kein `opts.decorate`) bleibt jedes Haus `HOUSE_KIND` ohne
-   * Möbel — derselbe Hauptschalter wie beim Dungeon: „ob überhaupt etwas
-   * hineinkommt", nicht „was".
+   * Gebäudearten statt anonymer Rechtecke. Die größten Häuser bekommen die
+   * besonderen Arten; die am Markt sind die größten.
    */
-  const arten = opts.decorate
+  const arten = opts.decorate && !klein
     ? assignBuildingKinds(
         rng,
         haeuser.map((h) => polyArea(h.points)),
       )
     : haeuser.map(() => HOUSE_KIND);
 
-  // --- Zeichnen ------------------------------------------------------------
-  for (const st of strassen) {
-    flaeche(st, 0x8b8175);
-    rastern(st, strasse);
-  }
-  for (const p of plaetze) {
-    flaeche(p, p === markt ? 0x958a7c : 0x8f857a);
-    rastern(p, strasse);
+  // Bergstadt: die Straßen enden an der Burgmauer, nicht mitten im Hof.
+  if (opts.shape === 'hill' && markt) {
+    const hof = markt as Poly;
+    for (const z of zuege) z.punkte = z.punkte.filter((p) => !imPoly(hof, p.x, p.y, 0.3));
   }
 
-  /**
-   * Ausfallstraßen dort, wo eine Straße den Ortsrand erreicht.
-   *
-   * Ohne sie endet jede Straße an der Bebauung, und ein Ort ohne Weg hinaus
-   * sieht aus wie ein Modell. Genommen werden die äußersten Straßenenden, aber
-   * nur, wenn sie weit genug auseinanderliegen.
-   */
-  const ausfaelle: number[] = [];
-  const enden: Array<{ x: number; y: number; w: number }> = [];
-  for (const st of strassen) {
-    for (let i = 0; i < st.length; i += 2) {
-      if (imPoly(outline, st[i], st[i + 1], 0.6)) continue;
-      enden.push({ x: st[i], y: st[i + 1], w: Math.atan2(st[i + 1] - my, st[i] - mx) });
-    }
+  // --- Zeichnen ------------------------------------------------------------
+  for (const p of plaetze) {
+    flaeche(p, 0x958a7c);
+    rastern(p, strasse);
   }
-  enden.sort((a, b) => Math.hypot(b.x - mx, b.y - my) - Math.hypot(a.x - mx, a.y - my));
-  for (const e of enden) {
-    if (ausfaelle.length >= 5) break;
-    const zuNah = ausfaelle.some(
-      (w) => Math.abs(((e.w - w + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 0.7,
-    );
-    if (zuNah) continue;
-    ausfaelle.push(e.w);
-    const [zx, zy] = strahlAufRechteck(mx, my, Math.cos(e.w), Math.sin(e.w), 0, 0, opts.cols, opts.rows);
-    bandMalen([e.x, e.y, zx, zy], strassenBreite, 0x8b8175, strasse);
+  for (const z of zuege) {
+    bandMalen(z.punkte.flatMap((p) => [p.x, p.y]), z.breite, z.art === 'kai' ? 0x8f8578 : 0x8b8175, strasse);
+  }
+
+  // Bergstadt: Burg mit Mauerring um den Hof oben auf dem Berg.
+  const burgHof = markt as Poly | null;
+  if (opts.shape === 'hill' && burgHof) {
+    const [bx, by] = centroid(burgHof);
+    const burg: number[] = [];
+    for (let i = 0; i < burgHof.length; i += 2) {
+      burg.push(bx + (burgHof[i] - bx) * 0.9, by + (burgHof[i + 1] - by) * 0.9);
+    }
+    ergebnis.walls.push({ points: burg.map((v) => v * s), closed: true });
+    const tor = strahlAufPoly(burg, bx, by, Math.cos(ausfaelle[0] ?? 0), Math.sin(ausfaelle[0] ?? 0));
+    if (tor) ergebnis.doors.push({ bounds: [(tor.x - tor.ex) * s, (tor.y - tor.ey) * s, (tor.x + tor.ex) * s, (tor.y + tor.ey) * s] });
+    if (opts.decorate) {
+      ergebnis.props.push({ propId: 'well', x: bx * s, y: by * s, scale: 1, rotation: 0 });
+      ergebnis.props.push({ propId: 'banner', x: (bx + 1.5) * s, y: (by - 1.2) * s, scale: 0.9, rotation: 0 });
+    }
   }
 
   /**
@@ -563,7 +689,9 @@ function ortBauen(
 
   haeuser.forEach((h, i) => {
     const art = arten[i];
-    flaeche(h.points, rng.pick([0x7a6247, 0x6f5a44, 0x83694c]));
+    // Dächer in der Übersicht, sonst der Hausboden.
+    flaeche(h.points, klein ? rng.pick([0x8c4a3a, 0x7a4636, 0x94583f, 0x6b5a4a]) : rng.pick([0x7a6247, 0x6f5a44, 0x83694c]));
+    if (klein) return;
     ergebnis.walls.push({ points: h.points.map((v) => v * s), closed: true });
     ergebnis.doors.push({
       bounds: [h.door[0] * s, h.door[1] * s, h.door[2] * s, h.door[3] * s],

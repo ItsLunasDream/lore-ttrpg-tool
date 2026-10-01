@@ -69,6 +69,7 @@ const TEXTE = {
   'tp.heilung': ['{n} geheilt', '{n} healed'],
   trefferwuerfel: ['Trefferwürfel', 'Hit Point Dice'],
   'tw.uebrig': ['übrig', 'left'],
+  'tw.kurz': ['Trefferwürfel', 'Hit dice'],
   'tw.dazu': ['+ Würfelart', '+ Die type'],
   todesrettung: ['Todesrettungswürfe', 'Death Saving Throws'],
   'todesrettung.erfolge': ['Erfolge', 'Successes'],
@@ -100,14 +101,14 @@ const TEXTE = {
   'quelle.oeffnen': ['+ Aus Quelle …', '+ From a source …'],
   'quelle.srd': ['SRD-Ausrüstung', 'SRD equipment'],
   'quelle.magie': ['SRD magisch', 'SRD magic items'],
-  'quelle.eigene': ['Eigene (Magic Item Creator)', 'Own (Magic Item Creator)'],
+  'quelle.eigene': ['Eigene (Homebrew, Magic Items)', 'Own (Homebrew, magic items)'],
   'quelle.loot': ['Loot-Tabelle', 'Loot table'],
   'quelle.suche': ['Suchen …', 'Search …'],
   'quelle.nehmen': ['Nehmen', 'Add'],
   'quelle.dazu': ['„{name}“ liegt im Inventar.', '“{name}” is in the inventory.'],
   'quelle.eigene.leer': [
-    'Noch keine eigenen Gegenstände. Im Magic Item Creator gebaute und gespeicherte stehen hier.',
-    'No own items yet. Items built and saved in the Magic Item Creator show up here.'
+    'Noch keine eigenen Gegenstände. Im Homebrew Creator oder Magic Item Generator gespeicherte stehen hier.',
+    'No own items yet. Items saved in the Homebrew Creator or the Magic Item Generator show up here.'
   ],
   'quelle.loot.leer': ['Keine Loot-Tabellen gefunden.', 'No loot tables found.'],
   'quelle.loot.wuerfeln': ['Würfeln', 'Roll'],
@@ -231,6 +232,45 @@ const TEXTE = {
   'gegenstand.ausgeruestet': ['Ausgerüstet', 'Equipped'],
   'gegenstand.eingestimmt': ['Eingestimmt', 'Attuned'],
   'gegenstand.mehr': ['Beschreibung und mehr', 'Description and more'],
+  'ansicht.kompakt': ['Kompakt', 'Compact'],
+  tiergestalt: ['Tiergestalt', 'Wild Shape'],
+  'tg.hg': ['HG', 'CR'],
+  'tg.tp': ['TP', 'HP'],
+  'tg.regel': [
+    'Druidenstufe {stufe}: HG bis {hg}, {flug}. Verwandeln gibt {temp} temporäre TP, Dauer bis {stunden} Std.',
+    'Druid level {stufe}: CR up to {hg}, {flug}. Shifting grants {temp} temporary HP, lasting up to {stunden} h.'
+  ],
+  'tg.mitFlug': ['auch Flieger', 'Fly Speed allowed'],
+  'tg.ohneFlug': ['keine Flieger', 'no Fly Speed'],
+  'tg.abStufe2': [
+    'Tiergestalt gibt es ab Druidenstufe 2. Die Klasse muss „Druide" oder „Druid" heißen.',
+    'Wild Shape starts at Druid level 2. The class must be named “Druid”.'
+  ],
+  'tg.nutzungen': ['Nutzungen', 'Uses'],
+  'tg.nutzungUmschalten': ['Nutzung verbraucht / frei', 'Use spent / available'],
+  'tg.rast': ['kurze Rast: 1 zurück, lange Rast: alle', 'Short Rest: regain 1, Long Rest: all'],
+  'tg.bekannt': ['Bekannte Gestalten', 'Known forms'],
+  'tg.lernen': ['Gestalt', 'Form'],
+  'tg.suche': ['Tier suchen …', 'Find a beast …'],
+  'tg.nachschlagen': ['Nachschlagen und vergleichen', 'Look up and compare'],
+  'tg.nichtErlaubt': ['Für diese Stufe zu stark oder fliegt', 'Too strong for this level or has a Fly Speed'],
+  'tg.verwandeln': ['Verwandeln', 'Shift'],
+  'tg.verwandelnTitel': ['Verbraucht eine Nutzung, gibt {temp} temporäre TP', 'Uses one charge, grants {temp} temporary HP'],
+  'tg.keineNutzung': ['Keine Nutzung mehr übrig', 'No uses left'],
+  'tg.zurueck': ['Zurückverwandeln', 'Revert'],
+  'tg.vergessen': ['„{name}" vergessen', 'Forget “{name}”'],
+  'tg.keine': ['Noch keine Gestalt gewählt.', 'No form chosen yet.'],
+  'tg.inGestalt': ['In Gestalt', 'Shifted into'],
+  'tg.eigenerWert': ['Wert der Figur: INT, WEI und CHA bleiben', 'The character’s own score: INT, WIS and CHA stay'],
+  'tg.behaelt': [
+    'Die Figur behält ihre TP, Trefferwürfel, INT, WEI, CHA, Klassenmerkmale und Übungen (SRD).',
+    'The character keeps their HP, Hit Point Dice, INT, WIS, CHA, class features and proficiencies (SRD).'
+  ],
+  'tg.nachschlagenFehlt': ['Das Nachschlagewerk ließ sich nicht öffnen.', 'Could not open the Reference.'],
+  'ansicht.voll': ['Voller Bogen', 'Full sheet'],
+  'ansicht.kompaktHinweis': ['Nur das, was im Kampf zählt: TP, RK, Initiative, Plätze, Trefferwürfel, Zustände, Inventar', 'Only what matters in combat: HP, AC, initiative, slots, hit dice, conditions, inventory'],
+  'gegenstand.umbenennen': ['Umbenennen', 'Rename'],
+  'gegenstand.ohneName': ['(ohne Namen)', '(unnamed)'],
   'gegenstand.beschreibung': ['Beschreibung', 'Description'],
   'gegenstand.dazu': ['+ Gegenstand', '+ Item'],
   'summe.gewicht': ['Gewicht', 'Weight'],
@@ -379,7 +419,34 @@ const TEXTE = {
   'story.oeffnen': ['Notiz im Story Creator öffnen', 'Open the note in Story Creator'],
   'story.angelegt': ['Notiz angelegt: {text}', 'Note created: {text}'],
   'story.fehlt': ['Die Notiz gibt es nicht mehr. Die Verknüpfung wurde gelöst.', 'That note no longer exists. The link was removed.'],
-  'story.loesen': ['Verknüpfung lösen', 'Unlink'],
+  'story.loesen': ['Verknüpfung zum Story Creator lösen', 'Unlink Story Creator'],
+  'story.loesen.titel': [
+    'Die Notiz bleibt im Story Creator; der Bogen vergisst nur die Verbindung.',
+    'The note stays in Story Creator; the sheet only forgets the link.'
+  ],
+  'rast.langSicher': [
+    'Lange Rast jetzt machen? TP, Trefferwürfel, Zauberplätze und Fähigkeiten kommen zurück, eine Erschöpfungsstufe fällt weg.',
+    'Take a long rest now? HP, Hit Point Dice, spell slots and features come back, and one level of exhaustion goes away.'
+  ],
+  'angriff.wuerfeln.kurz': ['Würfeln', 'Roll'],
+  bild: ['Bild', 'Picture'],
+  'bild.waehlen': ['Bild auswählen', 'Choose a picture'],
+  'bild.aendern': ['Anderes Bild wählen', 'Choose another picture'],
+  'bild.weg': ['Bild entfernen', 'Remove picture'],
+  'bild.fehler': ['Dieses Bild ließ sich nicht lesen.', 'This picture could not be read.'],
+  'bild.rahmen': ['Rahmen', 'Frame'],
+  'bild.rahmen.kreis': ['Kreis', 'Circle'],
+  'bild.rahmen.oval': ['Oval', 'Oval'],
+  'bild.rahmen.eckig': ['Eckig', 'Square'],
+  'bild.rahmen.bogen': ['Bogen', 'Arch'],
+  'bild.rahmen.schild': ['Wappen', 'Crest'],
+  'bild.rahmen.rauten': ['Raute', 'Diamond'],
+  'story.sync': ['Synchron', 'Synced'],
+  'story.sync.titel': [
+    'Die Notiz stetig mit dem Bogen abgleichen. Der Bogen schreibt nur seinen eigenen Abschnitt; was du sonst in der Notiz schreibst, bleibt.',
+    'Keep the note in step with this sheet. The sheet only rewrites its own section; anything else you write in the note stays.'
+  ],
+  'story.sync.an': ['Die Notiz wird jetzt mit dem Bogen abgeglichen.', 'The note now follows this sheet.'],
   'waffe.suche': ['Waffe suchen', 'Search weapons']
 } as const;
 

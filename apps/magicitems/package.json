@@ -2,7 +2,7 @@
   "name": "ttrpg-magicitems",
   "version": "1.0.0",
   "private": true,
-  "description": "Magic Item Creator — magische Gegenstaende wuerfeln, bearbeiten und ablegen",
+  "description": "Magic Item Generator — magische Gegenstaende wuerfeln, bearbeiten und ablegen",
   "type": "module",
   "scripts": {
     "build": "npm run build:renderer && npm run build:main",
@@ -30,7 +30,9 @@
     "@suite/foundry": "*",
     "@suite/i18n": "*",
     "@suite/ki": "*",
+    "@suite/magie": "*",
     "@suite/motion": "*",
-    "@suite/srd": "*"
+    "@suite/srd": "*",
+    "@suite/tastatur": "*"
   }
 }

@@ -240,6 +240,19 @@ export interface PropObject extends BaseObject {
   flipY: boolean;
   /** Steuert prozedurale Varianten — gleicher Seed, gleiches Aussehen. */
   seed: number;
+  /**
+   * Das Prop leuchtet: daraus entsteht ein VTT-Licht, das mit dem Prop
+   * wandert und mit ihm verschwindet (`model/propLights.ts`). Fehlt oder
+   * null heißt: kein Licht.
+   */
+  light?: PropLight | null;
+}
+
+/** Licht eines Props; Reichweite in Feldern wie bei `LightSource`. */
+export interface PropLight {
+  range: number;
+  color: number;
+  intensity: number;
 }
 
 export type ShapeKind = 'freehand' | 'line' | 'rect' | 'ellipse' | 'polygon';
@@ -291,7 +304,8 @@ export type PatternKind =
   | 'planks'
   | 'tiles'
   | 'dots'
-  | 'scales';
+  | 'scales'
+  | 'waves';
 
 export const PATTERN_KINDS: PatternKind[] = [
   'hatch',
@@ -301,6 +315,7 @@ export const PATTERN_KINDS: PatternKind[] = [
   'tiles',
   'dots',
   'scales',
+  'waves',
 ];
 
 export interface Fill {
@@ -367,6 +382,11 @@ export interface ShapeObject extends BaseObject {
    * das Feld nicht, und das ist auch die richtige Vorgabe.
    */
   route?: RouteSpec | null;
+  /**
+   * Gehört als Mauerwerk zu einer Wand oder Tür. Solche Zeichnungen sind
+   * nicht einzeln anfassbar; sie folgen der Wand (`model/vttVisuals.ts`).
+   */
+  vttLink?: { kind: 'walls' | 'portals'; id: string };
 }
 
 export interface TextObject extends BaseObject {
@@ -446,6 +466,14 @@ export interface Wall {
    * gelten und eine gewöhnliche Wand nicht vier redundante Flags mitschleppt.
    */
   senses?: WallSenses;
+  /**
+   * Sichtbares Mauerwerk als Teil der Wand (Rückmeldung: Wand und Textur
+   * ließen sich auseinandernehmen). Die Zeichnung dazu leitet
+   * `model/vttVisuals.ts` nach jeder Änderung aus der Wand ab.
+   */
+  style?: string;
+  /** Layer, auf dem das Mauerwerk liegt. */
+  styleLayerId?: LayerId;
 }
 
 export interface Portal {
@@ -454,6 +482,9 @@ export interface Portal {
   bounds: [number, number, number, number];
   closed: boolean;
   freestanding: boolean;
+  /** Wie bei `Wall`: sichtbares Stück als Teil der Tür. */
+  style?: string;
+  styleLayerId?: LayerId;
 }
 
 export interface LightSource {
@@ -466,6 +497,8 @@ export interface LightSource {
   color: number;
   alpha: number;
   shadows: boolean;
+  /** Gehört zu diesem Prop (`PropObject.light`); bearbeitet wird es dort. */
+  propLink?: ObjectId;
 }
 
 /**

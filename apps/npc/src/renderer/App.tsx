@@ -399,9 +399,9 @@ export function App() {
             </button>
           ) : null}
         </header>
-        <ol className="merkliste__liste">
+        <ol className="merkliste__liste" data-pfeile="liste">
           {gemerkt.map((eintrag) => (
-            <li key={eintrag.id}>
+            <li data-pfeil key={eintrag.id}>
               <button
                 type="button"
                 onClick={() => {

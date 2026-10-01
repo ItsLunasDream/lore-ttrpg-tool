@@ -12,7 +12,8 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
-import { alsKachel, alsMarkdown, storyText, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
+import type { Quelleintrag } from '../shared/quellen';
+import { alsKachel, alsMarkdown, storyBlock, storyText, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
@@ -21,6 +22,8 @@ import { GASTGEBER, Liveleitung, type LiveZustand, type RaumLage } from './live'
 
 export const WERKZEUG = 'charakterbogen';
 export const ORDNER_NAME = 'boegen';
+/** So lange nach dem letzten Speichern, bis die Notiz im Story Creator nachgezogen wird. */
+const STORY_PAUSE = 1500;
 
 export interface BogenEmbedOptions {
   readonly distDir: string;
@@ -35,13 +38,19 @@ export interface BogenEmbedOptions {
     magicitems(sprache: 'de' | 'en'): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]>;
     lootTabellen(sprache: 'de' | 'en'): Promise<{ id: string; name: string }[]>;
     lootWuerfle(tabellenId: string, sprache: 'de' | 'en'): Promise<string | null>;
+    /** Eigene Waffen, Ruestungen und Gegenstaende aus dem Homebrew Creator (Quelleintraege). */
+    homebrew?(sprache: 'de' | 'en'): Promise<Quelleintrag[]>;
   };
   /** Notizen im Story Creator (ueber die Huelle). */
   readonly story?: {
     anlegen(titel: string, markdown: string): Promise<{ ok: boolean; text: string; kennung?: string }>;
     /** Holt den Story Creator nach vorn und zeigt die Notiz; `false`, wenn es sie nicht mehr gibt. */
     oeffne(kennung: string): Promise<boolean>;
+    /** Schreibt den Abschnitt des Bogens in die Notiz; `false`, wenn es sie nicht mehr gibt. */
+    aktualisiere?(kennung: string, block: string): Promise<boolean>;
   };
+  /** Das Nachschlagewerk nach vorn holen und dort etwas zeigen (Gestalten-Filter). */
+  readonly nachschlagen?: (kennung: string) => void;
   /** Eigene Zustaende aus dem Status Effect Creator. */
   readonly eigeneZustaende?: () => Promise<{ name: string; text: string }[]>;
   /** Der Raum der Huelle, wenn es einen gibt: Boegen live teilen. */
@@ -139,11 +148,31 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
   const fensterVon = (ereignis: never) =>
     BrowserWindow.fromWebContents((ereignis as { sender: WebContents }).sender);
 
+  /*
+   * Stetiger Abgleich mit der Notiz im Story Creator: nach jedem Speichern,
+   * gebuendelt je Bogen, damit Tippen nicht jede Sekunde die Notiz schreibt.
+   */
+  const storyTakt = new Map<string, ReturnType<typeof setTimeout>>();
+  const nachStory = (b: Bogen) => {
+    const ziel = b.storyNotiz;
+    if (!ziel?.sync || !options.story?.aktualisiere) return;
+    const alt = storyTakt.get(b.id);
+    if (alt) clearTimeout(alt);
+    storyTakt.set(
+      b.id,
+      setTimeout(() => {
+        storyTakt.delete(b.id);
+        void options.story?.aktualisiere?.(ziel.kennung, storyBlock(b, sprache)).catch(() => false);
+      }, STORY_PAUSE)
+    );
+  };
+
   const lies = async (id: string): Promise<Bogen> =>
     leseBogen(await readFile(path.join(ordner, `${zuId(id)}.md`), 'utf8'), zuId(id));
   const schreib = async (b: Bogen): Promise<Bogen> => {
     const neu = { ...b, fassung: b.fassung + 1, geaendert: new Date().toISOString() };
     await schreibeSicher(path.join(ordner, `${neu.id}.md`), alsMarkdown(neu, sprache));
+    nachStory(neu);
     return neu;
   };
   /*
@@ -177,7 +206,9 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
         } catch {
           return;
         }
-        await schreibeSicher(datei, alsMarkdown(bereinige(b, zuId(b.id)), sprache));
+        const sauber = bereinige(b, zuId(b.id));
+        await schreibeSicher(datei, alsMarkdown(sauber, sprache));
+        nachStory(sauber);
       }),
     lies: async (id) => {
       try {
@@ -232,6 +263,14 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
    * Quellen fuers Inventar. Eigene magische Gegenstaende und Loot kommen
    * ueber die Huelle; fehlt sie (Tests), bleiben die Listen leer.
    */
+  handle('quellen:homebrew', async () => {
+    try {
+      return (await options.quellen?.homebrew?.(sprache)) ?? [];
+    } catch {
+      return [];
+    }
+  });
+
   handle('quellen:magicitems', async () => {
     try {
       return (await options.quellen?.magicitems(sprache)) ?? [];
@@ -255,15 +294,32 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
   });
 
   /** Eine Notiz fuer diese Figur im Story Creator: die Lesefassung ohne Kopf und Datenblock. */
-  handle('story:anlegen', async (_e: never, roh: unknown) => {
+  handle('story:anlegen', async (_e: never, roh: unknown, sync: unknown) => {
     if (!options.story) return { ok: false, text: '' };
     const b = bereinige(roh, 'story');
     try {
-      return await options.story.anlegen(b.name, storyText(b, sprache));
+      // Mit Abgleich gleich im markierten Abschnitt, damit spaetere Stände ihn finden.
+      return await options.story.anlegen(b.name, sync === true ? storyBlock(b, sprache) + '\n' : storyText(b, sprache));
     } catch (fehler) {
       return { ok: false, text: fehler instanceof Error ? fehler.message : String(fehler) };
     }
   });
+  /** Sofort abgleichen (beim Einschalten), ohne auf das naechste Speichern zu warten. */
+  handle('story:jetzt', async (_e: never, roh: unknown) => {
+    const b = bereinige(roh, 'story');
+    if (!b.storyNotiz || !options.story?.aktualisiere) return false;
+    try {
+      return await options.story.aktualisiere(b.storyNotiz.kennung, storyBlock(b, sprache));
+    } catch {
+      return false;
+    }
+  });
+  handle('nachschlagen', async (_e: never, kennung: unknown) => {
+    if (typeof kennung !== 'string' || kennung.length > 2000 || !options.nachschlagen) return false;
+    options.nachschlagen(kennung);
+    return true;
+  });
+
   handle('story:oeffne', async (_e: never, kennung: string) => {
     try {
       return (await options.story?.oeffne(String(kennung))) ?? false;
@@ -313,6 +369,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
           geaendert: new Date().toISOString()
         };
         await schreibeSicher(path.join(ordner, `${id}.md`), alsMarkdown(bogen, sprache));
+        nachStory(bogen);
         const f = figurAus(bogen, bogen.id);
         if (f) options.tracker?.([f], false);
         return { ok: true, bogen, text: '' };
@@ -475,7 +532,7 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
 }
 
 export function unmountCharakterbogen(): void {
-  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:oeffne', 'zustaende:eigene']) {
+  for (const name of ['liste', 'lesen', 'speichern', 'loeschen', 'weitergeben', 'einlesen', 'uebergib', 'aufteilen', 'live:zustand', 'live:anfrage', 'live:bringe', 'wurf', 'quellen:magicitems', 'quellen:homebrew', 'quellen:lootTabellen', 'quellen:lootWuerfle', 'tracker', 'story:anlegen', 'story:jetzt', 'story:oeffne', 'zustaende:eigene', 'nachschlagen']) {
     ipcMain.removeHandler(kanal(name));
   }
   ipcMain.removeAllListeners(kanal('sprache:gewechselt'));
