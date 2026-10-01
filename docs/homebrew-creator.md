@@ -21,7 +21,7 @@ künftig **Magic Item Generator**, damit der Unterschied klar ist:
   Kennungen in Bögen und Loot-Tabellen). Eine interne Umbenennung bricht
   gespeicherte Daten und bringt keinen Nutzen.
 - Deutsch: „Magic Item Generator" bleibt englisch wie die anderen
-  Werkzeugnamen (Loot Generator, Story Creator).
+  Werkzeugnamen (Loot Generator, Story Creator). Entschieden.
 
 ## Was der Homebrew Creator baut
 
@@ -127,7 +127,12 @@ wie heute bei den Inventarquellen.
 
 ## Offene Fragen
 
-1. **Deutscher Name**: bleiben „Homebrew Creator" / „Magic Item Generator"
-   auch in der deutschen Oberfläche englisch (wie die übrigen
-   Werkzeugnamen)?
-2. **Eigene Waffen auch mit Bild** (wie Monster), oder reicht Text?
+1. **Bild je Eintrag?** Ein eigenes Bild (hochgeladen) zu Waffe, Rüstung,
+   Gegenstand oder Zauber. Es erschiene auf der Kachel im Homebrew
+   Creator, in der aufgeklappten Iteminfo im Inventar des Bogens, im
+   Eintrag im Nachschlagewerk und im Foundry-Export (Bildfeld). Vorbild
+   wäre das Porträt im Charakterbogen. Ohne Bild bleibt es Text wie bei
+   den magischen Gegenständen heute.
+
+Entschieden: Die Namen „Homebrew Creator" und „Magic Item Generator"
+bleiben auch in der deutschen Oberfläche englisch.
