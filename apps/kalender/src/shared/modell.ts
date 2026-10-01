@@ -1,15 +1,17 @@
 /**
  * Das Modell des Campaign Calendar (docs/kampagnenkalender.md).
  *
- * Eine Terminumfrage wie bei Crab.fit: Tage und ein Zeitfenster, alle
- * markieren im Raster, wann sie können („kann") oder notfalls können. Daraus
- * eine Heatmap und die besten Zeitfenster für die gewünschte Dauer. Die SL
+ * Eine Terminumfrage: Tage und ein Zeitfenster, alle markieren im Raster,
+ * wann sie können („kann") oder notfalls können. Daraus eine Heatmap und die
+ * besten Zeitfenster für die gewünschte Dauer (oder, ohne Dauer, die
+ * längsten Blöcke). Die SL
  * legt einen Termin fest; der lässt sich als .ics in jeden Kalender holen.
  *
  * Antworten kommen über den Raum oder als Datei. Zusammengeführt wird nach
  * Namen (ohne Groß/klein), die neuere Antwort gewinnt. Reine Funktionen, die
  * Tests laufen ohne Electron.
  */
+import { zuUtc } from './zeitzone';
 
 export type Stufe = 'kann' | 'notfalls';
 
@@ -39,8 +41,10 @@ export interface Umfrage {
   readonly bis: number;
   /** 30 oder 60 Minuten je Feld. */
   readonly schritt: 30 | 60;
-  /** Gewünschte Dauer einer Sitzung in Minuten. */
-  readonly dauer: number;
+  /** Gewünschte Dauer einer Sitzung in Minuten; null = offen (längste Blöcke). */
+  readonly dauer: number | null;
+  /** IANA-Zeitzone, in der Tage und Uhrzeiten gelten; leer = ohne Umrechnung (ältere Umfragen). */
+  readonly zone: string;
   readonly antworten: readonly Antwort[];
   readonly termin: Termin | null;
   readonly notiz: string;
@@ -79,7 +83,7 @@ export function tageZwischen(start: string, ende: string, wochentage: readonly n
   return heraus;
 }
 
-export function leereUmfrage(id: string, heute: string): Umfrage {
+export function leereUmfrage(id: string, heute: string, zone = ''): Umfrage {
   const in13 = new Date(new Date(`${heute}T12:00:00Z`).getTime() + 13 * 86_400_000).toISOString().slice(0, 10);
   return {
     id,
@@ -89,6 +93,7 @@ export function leereUmfrage(id: string, heute: string): Umfrage {
     bis: 23 * 60,
     schritt: 60,
     dauer: 4 * 60,
+    zone,
     antworten: [],
     termin: null,
     notiz: '',
@@ -149,30 +154,62 @@ export interface Vorschlag extends Termin {
   readonly punkte: number;
 }
 
+/** Wen die Auswertung berücksichtigt (Ansicht „Alle"). */
+export interface Filter {
+  /** Nur diese Personen; fehlt = alle. */
+  readonly personen?: readonly string[];
+  /** Mindestens so viele müssen (wenigstens notfalls) können. */
+  readonly mindestens?: number | null;
+  /** Diese Personen müssen dabei sein (z. B. die SL). */
+  readonly pflicht?: readonly string[];
+}
+
+/** Die Antworten, die der Filter zeigt. */
+export function sichtbareAntworten(u: Umfrage, f: Filter = {}): readonly Antwort[] {
+  if (!f.personen) return u.antworten;
+  return u.antworten.filter((a) => f.personen!.some((p) => gleicherName(p, a.person)));
+}
+
+/** Erfüllt eine Besetzung Mindestzahl und Pflichtpersonen? */
+export function erfuellt(dabei: readonly string[], f: Filter = {}): boolean {
+  if (f.mindestens && dabei.length < f.mindestens) return false;
+  return (f.pflicht ?? []).every((p) => dabei.some((d) => gleicherName(d, p)));
+}
+
 /**
- * Die besten Zeitfenster der gewünschten Dauer. Eine Person zählt in einem
- * Fenster nur, wenn sie in JEDEM Feld kann (bzw. notfalls kann); eine Sitzung
- * mit halber Besetzung in der zweiten Hälfte hilft nicht.
+ * Die besten Zeitfenster. Eine Person zählt in einem Fenster nur, wenn sie
+ * in JEDEM Feld kann (bzw. notfalls kann); eine Sitzung mit halber Besetzung
+ * in der zweiten Hälfte hilft nicht.
+ *
+ * Mit Dauer: Fenster genau dieser Länge. Ohne Dauer: alle zusammenhängenden
+ * Blöcke; die meisten Leute zuerst, bei Gleichstand der längste.
  */
-export function besteTermine(u: Umfrage, anzahl = 3): Vorschlag[] {
-  const felderJe = Math.max(1, Math.ceil(u.dauer / u.schritt));
+export function besteTermine(u: Umfrage, anzahl = 3, filter: Filter = {}): Vorschlag[] {
   const zs = zeiten(u);
+  const antworten = sichtbareAntworten(u, filter);
+  const laengen = u.dauer === null ? zs.map((_, i) => i + 1) : [Math.max(1, Math.ceil(u.dauer / u.schritt))];
   const alle: Vorschlag[] = [];
   for (const tag of u.tage) {
-    for (let i = 0; i + felderJe <= zs.length; i += 1) {
-      const fenster = zs.slice(i, i + felderJe);
-      const kann: string[] = [];
-      const notfalls: string[] = [];
-      for (const a of u.antworten) {
-        const stufen = fenster.map((m) => a.felder[feld(tag, m)]);
-        if (stufen.every((s) => s === 'kann')) kann.push(a.person);
-        else if (stufen.every((s) => s === 'kann' || s === 'notfalls')) notfalls.push(a.person);
+    for (const felderJe of laengen) {
+      for (let i = 0; i + felderJe <= zs.length; i += 1) {
+        const fenster = zs.slice(i, i + felderJe);
+        const kann: string[] = [];
+        const notfalls: string[] = [];
+        for (const a of antworten) {
+          const stufen = fenster.map((m) => a.felder[feld(tag, m)]);
+          if (stufen.every((s) => s === 'kann')) kann.push(a.person);
+          else if (stufen.every((s) => s === 'kann' || s === 'notfalls')) notfalls.push(a.person);
+        }
+        const punkte = kann.length + notfalls.length / 2;
+        if (punkte > 0 && erfuellt([...kann, ...notfalls], filter)) {
+          alle.push({ tag, von: fenster[0], bis: fenster[fenster.length - 1] + u.schritt, kann, notfalls, punkte });
+        }
       }
-      const punkte = kann.length + notfalls.length / 2;
-      if (punkte > 0) alle.push({ tag, von: fenster[0], bis: fenster[fenster.length - 1] + u.schritt, kann, notfalls, punkte });
     }
   }
-  alle.sort((a, b) => b.punkte - a.punkte || b.kann.length - a.kann.length || a.tag.localeCompare(b.tag) || a.von - b.von);
+  alle.sort(
+    (a, b) => b.punkte - a.punkte || b.kann.length - a.kann.length || b.bis - b.von - (a.bis - a.von) || a.tag.localeCompare(b.tag) || a.von - b.von
+  );
   // Nicht dreimal fast derselbe Abend: je Tag nur der beste Vorschlag.
   const heraus: Vorschlag[] = [];
   for (const v of alle) {
@@ -189,7 +226,8 @@ function icsText(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 }
 
-function icsZeit(tag: string, minute: number): string {
+function icsZeit(tag: string, minute: number, zone: string): string {
+  if (zone) return `${new Date(zuUtc(tag, minute, zone)).toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`;
   // Über Mitternacht hinaus: der nächste Tag.
   const d = new Date(`${tag}T00:00:00Z`);
   d.setUTCMinutes(minute);
@@ -197,10 +235,9 @@ function icsZeit(tag: string, minute: number): string {
 }
 
 /**
- * Der Termin als iCalendar (RFC 5545). Die Zeiten stehen als „floating
- * time" ohne Zeitzone: 19:00 bleibt 19:00 im Kalender, egal wo. Das passt zu
- * einer Gruppe am selben Ort; für Gruppen über Zeitzonen hinweg wäre eine
- * Zeitzone nötig (nicht gebaut).
+ * Der Termin als iCalendar (RFC 5545). Mit Zone in UTC („…Z"), dann rechnet
+ * jeder Kalender in die eigene Zeit um. Ältere Umfragen ohne Zone bekommen
+ * „floating time": 19:00 bleibt 19:00, egal wo.
  */
 export function alsIcs(u: Umfrage, jetzt = new Date()): string | null {
   if (!u.termin) return null;
@@ -212,8 +249,8 @@ export function alsIcs(u: Umfrage, jetzt = new Date()): string | null {
     'BEGIN:VEVENT',
     `UID:${u.id}-${u.termin.tag}@lore-ttrpg-tool`,
     `DTSTAMP:${stempel}`,
-    `DTSTART:${icsZeit(u.termin.tag, u.termin.von)}`,
-    `DTEND:${icsZeit(u.termin.tag, u.termin.bis)}`,
+    `DTSTART:${icsZeit(u.termin.tag, u.termin.von, u.zone)}`,
+    `DTEND:${icsZeit(u.termin.tag, u.termin.bis, u.zone)}`,
     `SUMMARY:${icsText(u.titel || 'TTRPG')}`,
     ...(u.notiz.trim() ? [`DESCRIPTION:${icsText(u.notiz.trim())}`] : []),
     'END:VEVENT',
@@ -267,7 +304,8 @@ export function bereinige(roh: unknown, id: string): Umfrage {
     von,
     bis,
     schritt,
-    dauer: Math.max(schritt, Math.min(24 * 60, Math.round(Number(r.dauer) || 4 * 60))),
+    dauer: r.dauer === null ? null : Math.max(schritt, Math.min(24 * 60, Math.round(Number(r.dauer) || 4 * 60))),
+    zone: typeof r.zone === 'string' && /^[A-Za-z0-9_+\-/]{1,64}$/.test(r.zone) ? r.zone : '',
     antworten,
     termin,
     notiz: typeof r.notiz === 'string' ? r.notiz.slice(0, 5000) : '',

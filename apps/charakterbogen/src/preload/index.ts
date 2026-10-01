@@ -61,7 +61,7 @@ const api = {
   quellen: {
     magicitems: () =>
       ipcRenderer.invoke(kanal('quellen:magicitems')) as Promise<
-        { id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]
+        { id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number; gewicht?: number; bild?: string }[]
       >,
     homebrew: () => ipcRenderer.invoke(kanal('quellen:homebrew')) as Promise<Quelleintrag[]>,
     homebrewZauber: () => ipcRenderer.invoke(kanal('quellen:homebrewZauber')) as Promise<{ id: string; name: string; grad: number; text: string }[]>,

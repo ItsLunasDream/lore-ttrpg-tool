@@ -64,7 +64,7 @@ import {
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
-  setzeSuchtaste, setzeFokustaste,
+  setzeSuchtaste, setzeFokustaste, setzeHilfetaste,
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
@@ -1784,6 +1784,7 @@ function registriereKanaele(): void {
 
   const oeffneSuche = () => huelle?.webContents.send('suche:oeffnen');
   setzeSuchtaste(oeffneSuche);
+  setzeHilfetaste(() => huelle?.webContents.send('hilfe:oeffnen'));
   ipcMain.on('suche:taste', oeffneSuche);
 
   // F6 wechselt zwischen Hülle und Werkzeug (Bedienung ohne Maus): aus dem

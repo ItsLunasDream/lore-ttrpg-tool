@@ -73,6 +73,13 @@ export interface Waffenkern {
   readonly fern: boolean;
   readonly wuerfel: string;
   readonly merkmale: readonly WaffenEigenschaft[];
+  /** Plus und Zusatzschaden im Schnitt, oben drauf (nur eigene Waffen). */
+  readonly zusatzSchnitt?: number;
+}
+
+/** Schnitt von Plus und Zusatzzeilen einer eigenen Waffe. */
+export function zusatzSchnitt(w: Pick<Waffe, 'schadenPlus' | 'zusatz'>): number {
+  return w.schadenPlus + w.zusatz.reduce((summe, z) => summe + (schnittVon(z.wuerfel) ?? 0) + z.plus, 0);
 }
 
 /**
@@ -100,7 +107,7 @@ export function waffenBand(w: Waffenkern, ohne?: string): { min: number; max: nu
 }
 
 export function urteilWaffe(w: Waffenkern, ohne?: string): { urteil: Urteil; schnitt: number; band: ReturnType<typeof waffenBand> } {
-  const schnitt = schnittVon(w.wuerfel) ?? 0;
+  const schnitt = (schnittVon(w.wuerfel) ?? 0) + (w.zusatzSchnitt ?? 0);
   const band = waffenBand(w, ohne);
   // Eine Wuerfelstufe (im Schnitt +1) Spielraum: das SRD selbst weicht so
   // weit ab (Handaxt 1W6, leichter Hammer 1W4, gleiche Merkmale).
@@ -116,7 +123,7 @@ export function urteilWaffe(w: Waffenkern, ohne?: string): { urteil: Urteil; sch
 }
 
 export function eicheWaffe(w: Waffe): Eichung<SrdWaffe> {
-  const { urteil, schnitt, band } = urteilWaffe({ kategorie: w.kategorie, fern: w.fern, wuerfel: w.wuerfel, merkmale: w.eigenschaften });
+  const { urteil, schnitt, band } = urteilWaffe({ kategorie: w.kategorie, fern: w.fern, wuerfel: w.wuerfel, merkmale: w.eigenschaften, zusatzSchnitt: zusatzSchnitt(w) });
   const bandText = band.min === band.max ? zahlText(band.min) : `${zahlText(band.min)}–${zahlText(band.max)}`;
   const namen = (s: 'de' | 'en') => band.vergleich.map((x) => x.name[s === 'de' ? 0 : 1]).join(', ');
   const satz: Paar = {
@@ -154,6 +161,10 @@ export function eicheWaffe(w: Waffe): Eichung<SrdWaffe> {
   }
   if ((e.has('wurf') || e.has('munition')) && !(w.reichweiteNormal > 0 && w.reichweiteMax >= w.reichweiteNormal))
     warn('Die Reichweite braucht zwei Zahlen, die zweite mindestens so groß wie die erste.', 'Range needs two numbers, the second at least as large as the first.');
+  if (w.zusatz.length || w.schadenPlus)
+    hin('Plus und weitere Schadenszeilen zählen zum Schnitt dazu; SRD-Waffen haben nur einen Würfel.', 'The bonus and extra damage lines count towards the average; SRD weapons have a single die.');
+  if (!w.fern && w.reichweiteNah > 5 && !e.has('reichweite'))
+    hin('Mehr als 1,5 m (5 ft.) Reichweite haben im SRD nur Waffen mit „Weitreichend".', 'In the SRD only weapons with “Reach” reach farther than 5 ft.');
   if (w.fern && !e.has('munition')) hin('Alle SRD-Fernkampfwaffen haben „Munition".', 'All SRD ranged weapons have “Ammunition”.');
   if (!w.fern && e.has('munition')) hin('„Munition" haben im SRD nur Fernkampfwaffen.', 'In the SRD only ranged weapons have “Ammunition”.');
   if (e.has('finesse') && e.has('schwer')) hin('Keine SRD-Waffe ist zugleich Finesse und schwer.', 'No SRD weapon is both finesse and heavy.');

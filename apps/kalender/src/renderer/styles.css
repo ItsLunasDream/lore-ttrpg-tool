@@ -272,6 +272,23 @@ summary {
   display: block;
 }
 
+/* Erfüllt den Filter („mindestens", „muss dabei sein") nicht. */
+.zelle--heat[data-passt='0'] {
+  opacity: 0.35;
+}
+
+/* Gehört nach der Zeitzonen-Umrechnung zu keinem Feld der Umfrage. */
+.zelle--leer {
+  display: block;
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.4;
+}
+
+.filter .leiste {
+  margin: 0 0 6px;
+}
+
 .vorschlaege {
   margin: 0;
   padding-left: 20px;

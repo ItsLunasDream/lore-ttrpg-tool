@@ -42,10 +42,11 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
               kennung: g.id,
               name: g.name,
               art: g.art,
-              gewicht: null,
+              gewicht: g.gewicht ?? null,
               wert: g.wert,
               beschreibung: g.beschreibung,
-              einstimmung: g.einstimmung
+              einstimmung: g.einstimmung,
+              ...(g.bild ? { bild: g.bild } : {})
             })
           )
         ])

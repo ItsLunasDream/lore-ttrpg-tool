@@ -11,9 +11,10 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
+import { MagieFelder } from '@suite/magie/formular';
 import { api } from './api';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
-import { erzeuge, hoechsterGrad, wuerfleFluch, wuerfleWirkung, type Gegenstand, type Sprache } from '../shared/erzeuge';
+import { erzeuge, hoechsterGrad, type Gegenstand, type Sprache } from '../shared/erzeuge';
 import type { Eintrag } from '../shared/ablage';
 import type { Frage, RohGegenstand } from '../shared/kiAufgaben';
 import { pruefeKi } from '../shared/pruefung';
@@ -460,227 +461,87 @@ export function App() {
             />
           </label>
 
-          <div className="kopfzeile">
-            <label className="feld">
-              <span className="feld__name">{t('erzeuger.art')}</span>
-              <select
-                className="feld__wahl"
-                value={offen.art}
-                onChange={(e) => setze({ art: e.target.value as Art })}
-              >
-                {ARTEN.map((a) => (
-                  <option key={a} value={a}>
-                    {ART_NAME[a][spr]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="feld">
-              <span className="feld__name">{t('erzeuger.seltenheit')}</span>
-              <select
-                className="feld__wahl"
-                value={offen.seltenheit}
-                onChange={(e) => setze({ seltenheit: e.target.value as Seltenheit })}
-              >
-                {SELTENHEITEN.map((s) => (
-                  <option key={s} value={s}>
-                    {SELTENHEIT_NAME[s][spr]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="feld">
+          <MagieFelder
+            g={offen}
+            sprache={spr}
+            setze={setze}
+            nachKopf={
+              <>
+            {/* Der Wert laesst sich von Hand setzen (Wunsch aus dem Testbericht); der Vorschlag nach der Tabelle bleibt einen Klick entfernt. */}
+            <label className="feld wert" title={t('wert.hinweis')} data-wert>
+              <span className="feld__name">{t('feld.wertName')}</span>
               <input
-                type="checkbox"
-                checked={offen.einstimmung}
-                onChange={(e) => setze({ einstimmung: e.target.checked })}
-              />{' '}
-              {t('feld.einstimmung')}
-            </label>
-          </div>
-          {/* Der Wert laesst sich von Hand setzen (Wunsch aus dem Testbericht); der Vorschlag nach der Tabelle bleibt einen Klick entfernt. */}
-          <label className="feld wert" title={t('wert.hinweis')} data-wert>
-            <span className="feld__name">{t('feld.wertName')}</span>
-            <input
-              type="number"
-              min={0}
-              className="feld__eingabe feld__eingabe--kurz"
-              data-feld="wert"
-              value={offen.wert}
-              onChange={(e) => {
-                const n = Math.max(0, Math.round(Number(e.target.value) || 0));
-                setOffen({ ...offen, wert: n });
-              }}
-            />
-            {(() => {
-              const vorschlag = gegenstandswert(offen.seltenheit, {
-                verbrauch: VERBRAUCH[offen.art],
-                schriftrolleGrad: offen.art === 'schriftrolle' ? hoechsterGrad(offen.seltenheit) : undefined
-              });
-              return vorschlag !== offen.wert ? (
-                <button type="button" className="knopf knopf--klein" data-wert-vorschlag onClick={() => setOffen({ ...offen, wert: vorschlag })}>
-                  {t('wert.vorschlag', { wert: zahl(vorschlag) })}
-                </button>
-              ) : null;
-            })()}
-          </label>
-          {wirkungenFuer && wirkungenFuer !== `${offen.seltenheit}|${offen.art}` ? (
-            <p className="anpassen">
-              <button
-                type="button"
-                className="knopf"
-                data-anpassen
-                onClick={() => {
-                  if (offen.wirkungen.some((w) => w.trim()) && !confirm(t('anpassen.sicher'))) return;
-                  const neu = erzeuge({ art: offen.art, seltenheit: offen.seltenheit, fluchChance: 0 }, spr);
-                  setze({ wirkungen: neu.wirkungen, einstimmung: neu.einstimmung || Boolean(offen.fluch.trim()) });
-                  setWirkungenFuer(`${offen.seltenheit}|${offen.art}`);
+                type="number"
+                min={0}
+                className="feld__eingabe feld__eingabe--kurz"
+                data-feld="wert"
+                value={offen.wert}
+                onChange={(e) => {
+                  const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+                  setOffen({ ...offen, wert: n });
                 }}
-              >
-                ⚄ {t('anpassen', { seltenheit: SELTENHEIT_NAME[offen.seltenheit][spr] })}
-              </button>
-            </p>
-          ) : null}
-
-          <h3>{t('feld.wirkungen')}</h3>
-          <ul className="wirkungsliste">
-            {offen.wirkungen.map((w, i) => (
-              <li key={i}>
-                <textarea
-                  className="feld__flaeche"
-                  rows={2}
-                  value={w}
-                  data-wirkung={i}
-                  onChange={(e) =>
-                    setze({ wirkungen: offen.wirkungen.map((x, j) => (j === i ? e.target.value : x)) })
-                  }
-                />
-                <div className="zeilenknoepfe">
-                  <button
-                    type="button"
-                    className="knopf"
-                    data-wirkung-neu={i}
-                    aria-label={t('feld.wirkungNeu')}
-                    title={t('feld.wirkungNeu')}
-                    onClick={() =>
-                      setze({
-                        wirkungen: offen.wirkungen.map((x, j) =>
-                          j === i ? wuerfleWirkung(offen.art, offen.seltenheit, spr, offen.wirkungen) : x
-                        )
-                      })
-                    }
-                  >
-                    ⚄
+              />
+              {(() => {
+                const vorschlag = gegenstandswert(offen.seltenheit, {
+                  verbrauch: VERBRAUCH[offen.art],
+                  schriftrolleGrad: offen.art === 'schriftrolle' ? hoechsterGrad(offen.seltenheit) : undefined
+                });
+                return vorschlag !== offen.wert ? (
+                  <button type="button" className="knopf knopf--klein" data-wert-vorschlag onClick={() => setOffen({ ...offen, wert: vorschlag })}>
+                    {t('wert.vorschlag', { wert: zahl(vorschlag) })}
                   </button>
-                  {kiDa ? (
-                    <button
-                      type="button"
-                      className="knopf"
-                      data-wirkung-ki={i}
-                      disabled={kiLaeuft}
-                      aria-label={t('ki.feld')}
-                      title={t('ki.feld')}
-                      onClick={() => void feldVonKi('wirkung', i)}
-                    >
-                      ✦
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="knopf"
-                    aria-label={t('feld.wirkungWeg')}
-                    title={t('feld.wirkungWeg')}
-                    onClick={() => setze({ wirkungen: offen.wirkungen.filter((_, j) => j !== i) })}
-                  >
-                    ×
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {/*
-            Ausdruecklich noch eine Wirkung oder einen Fluch wuerfeln, nicht
-            nur ein leeres Feld anlegen (Rueckmeldung).
-          */}
-          <div className="knopfreihe knopfreihe--neu">
-            <span className="knopfreihe__titel">{t('feld.neueWirkung')}</span>
-            <button
-              type="button"
-              className="knopf"
-              data-wirkung-wuerfeln
-              onClick={() =>
-                setze({
-                  wirkungen: [
-                    ...offen.wirkungen.filter((w) => w.trim()),
-                    wuerfleWirkung(offen.art, offen.seltenheit, spr, offen.wirkungen)
-                  ]
-                })
-              }
-            >
-              ⚄ {t('feld.neuGewuerfelt')}
-            </button>
-            {kiDa ? (
-              <button
-                type="button"
-                className="knopf"
-                data-wirkung-ki-neu
-                disabled={kiLaeuft}
-                onClick={() => void feldVonKi('wirkung')}
-              >
-                {kiLaeuft ? t('ki.laeuft') : `✦ ${t('feld.neuKi')}`}
-              </button>
+                ) : null;
+              })()}
+            </label>
+            {wirkungenFuer && wirkungenFuer !== `${offen.seltenheit}|${offen.art}` ? (
+              <p className="anpassen">
+                <button
+                  type="button"
+                  className="knopf"
+                  data-anpassen
+                  onClick={() => {
+                    if (offen.wirkungen.some((w) => w.trim()) && !confirm(t('anpassen.sicher'))) return;
+                    const neu = erzeuge({ art: offen.art, seltenheit: offen.seltenheit, fluchChance: 0 }, spr);
+                    setze({ wirkungen: neu.wirkungen, einstimmung: neu.einstimmung || Boolean(offen.fluch.trim()) });
+                    setWirkungenFuer(`${offen.seltenheit}|${offen.art}`);
+                  }}
+                >
+                  ⚄ {t('anpassen', { seltenheit: SELTENHEIT_NAME[offen.seltenheit][spr] })}
+                </button>
+              </p>
             ) : null}
-            <button
-              type="button"
-              className="knopf"
-              onClick={() => setze({ wirkungen: [...offen.wirkungen, ''] })}
-            >
-              + {t('feld.neuLeer')}
-            </button>
-          </div>
-
-          {/*
-            Der Fluch wie die Wirkungen: Ueberschrift, Feld, darunter die
-            Knoepfe in voller Groesse und mit Text (Rueckmeldung).
-          */}
-          <h3 className="fluch__titel">{t('feld.fluch')}</h3>
-          <div className="fluch">
-            <textarea
-              className="feld__flaeche"
-              rows={2}
-              value={offen.fluch}
-              placeholder={t('feld.fluchHinweis')}
-              data-fluch
-              onChange={(e) => setze({ fluch: e.target.value })}
-            />
-          </div>
-          <div className="knopfreihe">
-            <button
-              type="button"
-              className="knopf"
-              data-fluch-wuerfeln
-              onClick={() =>
-                // Ein Fluch bindet immer: mit ihm verlangt der Gegenstand Einstimmung.
-                setze({
-                  fluch: wuerfleFluch(spr, offen.fluch),
-                  einstimmung: offen.art !== 'trank' && offen.art !== 'schriftrolle' ? true : offen.einstimmung
-                })
-              }
-            >
-              ⚄ {offen.fluch.trim() ? t('feld.fluchNeu') : t('feld.fluchWuerfeln')}
-            </button>
-            {kiDa ? (
-              <button
-                type="button"
-                className="knopf"
-                data-fluch-ki
-                disabled={kiLaeuft}
-                onClick={() => void feldVonKi('fluch')}
-              >
-                {kiLaeuft ? t('ki.laeuft') : `✦ ${t('feld.neuKi')}`}
-              </button>
-            ) : null}
-          </div>
+              </>
+            }
+            wirkungKnoepfe={(i) =>
+              kiDa ? (
+                <button
+                  type="button"
+                  className="knopf"
+                  data-wirkung-ki={i}
+                  disabled={kiLaeuft}
+                  aria-label={t('ki.feld')}
+                  title={t('ki.feld')}
+                  onClick={() => void feldVonKi('wirkung', i)}
+                >
+                  ✦
+                </button>
+              ) : null
+            }
+            neueWirkungKnoepfe={
+              kiDa ? (
+                <button type="button" className="knopf" data-wirkung-ki-neu disabled={kiLaeuft} onClick={() => void feldVonKi('wirkung')}>
+                  {kiLaeuft ? t('ki.laeuft') : `✦ ${t('feld.neuKi')}`}
+                </button>
+              ) : null
+            }
+            fluchKnoepfe={
+              kiDa ? (
+                <button type="button" className="knopf" data-fluch-ki disabled={kiLaeuft} onClick={() => void feldVonKi('fluch')}>
+                  {kiLaeuft ? t('ki.laeuft') : `✦ ${t('feld.neuKi')}`}
+                </button>
+              ) : null
+            }
+          />
 
           <label className="feld feld--hoch">
             <span className="feld__name">{t('feld.notiz')}</span>

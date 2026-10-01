@@ -15,7 +15,13 @@ const os = require('node:os');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'homebrew-smoke-'));
 const userData = path.join(tmp, 'userData');
 fs.mkdirSync(userData, { recursive: true });
-fs.writeFileSync(path.join(userData, 'einstellungen.json'), JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'homebrew'] }));
+fs.writeFileSync(path.join(userData, 'einstellungen.json'), JSON.stringify({ language: 'de', einfuehrungGesehen: ['suite', 'homebrew', 'magicitems'] }));
+// Ein magischer Eintrag von früher, noch in der eigenen Ablage: zieht beim Start in die gemeinsame um.
+fs.mkdirSync(path.join(userData, 'homebrew', 'eintraege'), { recursive: true });
+fs.writeFileSync(
+  path.join(userData, 'homebrew', 'eintraege', 'altring.md'),
+  `# Altring\n\n\`\`\`homebrew\n${JSON.stringify({ art: 'magisch', name: 'Altring', gegenstandsart: 'ring', seltenheit: 'rare', einstimmung: true, wirkungen: ['Leuchtet schwach.'], fluch: '', beschreibung: 'Von früher.', preis: 1234, gewicht: null, bild: null, geaendert: '2026-01-01T00:00:00Z' })}\n\`\`\`\n`
+);
 
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -58,6 +64,12 @@ app.whenReady().then(async () => {
     if (l >= 2) konsole.push(t.slice(0, 160));
   });
   pruefe(/Homebrew Creator/.test(await js('document.body.innerText')), 'mit seiner Ueberschrift');
+  const magieOrdner = path.join(userData, 'magicitems', 'gegenstaende');
+  pruefe(
+    fs.existsSync(path.join(magieOrdner, 'altring.md')) && !fs.existsSync(path.join(userData, 'homebrew', 'eintraege', 'altring.md')),
+    'ein alter magischer Eintrag ist in die gemeinsame Ablage umgezogen'
+  );
+  pruefe(/wert: 1234/.test(fs.readFileSync(path.join(magieOrdner, 'altring.md'), 'utf8')), 'mit seinem Preis als Wert');
 
   const tippe = (feld, wert) =>
     js(`(() => { const e = document.querySelector('[data-feld="${feld}"]');
@@ -79,15 +91,37 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe((await urteil()) === 'im_rahmen', 'Kriegswaffe 1W8, vielseitig 1W10: im Rahmen (wie das Langschwert)');
   pruefe(/Langschwert/.test(await js(`document.querySelector('[data-eichung-satz]').textContent`)), 'und nennt das Langschwert als Vergleich');
-  await waehle('wuerfel', '2d8');
+  await tippe('schadenAnzahl', '2');
   await warte(200);
   pruefe((await urteil()) === 'weit_ueber', '2W8: deutlich staerker als jede SRD-Kriegswaffe');
-  await waehle('wuerfel', '1d8');
+  await tippe('schadenAnzahl', '1');
   await js(`document.querySelector('[data-eigenschaft="leicht"]').click(); document.querySelector('[data-eigenschaft="zweihaendig"]').click(); true`);
   await warte(200);
   pruefe(await js(`Boolean(document.querySelector('[data-befund="warnung"]'))`), 'leicht und zweihaendig: eine Warnung');
   await js(`document.querySelector('[data-eigenschaft="leicht"]').click(); document.querySelector('[data-eigenschaft="zweihaendig"]').click(); true`);
   await waehle('bonus', '2');
+
+  // Neu: Schaden aufgeteilt, zweite Schadenszeile, Reichweite, Erklärungen, zuklappbar.
+  pruefe(/Angriff und Schaden/.test(await js(`document.querySelector('[data-eigenschaft="finesse"]').title`)), 'Eigenschaften erklären sich beim Darüberfahren');
+  pruefe((await js(`document.querySelector('[data-eigenschaft-texte]')?.textContent ?? ''`)).includes('Vielseitig'), 'gewählte Eigenschaften stehen mit einem Satz darunter');
+  pruefe((await js(`document.querySelector('[data-meisterschaft-text]').textContent`)).length > 20, 'die Meisterschaft hat einen Satz');
+  await js(`document.querySelector('[data-zusatz-dazu]').click(); true`);
+  await warte(200);
+  await waehle('zusatz0Art', 'blitz');
+  await tippe('schadenPlus', '1');
+  await warte(200);
+  pruefe((await js(`document.querySelector('select[data-feld="zusatz0Art"]')?.value ?? ''`)) === 'blitz', 'eine zweite Schadenszeile (gemischter Schaden)');
+  pruefe((await urteil()) !== 'im_rahmen', 'Plus und Zusatzschaden fließen in die Eichung');
+  await js(`document.querySelector('[data-zusatz="0"] button').click(); true`);
+  await tippe('schadenPlus', '0');
+  await js(`document.querySelector('[data-eigenschaft="reichweite"]').click(); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelector('[data-feld="reichweiteNah"]').value`)) === '10', '„Weitreichend" setzt die Reichweite auf 10 Fuß');
+  await js(`document.querySelector('[data-eigenschaft="reichweite"]').click(); true`);
+  await js(`document.querySelector('[data-abschnitt="schaden"] summary').click(); true`);
+  await warte(150);
+  pruefe(!(await js(`document.querySelector('[data-abschnitt="schaden"]').open`)), 'der Abschnitt „Schaden" klappt zu');
+  await js(`document.querySelector('[data-abschnitt="schaden"] summary').click(); true`);
   // Ein Bild: ein kleines Canvas als PNG, ueber das Dateifeld wie von Hand gewaehlt.
   await js(`(async () => {
     const c = document.createElement('canvas'); c.width = 40; c.height = 20;
@@ -100,9 +134,11 @@ app.whenReady().then(async () => {
   pruefe(await js(`Boolean(document.querySelector('[data-bild] img'))`), 'ein Bild ist gewaehlt');
   await warte(200);
   pruefe(/Selten/.test(await js(`document.querySelector('[data-eichung-seltenheit]')?.textContent ?? ''`)), 'Bonus +2: Seltenheit selten (SRD)');
-  await js(`document.querySelector('[data-speichern]').click(); true`);
+  // Strg+S aus einem Textfeld heraus speichert (Rückmeldung).
+  await js(`(() => { const e = document.querySelector('[data-feld="name"]'); e.focus();
+    e.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true })); return true; })()`);
   await warte(800);
-  pruefe(/Gespeichert/.test(await js(`document.querySelector('[data-meldung]')?.textContent ?? ''`)), 'gespeichert');
+  pruefe(/Gespeichert/.test(await js(`document.querySelector('[data-meldung]')?.textContent ?? ''`)), 'Strg+S speichert');
   const ordner = path.join(userData, 'homebrew', 'eintraege');
   const datei = path.join(ordner, 'sturmklinge.md');
   pruefe(fs.existsSync(datei), 'liegt als Datei in homebrew/eintraege');
@@ -129,7 +165,7 @@ app.whenReady().then(async () => {
   await warte(800);
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
-  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 2, 'zwei Kacheln in der Sammlung');
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung (mit dem Altring)');
   await js(`document.querySelector('[data-filter="ruestung"]').click(); true`);
   await warte(200);
   pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 1, 'Filter Ruestung: eine Kachel');
@@ -156,19 +192,37 @@ app.whenReady().then(async () => {
   pruefe((await urteil()) === 'weit_ueber', '14W6 auf Grad 3: deutlich staerker');
   await tippe('schadenAnzahl', '8');
   await js(`document.querySelector('[data-klasse="magier"]').click(); true`);
+  pruefe((await js(`document.querySelector('[data-schule-text]').textContent`)).length > 10, 'die Schule hat einen erklärenden Satz');
+  await waehle('zeitWahl', 'Bonusaktion');
+  await waehle('komponentenWahl', '\u0000');
+  await warte(150);
+  await tippe('komponenten', 'V, G, M (ein Stück Kohle)');
+  await tippe('eigeneKlassen', 'Blutjäger, Artificer');
+  await tippe('unterklassen', 'Kleriker: Schmiededomäne');
+  await js(`document.querySelector('[data-wirkung-art="zustand"]').click(); true`);
+  await warte(150);
+  await waehle('zustandWahl', 'Liegend');
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(800);
   const zdatei = path.join(userData, 'homebrew', 'eintraege', 'glutregen.md');
   const zinhalt = fs.existsSync(zdatei) ? fs.readFileSync(zdatei, 'utf8') : '';
   pruefe(/"grad": 3/.test(zinhalt) && /"schadenAnzahl": 8/.test(zinhalt) && /"magier"/.test(zinhalt), 'der Zauber liegt mit seinen Werten in der Datei');
+  pruefe(
+    /"zeit": "Bonusaktion"/.test(zinhalt) && /Stück Kohle/.test(zinhalt) && /Blutjäger/.test(zinhalt) && /Schmiededomäne/.test(zinhalt) && /"zustand": "Liegend"/.test(zinhalt),
+    'Auswahl, freier Text, eigene Klassen, Unterklasse und Zustand sind gespeichert'
+  );
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
-  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung');
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 4, 'vier Kacheln in der Sammlung');
 
   // --- Magischer Gegenstand ------------------------------------------------------
   await js(`document.querySelector('[data-neu="magisch"]').click(); true`);
   await warte(300);
   pruefe(await js(`Boolean(document.querySelector('[data-magisch]'))`), 'Neu: magischer Gegenstand oeffnet seine Felder');
+  pruefe(
+    await js(`Boolean(document.querySelector('[data-magisch] [data-magiefelder] [data-wirkung-neu="0"]') && document.querySelector('[data-fluch-wuerfeln]'))`),
+    'dasselbe Formular wie im Generator: Würfel je Wirkung und für den Fluch'
+  );
   await tippe('name', 'Glutamulett');
   const wirkung = (i, text) =>
     js(`(() => { const e = document.querySelector('[data-wirkung="${i}"]');
@@ -193,7 +247,8 @@ app.whenReady().then(async () => {
   pruefe(foundry?.name === 'Glutamulett' && foundry?.system?.rarity === 'veryRare', 'Foundry-Export: JSON mit Name und Seltenheit');
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
-  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 4, 'vier Kacheln in der Sammlung');
+  pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 5, 'fünf Kacheln in der Sammlung');
+  pruefe(fs.existsSync(path.join(magieOrdner, 'glutamulett.md')), 'das Glutamulett liegt in der gemeinsamen Ablage');
 
   // --- Suche der Huelle ----------------------------------------------------------
   const eintraege = (await hjs('window.shell.suche.eintraege()')) ?? [];
@@ -220,6 +275,12 @@ app.whenReady().then(async () => {
   };
   const loot = await oeffneWerkzeug('loot');
   pruefe(await loot(`Boolean(document.querySelector('[data-id="mi-homebrew"]'))`), 'Loot Generator: Tabelle „Homebrew"');
+  // Eine Sammlung: was der Homebrew Creator an magischen Gegenständen hat, steht auch im Generator.
+  const mig = await oeffneWerkzeug('magicitems');
+  pruefe(
+    await mig(`Boolean(document.querySelector('[data-id="glutamulett"]') && document.querySelector('[data-id="altring"]'))`),
+    'Magic Item Generator: Glutamulett und Altring stehen auch dort'
+  );
   const nsw = await oeffneWerkzeug('nachschlagewerk');
   pruefe(await nsw(`Boolean(document.querySelector('[data-regel="homebrew/sturmklinge"]'))`), 'Nachschlagewerk: die Sturmklinge steht unter Homebrew');
   await nsw(`document.querySelector('[data-regel="homebrew/sturmklinge"]')?.click(); true`);

@@ -116,6 +116,25 @@ app.whenReady().then(async () => {
   const ics = fs.existsSync(icsZiel) ? fs.readFileSync(icsZiel, 'utf8') : '';
   pruefe(/BEGIN:VEVENT/.test(ics) && /SUMMARY:Sitzung 13/.test(ics) && new RegExp(`DTSTART:${ersterTag.replace(/-/g, '')}T`).test(ics), '.ics mit Titel und Datum gespeichert');
 
+  // --- Klick auf ein markiertes Feld wählt es ab, nochmal setzt es -------------------------
+  await ziehe([f(1320)]);
+  await warte(300);
+  pruefe((await js(`document.querySelector('[data-feld="${f(1320)}"]').dataset.stufe`)) === '', 'Klick auf ein markiertes Feld wählt es ab');
+  await ziehe([f(1320)]);
+  await warte(300);
+  pruefe((await js(`document.querySelector('[data-feld="${f(1320)}"]').dataset.stufe`)) === 'notfalls', 'nochmal klicken setzt es wieder');
+  await js(`document.querySelector('[data-modus="kann"]').click(); true`);
+
+  // --- Diagonal ziehen markiert ein Rechteck -------------------------------------------------
+  const spalten = await js(`[...new Set([...document.querySelectorAll('[data-raster="meine"] [data-feld]')].map((e) => e.dataset.feld.split('T')[0]))]`);
+  const [t3, t4] = [spalten[2], spalten[3]];
+  await tippe('[data-name]', 'Rex');
+  await ziehe([`${t3}T1080`, `${t4}T1140`]);
+  await warte(300);
+  const rechteck = await js(`['${t3}T1080','${t3}T1140','${t4}T1080','${t4}T1140'].map((k) => document.querySelector('[data-raster="meine"] [data-feld="' + k + '"]').dataset.stufe).join(',')`);
+  pruefe(rechteck === 'kann,kann,kann,kann', `diagonal gezogen: alle vier Felder des Rechtecks (${rechteck})`);
+  await tippe('[data-name]', 'Jo');
+
   // --- Als Datei weitergeben, jemand antwortet, wieder einlesen ------------------------
   const dateiZiel = path.join(tmp, 'umfrage.kalender.json');
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: dateiZiel });
@@ -132,6 +151,51 @@ app.whenReady().then(async () => {
   await warte(1200);
   pruefe(/Sam/.test(await js(`document.body.innerText`)), 'eingelesen: Sams Antwort ist dabei');
   pruefe((await js(`document.querySelector('[data-heat="${f(1140)}"]').dataset.anzahl`)) === '3', 'Heatmap: um 19 Uhr können jetzt drei');
+
+  // --- Filter in „Alle" ------------------------------------------------------------------
+  const waehle = (sel, wert) =>
+    js(`(() => { const e = document.querySelector('${sel}');
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, ${JSON.stringify(wert)});
+      e.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await js(`document.querySelector('[data-person="Sam"]').click(); true`);
+  await warte(300);
+  pruefe((await js(`document.querySelector('[data-heat="${f(1140)}"]').dataset.anzahl`)) === '2', 'Sam abgewählt: um 19 Uhr zählen zwei');
+  await js(`document.querySelector('[data-person="Sam"]').click(); true`);
+  await waehle('[data-mindestens]', '3');
+  await warte(300);
+  pruefe(
+    (await js(`document.querySelector('[data-heat="${f(1080)}"]').dataset.passt`)) === '0' && (await js(`document.querySelector('[data-heat="${f(1140)}"]').dataset.passt`)) === '1',
+    'mindestens drei: 18 Uhr ausgegraut, 19 Uhr nicht'
+  );
+  await waehle('[data-mindestens]', '');
+  await js(`document.querySelector('[data-pflicht="Rex"]').click(); true`);
+  await warte(300);
+  pruefe(
+    (await js(`document.querySelector('[data-heat="${f(1140)}"]').dataset.passt`)) === '0' &&
+      (await js(`[...document.querySelectorAll('[data-vorschlag]')].every((v) => v.dataset.vorschlag.startsWith('${t3}') || v.dataset.vorschlag.startsWith('${t4}'))`)),
+    'Rex muss dabei sein: nur noch Rex\' Tage'
+  );
+  await js(`document.querySelector('[data-pflicht="Rex"]').click(); true`);
+
+  // --- Sitzungslänge offen: längste Blöcke ----------------------------------------------------
+  await js(`document.querySelector('details.karte').open = true; true`);
+  await waehle('[data-dauer]', '');
+  await warte(400);
+  const offenerVorschlag = await js(`document.querySelector('[data-vorschlag]')?.textContent ?? ''`);
+  pruefe(/19:00–21:00/.test(offenerVorschlag), `ohne Dauer: der Block, in dem die meisten können (${offenerVorschlag.slice(0, 60)})`);
+  await waehle('[data-dauer]', '240');
+
+  // --- Zeitzone: das Raster in der eigenen Zone ------------------------------------------------
+  await waehle('[data-zone-umfrage]', 'Europe/Berlin');
+  await warte(300);
+  await waehle('[data-zone-ich]', 'America/New_York');
+  await warte(400);
+  const ersteZeit = await js(`document.querySelector('[data-raster="meine"] .raster__zeit').textContent`);
+  pruefe(ersteZeit === '11:00', `in New York beginnt das Raster um 11:00 statt 17:00 (${ersteZeit})`);
+  pruefe((await js(`document.querySelector('[data-heat="${f(1140)}"]').dataset.anzahl`)) === '3', 'dieselben Felder, nur umgerechnet');
+  await waehle('[data-zone-ich]', 'Europe/Berlin');
+  await waehle('[data-zone-umfrage]', '');
+  await warte(300);
 
   // --- Antwort aus dem Raum (der Weg der Hülle) -----------------------------------------
   const id = paket.umfrage.id;

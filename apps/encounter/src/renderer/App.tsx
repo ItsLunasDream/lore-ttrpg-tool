@@ -317,6 +317,7 @@ export function App() {
           <button
             type="button"
             className="knopf knopf--haupt"
+            data-speichern
             onClick={() => void speichereOffen()}
           >
             {t('speichern')}

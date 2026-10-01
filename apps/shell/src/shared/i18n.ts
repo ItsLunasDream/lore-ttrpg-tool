@@ -298,6 +298,10 @@ const en = {
 
   'intro.start': 'Let’s go',
   'intro.wieder': 'Shown once. You can bring it back in the settings.',
+  'help.title': 'Help: {name}',
+  'help.button': 'Help (F1)',
+  'help.controls': 'Controls',
+  'help.general': 'Everywhere',
 
   'about.title': 'About LORE',
   'about.author': 'By ItsLunasDream',
@@ -339,7 +343,7 @@ const en = {
   'app.homebrew.name': 'Homebrew Creator',
   'app.homebrew.description': 'Build your own weapons, armor, items and spells, calibrated against the SRD',
   'app.kalender.name': 'Campaign Calendar',
-  'app.kalender.description': 'Find a date like on Crab.fit: everyone marks their time, the heatmap shows the best evenings',
+  'app.kalender.description': 'Find a date: everyone marks their time, the heatmap shows the best evenings',
   'app.orte.name': 'Settlement Generator',
   'app.orte.description': 'Roll villages, towns and cities with inn, shops at SRD prices, people and rumours',
   'app.loot.name': 'Loot Generator',
@@ -654,6 +658,10 @@ const de: Partial<Record<MessageKey, string>> = {
 
   'intro.start': 'Los geht’s',
   'intro.wieder': 'Wird einmal gezeigt. In den Einstellungen holst du es zurück.',
+  'help.title': 'Hilfe: {name}',
+  'help.button': 'Hilfe (F1)',
+  'help.controls': 'Bedienung',
+  'help.general': 'Überall',
 
   'about.title': 'Über LORE',
   'about.author': 'Von ItsLunasDream',
@@ -695,7 +703,7 @@ const de: Partial<Record<MessageKey, string>> = {
   'app.homebrew.name': 'Homebrew Creator',
   'app.homebrew.description': 'Eigene Waffen, Rüstungen, Gegenstände und Zauber bauen, am SRD geeicht',
   'app.kalender.name': 'Campaign Calendar',
-  'app.kalender.description': 'Termine finden wie bei Crab.fit: alle markieren ihre Zeit, die Heatmap zeigt die besten Abende',
+  'app.kalender.description': 'Termine finden: alle markieren ihre Zeit, die Heatmap zeigt die besten Abende',
   'app.orte.name': 'Settlement Generator',
   'app.orte.description': 'Dörfer, Kleinstädte und Städte würfeln: Gasthaus, Läden mit SRD-Preisen, Personen, Gerüchte',
   'app.loot.name': 'Loot Generator',

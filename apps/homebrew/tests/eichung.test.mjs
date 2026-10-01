@@ -86,3 +86,43 @@ test('Inventar: eine eigene Waffe bringt ihre Kampfwerte mit, Zauber kommen nich
   assert.match(x.waffe.eigen.eigenschaften[0], /Vielseitig \(1W10\)/);
   assert.equal(H.inventarEintrag({ ...H.leererEintrag('zauber'), name: 'Z' }, 'de'), null);
 });
+
+test('Waffe: Plus und Zusatzschaden zählen zum Schnitt, alte Dateien bekommen Standardwerte', () => {
+  const basis = { ...H.leererEintrag('waffe'), wuerfel: '1d8', kategorie: 'kriegs', fern: false };
+  const mit = { ...basis, schadenPlus: 2, zusatz: [{ wuerfel: '1d6', plus: 0, art: 'feuer' }] };
+  assert.equal(H.zusatzSchnitt(mit), 2 + 3.5);
+  assert.ok(H.eicheWaffe(mit).befunde.some((b) => /Plus/.test(b.text.de)));
+  assert.equal(H.kurzzeile(mit, 'de').includes('1W8 + 2 Hieb + 1W6 Feuer'), true);
+  // Datei von vor dieser Änderung: ohne die neuen Felder.
+  const alt = H.bereinige({ art: 'waffe', name: 'Alt', wuerfel: '1d8', eigenschaften: ['reichweite'] }, 'alt');
+  assert.deepEqual([alt.schadenPlus, alt.zusatz, alt.reichweiteNah], [0, [], 10]);
+  const kaputt = H.bereinige({ art: 'waffe', zusatz: [{ wuerfel: 'xx', plus: 999, art: 'nix' }, 1, 2, 3, 4, 5] }, 'k');
+  assert.equal(kaputt.zusatz.length, 4);
+  assert.deepEqual(kaputt.zusatz[0], { wuerfel: '1d6', plus: 50, art: 'feuer' });
+});
+
+test('Zauber: Wirkungen, eigene Klassen und Unterklassen', () => {
+  const alt = H.bereinige({ art: 'zauber', name: 'Alt', schadenAnzahl: 3 }, 'a');
+  assert.deepEqual(alt.wirkungen, ['schaden'], 'alter Zauber mit Würfeln bleibt ein Schadenszauber');
+  assert.deepEqual(H.bereinige({ art: 'zauber', name: 'Hand' }, 'h').wirkungen, []);
+  const heil = { ...H.leererEintrag('zauber'), wirkungen: ['heilung', 'zustand'], heilAnzahl: 2, heilSeiten: 8, heilPlus: 0, zustand: 'Gelähmt', eigeneKlassen: ['Blutjäger'], unterklassen: ['Kleriker: Lichtdomäne'] };
+  const e = H.eicheZauber(heil);
+  assert.equal(e.urteil, null);
+  assert.ok(e.befunde.some((b) => /Heilung im Schnitt 9/.test(b.text.de)));
+  assert.ok(e.befunde.some((b) => /Zustände/.test(b.text.de)));
+  const text = H.zauberText(heil, 'de');
+  assert.match(text, /Heilung 2W8/);
+  assert.match(text, /Gelähmt/);
+  assert.match(text, /Klassen: Blutjäger/);
+  assert.match(text, /Unterklassen: Kleriker: Lichtdomäne/);
+  // Schadenswürfel ohne angehakten Schaden zählen nicht.
+  assert.equal(H.eicheZauber({ ...heil, schadenAnzahl: 8 }).urteil, null);
+});
+
+test('Erklärungen: jede Eigenschaft, Meisterschaft und Schule hat einen Satz in beiden Sprachen', () => {
+  for (const tab of [H.EIGENSCHAFT_TEXT, H.MEISTERSCHAFT_TEXT, H.SCHULE_TEXT]) {
+    for (const [k, p] of Object.entries(tab)) assert.ok(p.de.length > 10 && p.en.length > 10, k);
+  }
+  assert.equal(Object.keys(H.MEISTERSCHAFT_TEXT).length, 8);
+  assert.equal(Object.keys(H.SCHULE_TEXT).length, 8);
+});

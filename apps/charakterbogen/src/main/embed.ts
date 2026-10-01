@@ -35,7 +35,7 @@ export interface BogenEmbedOptions {
   readonly tracker?: (figuren: readonly Figur[], hinzufuegen: boolean) => void;
   /** Quellen fuers Inventar aus anderen Werkzeugen, ueber die Huelle. */
   readonly quellen?: {
-    magicitems(sprache: 'de' | 'en'): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]>;
+    magicitems(sprache: 'de' | 'en'): Promise<{ id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number; gewicht?: number; bild?: string }[]>;
     lootTabellen(sprache: 'de' | 'en'): Promise<{ id: string; name: string }[]>;
     lootWuerfle(tabellenId: string, sprache: 'de' | 'en'): Promise<string | null>;
     /** Eigene Waffen, Ruestungen und Gegenstaende aus dem Homebrew Creator (Quelleintraege). */

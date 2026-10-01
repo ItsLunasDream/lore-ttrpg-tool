@@ -40,7 +40,7 @@ import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
 import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
-import { mountZustaende } from '../../../zustaende/src/main/embed';
+import { leseEintraege as leseZustaendeEintraege, mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
@@ -422,6 +422,12 @@ function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
       huellenFokus?.();
       return;
     }
+    // F1: die Hilfe der Hülle. Der Map Maker hat eine eigene, ausführlichere; die bleibt ihm.
+    if (eingabe.key === 'F1' && !eingabe.control && !eingabe.alt && !eingabe.meta && !eingabe.shift && !sicht.webContents.getURL().includes('/apps/mapmaker/')) {
+      event.preventDefault();
+      huellenHilfe?.();
+      return;
+    }
     if (!(eingabe.control || eingabe.meta)) return;
     // Strg+Alt und Plus, Minus, 0: die Groesse der ganzen Oberflaeche.
     // Strg allein bleibt den Werkzeugen (Zoom im Story Creator).
@@ -458,6 +464,13 @@ let huellenFokus: (() => void) | null = null;
 
 export function setzeFokustaste(hoerer: () => void): void {
   huellenFokus = hoerer;
+}
+
+let huellenHilfe: (() => void) | null = null;
+
+/** Was F1 in einem Werkzeug tut: die Hilfe der Hülle öffnen. */
+export function setzeHilfetaste(hoerer: () => void): void {
+  huellenHilfe = hoerer;
 }
 
 export function setzeSuchtaste(hoerer: () => void): void {
@@ -1614,7 +1627,11 @@ async function montiereHomebrew(id: string, haken: MontageHaken): Promise<Montie
     devServerUrl: process.env.HOMEBREW_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
-    onEreignis: haken.onEreignis
+    onEreignis: haken.onEreignis,
+    eigeneZustaende: async () =>
+      (await leseZustaendeEintraege(app.getPath('userData'), sammlungssprache === 'de' ? 'de' : 'en')).map((e) => e.name),
+    // Eine Sammlung magischer Gegenstände für Generator und Homebrew Creator.
+    magieOrdner: join(datenordner('magicitems'), 'gegenstaende')
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

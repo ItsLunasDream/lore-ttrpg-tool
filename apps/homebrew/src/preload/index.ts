@@ -25,6 +25,8 @@ const api = {
   },
   sammlung: {
     liste: () => ipcRenderer.invoke(kanal('liste')) as Promise<Kachel[]>,
+    /** Namen der eigenen Zustände (Status Effect Creator). */
+    zustaende: () => ipcRenderer.invoke(kanal('zustaende')) as Promise<string[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('lesen'), id) as Promise<Eintrag | null>,
     speichern: (g: Eintrag, neu: boolean) =>
       ipcRenderer.invoke(kanal('speichern'), g, neu) as Promise<{ ok: boolean; id: string; text: string }>,

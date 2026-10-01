@@ -234,6 +234,16 @@ const api = {
       };
     }
   },
+  /** F1 in einem Werkzeug (über den Hauptprozess, wie Strg+K). */
+  hilfe: {
+    beiTaste: (fn: () => void): (() => void) => {
+      const hoerer = () => fn();
+      ipcRenderer.on('hilfe:oeffnen', hoerer);
+      return () => {
+        ipcRenderer.off('hilfe:oeffnen', hoerer);
+      };
+    }
+  },
   suche: {
     eintraege: () => ipcRenderer.invoke('suche:eintraege') as Promise<Eintrag[]>,
     /**
