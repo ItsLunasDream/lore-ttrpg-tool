@@ -371,6 +371,9 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
 | `magicitems.md` | Magic Item Generator |
 | `homebrew-creator.md` | Homebrew Creator |
+| `sitzungsprotokoll.md` | Session log (concept, not built) |
+| `kampagnenkalender.md` | Campaign calendar with scheduling poll (concept, not built) |
+| `ortsgenerator.md` | Settlement generator (concept, not built) |
 | `nachschlagewerk.md` | Reference |
 | `loot.md` | Loot Generator |
 | `inventar.md` | Inventory (concept, not built) |
