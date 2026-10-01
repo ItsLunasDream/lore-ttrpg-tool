@@ -710,7 +710,7 @@ export function App() {
         <button type="button" onClick={() => setZeigeBegegnungen((vorher) => !vorher)}>
           {t('knopf.oeffnen')}
         </button>
-        <button type="button" onClick={() => setDialog('speichern')} disabled={sortiert.length === 0}>
+        <button type="button" data-speichern onClick={() => setDialog('speichern')} disabled={sortiert.length === 0}>
           {t('knopf.speichern')}
         </button>
         <button

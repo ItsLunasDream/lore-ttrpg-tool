@@ -518,6 +518,7 @@ function Notizfenster({
           type="button"
           className="knopf knopf--haupt"
           data-notiz-speichern
+          data-speichern
           disabled={!text.trim()}
           onClick={() => speichern(text.trim())}
         >
@@ -1045,7 +1046,7 @@ function Hausregelformular({
       </label>
       {fehler ? <p className="hausformular__fehler">{fehler}</p> : null}
       <div className="regel__knoepfe">
-        <button type="submit" className="knopf knopf--haupt" data-hausregel-speichern>
+        <button type="submit" className="knopf knopf--haupt" data-hausregel-speichern data-speichern>
           {t('haus.speichern')}
         </button>
         <button type="button" className="knopf" onClick={abbrechen}>

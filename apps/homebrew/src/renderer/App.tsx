@@ -17,8 +17,10 @@ import {
   FLAECHEN,
   RETTUNGSWUERFE,
   SCHADENSARTEN,
+  HOECHSTENS_ZUSATZ,
   ZAUBERKLASSEN,
   ZAUBERSCHULEN,
+  ZAUBERWIRKUNGEN,
   leererEintrag,
   type Art,
   type Eintrag,
@@ -26,19 +28,25 @@ import {
   type Ruestung,
   type Schadensart,
   type Waffe,
-  type Zauber
+  type Zauber,
+  type Zauberwirkung,
+  type Zusatzschaden
 } from '../shared/modell';
 import type { Kachel } from '../shared/ablage';
 import {
   ART_NAME,
   ART_ZEICHEN,
   EIGENSCHAFT_NAME,
+  EIGENSCHAFT_TEXT,
   KLASSE_NAME,
   MEISTERSCHAFT_NAME,
+  MEISTERSCHAFT_TEXT,
   RUESTUNGSART_NAME,
   SCHADENSART_NAME,
-  SCHULE_NAME
+  SCHULE_NAME,
+  SCHULE_TEXT
 } from '../shared/texte';
+import { ZUSTAENDE as SRD_ZUSTAENDE } from '@suite/srd/zustaende';
 import { eicheRuestung, eicheWaffe, type Eichung } from '../shared/eichung';
 import { eicheZauber } from '../shared/zauberEichung';
 import { eicheMagisch } from '../shared/magischEichung';
@@ -391,9 +399,71 @@ function Wahl<T extends string>({ label, wert, optionen, feld, aendern }: { labe
 }
 
 const WUERFEL = ['1', '1d4', '1d6', '1d8', '1d10', '1d12', '2d4', '2d6', '2d8', '2d10', '2d12', '3d6', '3d8'];
+const SEITEN = [4, 6, 8, 10, 12] as const;
 
 function wuerfelName(w: string, s: Sprache): string {
   return s === 'de' ? w.replace('d', 'W') : w;
+}
+
+/** „2d6" → 2 und 6; „3" → 3 und 0 (fester Wert ohne Würfel). */
+function zerlege(w: string): { anzahl: number; seiten: number } {
+  const m = /^(\d+)d(\d+)$/.exec(w);
+  if (m) return { anzahl: Number(m[1]), seiten: Number(m[2]) };
+  return { anzahl: Number(w) || 0, seiten: 0 };
+}
+
+function setzeZusammen(anzahl: number, seiten: number): string {
+  return seiten ? `${Math.max(1, anzahl)}d${seiten}` : String(Math.max(0, anzahl));
+}
+
+/** Ein aufklappbarer Abschnitt; startet offen, der Zustand bleibt beim Tippen erhalten. */
+function Abschnitt({ titel, kennung, children }: { titel: string; kennung: string; children: React.ReactNode }) {
+  return (
+    <details className="abschnitt" open data-abschnitt={kennung}>
+      <summary className="abschnitt__kopf">{titel}</summary>
+      <div className="abschnitt__inhalt">{children}</div>
+    </details>
+  );
+}
+
+/** Anzahl, Würfel und Plus getrennt (Rückmeldung: wie beim Zauber). */
+function SchadenWahl({ wuerfel, plus, feld, aendern }: { wuerfel: string; plus: number; feld: string; aendern: (wuerfel: string, plus: number) => void }) {
+  const s = sprache();
+  const { anzahl, seiten } = zerlege(wuerfel);
+  return (
+    <span className="paar" data-schaden={feld}>
+      <input
+        className="feld__eingabe feld__eingabe--kurz"
+        type="number"
+        min={seiten ? 1 : 0}
+        max={20}
+        value={anzahl}
+        aria-label={t('feld.anzahl')}
+        data-feld={`${feld}Anzahl`}
+        onChange={(e) => aendern(setzeZusammen(Math.min(20, Math.round(Number(e.target.value) || 0)), seiten), plus)}
+      />
+      <select className="feld__wahl" value={seiten} aria-label={t('feld.wuerfelArt')} data-feld={`${feld}Seiten`} onChange={(e) => aendern(setzeZusammen(anzahl, Number(e.target.value)), plus)}>
+        {SEITEN.map((w) => (
+          <option key={w} value={w}>
+            {s === 'de' ? 'W' : 'd'}
+            {w}
+          </option>
+        ))}
+        <option value={0}>{t('wuerfel.fest')}</option>
+      </select>
+      +
+      <input
+        className="feld__eingabe feld__eingabe--kurz"
+        type="number"
+        min={0}
+        max={50}
+        value={plus}
+        aria-label={t('feld.plus')}
+        data-feld={`${feld}Plus`}
+        onChange={(e) => aendern(wuerfel, Math.max(0, Math.min(50, Math.round(Number(e.target.value) || 0))))}
+      />
+    </span>
+  );
 }
 
 function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) => void }) {
@@ -403,89 +473,162 @@ function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) =>
     const neu = new Set(e);
     if (neu.has(x)) neu.delete(x);
     else neu.add(x);
-    setze({ eigenschaften: WAFFEN_EIGENSCHAFTEN.filter((y) => neu.has(y)) });
+    // „Weitreichend" bringt 10 Fuß Reichweite mit, ohne es wieder 5.
+    const reichweiteNah = x === 'reichweite' ? (neu.has(x) ? Math.max(10, w.reichweiteNah) : 5) : w.reichweiteNah;
+    setze({ eigenschaften: WAFFEN_EIGENSCHAFTEN.filter((y) => neu.has(y)), reichweiteNah });
   };
+  const setzeZusatz = (i: number, teil: Partial<Zusatzschaden>) => setze({ zusatz: w.zusatz.map((z, j) => (j === i ? { ...z, ...teil } : z)) });
   return (
     <div className="artfelder" data-waffe>
-      <div className="zeile">
-        <Wahl
-          label={t('feld.kategorie')}
-          wert={w.kategorie}
-          feld="kategorie"
-          optionen={[
-            { wert: 'einfach', text: t('kategorie.einfach') },
-            { wert: 'kriegs', text: t('kategorie.kriegs') }
-          ]}
-          aendern={(kategorie) => setze({ kategorie })}
-        />
-        <Wahl
-          label={t('feld.nahFern')}
-          wert={w.fern ? 'fern' : 'nah'}
-          feld="fern"
-          optionen={[
-            { wert: 'nah', text: t('nah') },
-            { wert: 'fern', text: t('fern') }
-          ]}
-          aendern={(x) => setze({ fern: x === 'fern' })}
-        />
-        <Wahl
-          label={t('feld.wuerfel')}
-          wert={WUERFEL.includes(w.wuerfel) ? w.wuerfel : '1d8'}
-          feld="wuerfel"
-          optionen={WUERFEL.map((x) => ({ wert: x, text: wuerfelName(x, s) }))}
-          aendern={(wuerfel) => setze({ wuerfel })}
-        />
-        <Wahl
-          label={t('feld.schadensart')}
-          wert={w.schadensart}
-          feld="schadensart"
-          optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
-          aendern={(schadensart: Schadensart) => setze({ schadensart })}
-        />
-      </div>
-      <fieldset className="chips" data-eigenschaften>
-        <legend className="feld__name">{t('feld.eigenschaften')}</legend>
-        {WAFFEN_EIGENSCHAFTEN.map((x) => (
-          <button key={x} type="button" className={e.has(x) ? 'chip chip--an' : 'chip'} aria-pressed={e.has(x)} data-eigenschaft={x} onClick={() => schalte(x)}>
-            {EIGENSCHAFT_NAME[x][s]}
-          </button>
-        ))}
-      </fieldset>
-      <div className="zeile">
-        {e.has('vielseitig') ? (
+      <Abschnitt titel={t('abschnitt.grund')} kennung="grund">
+        <div className="zeile">
           <Wahl
-            label={t('feld.vielseitig')}
-            wert={WUERFEL.includes(w.vielseitig) ? w.vielseitig : '1d10'}
-            feld="vielseitig"
-            optionen={WUERFEL.map((x) => ({ wert: x, text: wuerfelName(x, s) }))}
-            aendern={(vielseitig) => setze({ vielseitig })}
+            label={t('feld.kategorie')}
+            wert={w.kategorie}
+            feld="kategorie"
+            optionen={[
+              { wert: 'einfach', text: t('kategorie.einfach') },
+              { wert: 'kriegs', text: t('kategorie.kriegs') }
+            ]}
+            aendern={(kategorie) => setze({ kategorie })}
           />
-        ) : null}
-        {e.has('wurf') || e.has('munition') ? (
+          <Wahl
+            label={t('feld.nahFern')}
+            wert={w.fern ? 'fern' : 'nah'}
+            feld="fern"
+            optionen={[
+              { wert: 'nah', text: t('nah') },
+              { wert: 'fern', text: t('fern') }
+            ]}
+            aendern={(x) => setze({ fern: x === 'fern' })}
+          />
+          <Wahl
+            label={t('feld.bonus')}
+            wert={String(w.bonus)}
+            feld="bonus"
+            optionen={['0', '1', '2', '3'].map((x) => ({ wert: x, text: x === '0' ? t('bonus.kein') : `+${x}` }))}
+            aendern={(x) => setze({ bonus: Number(x) })}
+          />
+        </div>
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.schaden')} kennung="schaden">
+        <div className="zeile">
           <label className="feld">
-            <span className="feld__name">{t('feld.reichweite')}</span>
-            <span className="paar">
-              <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={w.reichweiteNormal} data-feld="reichweiteNormal" onChange={(x) => setze({ reichweiteNormal: Math.max(5, Number(x.target.value) || 5) })} />
-              /
-              <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={w.reichweiteMax} data-feld="reichweiteMax" onChange={(x) => setze({ reichweiteMax: Math.max(5, Number(x.target.value) || 5) })} />
-            </span>
+            <span className="feld__name">{t('feld.wuerfel')}</span>
+            <SchadenWahl wuerfel={w.wuerfel} plus={w.schadenPlus} feld="schaden" aendern={(wuerfel, schadenPlus) => setze({ wuerfel, schadenPlus })} />
           </label>
+          <Wahl
+            label={t('feld.schadensart')}
+            wert={w.schadensart}
+            feld="schadensart"
+            optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
+            aendern={(schadensart: Schadensart) => setze({ schadensart })}
+          />
+        </div>
+        {w.zusatz.map((z, i) => (
+          <div className="zeile" key={i} data-zusatz={i}>
+            <label className="feld">
+              <span className="feld__name">+ {t('feld.wuerfel')}</span>
+              <SchadenWahl wuerfel={z.wuerfel} plus={z.plus} feld={`zusatz${i}`} aendern={(wuerfel, plus) => setzeZusatz(i, { wuerfel, plus })} />
+            </label>
+            <Wahl
+              label={t('feld.schadensart')}
+              wert={z.art}
+              feld={`zusatz${i}Art`}
+              optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
+              aendern={(art: Schadensart) => setzeZusatz(i, { art })}
+            />
+            <button type="button" className="knopf knopf--klein" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={() => setze({ zusatz: w.zusatz.filter((_, j) => j !== i) })}>
+              ✕
+            </button>
+          </div>
+        ))}
+        {w.zusatz.length < HOECHSTENS_ZUSATZ ? (
+          <button type="button" className="knopf knopf--klein" data-zusatz-dazu onClick={() => setze({ zusatz: [...w.zusatz, { wuerfel: '1d6', plus: 0, art: 'feuer' }] })}>
+            {t('schaden.dazu')}
+          </button>
         ) : null}
-        <Wahl
-          label={t('feld.meisterschaft')}
-          wert={w.meisterschaft}
-          feld="meisterschaft"
-          optionen={MEISTERSCHAFTEN.map((x) => ({ wert: x, text: MEISTERSCHAFT_NAME[x][s] }))}
-          aendern={(meisterschaft: Meisterschaft) => setze({ meisterschaft })}
-        />
-        <Wahl
-          label={t('feld.bonus')}
-          wert={String(w.bonus)}
-          feld="bonus"
-          optionen={['0', '1', '2', '3'].map((x) => ({ wert: x, text: x === '0' ? t('bonus.kein') : `+${x}` }))}
-          aendern={(x) => setze({ bonus: Number(x) })}
-        />
-      </div>
+        {e.has('vielseitig') ? (
+          <div className="zeile">
+            <Wahl
+              label={t('feld.vielseitig')}
+              wert={WUERFEL.includes(w.vielseitig) ? w.vielseitig : '1d10'}
+              feld="vielseitig"
+              optionen={WUERFEL.map((x) => ({ wert: x, text: wuerfelName(x, s) }))}
+              aendern={(vielseitig) => setze({ vielseitig })}
+            />
+          </div>
+        ) : null}
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.eigenschaften')} kennung="eigenschaften">
+        <fieldset className="chips" data-eigenschaften>
+          <legend className="feld__name">{t('feld.eigenschaften')}</legend>
+          {WAFFEN_EIGENSCHAFTEN.map((x) => (
+            <button
+              key={x}
+              type="button"
+              className={e.has(x) ? 'chip chip--an' : 'chip'}
+              aria-pressed={e.has(x)}
+              data-eigenschaft={x}
+              title={EIGENSCHAFT_TEXT[x][s]}
+              onClick={() => schalte(x)}
+            >
+              {EIGENSCHAFT_NAME[x][s]}
+            </button>
+          ))}
+        </fieldset>
+        {w.eigenschaften.length ? (
+          <ul className="erklaerung" data-eigenschaft-texte>
+            {w.eigenschaften.map((x) => (
+              <li key={x}>
+                <strong>{EIGENSCHAFT_NAME[x][s]}:</strong> {EIGENSCHAFT_TEXT[x][s]}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="zeile">
+          <Wahl
+            label={t('feld.meisterschaft')}
+            wert={w.meisterschaft}
+            feld="meisterschaft"
+            optionen={MEISTERSCHAFTEN.map((x) => ({ wert: x, text: MEISTERSCHAFT_NAME[x][s] }))}
+            aendern={(meisterschaft: Meisterschaft) => setze({ meisterschaft })}
+          />
+        </div>
+        <p className="erklaerung" data-meisterschaft-text>
+          {MEISTERSCHAFT_TEXT[w.meisterschaft][s]}
+        </p>
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.reichweite')} kennung="reichweite">
+        <div className="zeile">
+          {!w.fern ? (
+            <label className="feld">
+              <span className="feld__name">{t('feld.reichweiteNah')}</span>
+              <input
+                className="feld__eingabe feld__eingabe--kurz"
+                type="number"
+                min={5}
+                max={100}
+                step={5}
+                value={w.reichweiteNah}
+                data-feld="reichweiteNah"
+                onChange={(x) => setze({ reichweiteNah: Math.max(5, Math.min(100, Math.round(Number(x.target.value) || 5))) })}
+              />
+            </label>
+          ) : null}
+          {w.fern || e.has('wurf') || e.has('munition') ? (
+            <label className="feld">
+              <span className="feld__name">{t('feld.reichweite')}</span>
+              <span className="paar">
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={w.reichweiteNormal} data-feld="reichweiteNormal" onChange={(x) => setze({ reichweiteNormal: Math.max(5, Number(x.target.value) || 5) })} />
+                /
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={w.reichweiteMax} data-feld="reichweiteMax" onChange={(x) => setze({ reichweiteMax: Math.max(5, Number(x.target.value) || 5) })} />
+              </span>
+            </label>
+          ) : null}
+        </div>
+        {!w.fern ? <p className="leise">{t('reichweite.hinweis')}</p> : null}
+      </Abschnitt>
     </div>
   );
 }
@@ -495,46 +638,97 @@ function RuestungsFelder({ r, setze }: { r: Ruestung; setze: (teil: Partial<Rues
   const schild = r.ruestungsart === 'schild';
   return (
     <div className="artfelder" data-ruestung>
-      <div className="zeile">
-        <Wahl
-          label={t('feld.ruestungsart')}
-          wert={r.ruestungsart}
-          feld="ruestungsart"
-          optionen={RUESTUNGSARTEN.map((x) => ({ wert: x, text: RUESTUNGSART_NAME[x][s] }))}
-          aendern={(ruestungsart: RuestungsArt) => setze({ ruestungsart, ...(ruestungsart === 'schild' ? { rk: 2 } : {}) })}
-        />
-        <label className="feld">
-          <span className="feld__name">{schild ? t('feld.rkSchild') : t('feld.rk')}</span>
-          <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={30} value={r.rk} data-feld="rk" onChange={(e) => setze({ rk: Math.max(0, Math.min(30, Number(e.target.value) || 0)) })} />
+      <Abschnitt titel={t('abschnitt.grund')} kennung="grund">
+        <div className="zeile">
+          <Wahl
+            label={t('feld.ruestungsart')}
+            wert={r.ruestungsart}
+            feld="ruestungsart"
+            optionen={RUESTUNGSARTEN.map((x) => ({ wert: x, text: RUESTUNGSART_NAME[x][s] }))}
+            aendern={(ruestungsart: RuestungsArt) => setze({ ruestungsart, ...(ruestungsart === 'schild' ? { rk: 2 } : {}) })}
+          />
+          <label className="feld">
+            <span className="feld__name">{schild ? t('feld.rkSchild') : t('feld.rk')}</span>
+            <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={30} value={r.rk} data-feld="rk" onChange={(e) => setze({ rk: Math.max(0, Math.min(30, Number(e.target.value) || 0)) })} />
+          </label>
+          <label className="feld">
+            <span className="feld__name">{t('feld.staerke')}</span>
+            <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={30} value={r.staerke} data-feld="staerke" onChange={(e) => setze({ staerke: Math.max(0, Math.min(30, Number(e.target.value) || 0)) })} />
+          </label>
+          <Wahl
+            label={t('feld.bonus')}
+            wert={String(r.bonus)}
+            feld="bonus"
+            optionen={['0', '1', '2', '3'].map((x) => ({ wert: x, text: x === '0' ? t('bonus.kein') : `+${x}` }))}
+            aendern={(x) => setze({ bonus: Number(x) })}
+          />
+        </div>
+        <label className="feld feld--haken">
+          <input type="checkbox" checked={r.heimlichkeitNachteil} data-feld="heimlichkeit" onChange={(e) => setze({ heimlichkeitNachteil: e.target.checked })} />{' '}
+          {t('feld.heimlichkeit')}
         </label>
-        <label className="feld">
-          <span className="feld__name">{t('feld.staerke')}</span>
-          <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={30} value={r.staerke} data-feld="staerke" onChange={(e) => setze({ staerke: Math.max(0, Math.min(30, Number(e.target.value) || 0)) })} />
-        </label>
-        <Wahl
-          label={t('feld.bonus')}
-          wert={String(r.bonus)}
-          feld="bonus"
-          optionen={['0', '1', '2', '3'].map((x) => ({ wert: x, text: x === '0' ? t('bonus.kein') : `+${x}` }))}
-          aendern={(x) => setze({ bonus: Number(x) })}
-        />
-      </div>
-      <label className="feld feld--haken">
-        <input type="checkbox" checked={r.heimlichkeitNachteil} data-feld="heimlichkeit" onChange={(e) => setze({ heimlichkeitNachteil: e.target.checked })} />{' '}
-        {t('feld.heimlichkeit')}
-      </label>
+      </Abschnitt>
     </div>
   );
 }
 
-function Textfeld({ label, wert, feld, aendern }: { label: string; wert: string; feld: string; aendern: (w: string) => void }) {
+/**
+ * Auswahl mit den üblichen Werten aus dem SRD, aber frei beschreibbar:
+ * „Eigener Text …" (oder ein Wert, der in keiner Vorlage steht) zeigt ein
+ * Textfeld daneben.
+ */
+function WahlOderText({ label, wert, vorlagen, feld, aendern }: { label: string; wert: string; vorlagen: readonly string[]; feld: string; aendern: (w: string) => void }) {
+  const [frei, setFrei] = useState(() => !vorlagen.includes(wert));
+  const eigen = frei || !vorlagen.includes(wert);
   return (
     <label className="feld">
       <span className="feld__name">{label}</span>
-      <input className="feld__eingabe" value={wert} data-feld={feld} onChange={(e) => aendern(e.target.value)} />
+      <span className="paar">
+        <select
+          className="feld__wahl"
+          value={eigen ? '\u0000' : wert}
+          data-feld={`${feld}Wahl`}
+          onChange={(e) => {
+            if (e.target.value === '\u0000') {
+              setFrei(true);
+              return;
+            }
+            setFrei(false);
+            aendern(e.target.value);
+          }}
+        >
+          {vorlagen.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+          <option value={'\u0000'}>{t('eigen')}</option>
+        </select>
+        {eigen ? <input className="feld__eingabe" value={wert} data-feld={feld} onChange={(e) => aendern(e.target.value)} /> : null}
+      </span>
     </label>
   );
 }
+
+/** Die üblichen Werte, im Wortlaut der SRD-Zauber (packages/srd, Feld zeit/reichweite/dauer). */
+const VORLAGEN: Record<'zeit' | 'reichweite' | 'komponenten' | 'dauer', Record<Sprache, readonly string[]>> = {
+  zeit: {
+    de: ['Aktion', 'Bonusaktion', 'Reaktion', 'Keine Aktion', '1 Minute', '10 Minuten', '1 Stunde', '8 Stunden', '12 Stunden', '24 Stunden'],
+    en: ['Action', 'Bonus Action', 'Reaction', 'No Action', '1 minute', '10 minutes', '1 hour', '8 hours', '12 hours', '24 hours']
+  },
+  reichweite: {
+    de: ['Selbst', 'Berührung', '1,5 Meter', '3 Meter', '9 Meter', '18 Meter', '27 Meter', '36 Meter', '45 Meter', '90 Meter', '1,6 Kilometer', 'Sicht', 'Unbegrenzt'],
+    en: ['Self', 'Touch', '5 feet', '10 feet', '30 feet', '60 feet', '90 feet', '120 feet', '150 feet', '300 feet', '1 mile', 'Sight', 'Unlimited']
+  },
+  komponenten: {
+    de: ['V', 'G', 'V, G', 'V, M', 'G, M', 'V, G, M'],
+    en: ['V', 'S', 'V, S', 'V, M', 'S, M', 'V, S, M']
+  },
+  dauer: {
+    de: ['Unmittelbar', '1 Runde', '1 Minute', '10 Minuten', '1 Stunde', '8 Stunden', '24 Stunden', '10 Tage', 'Bis der Zauber gebannt wird'],
+    en: ['Instantaneous', '1 round', '1 minute', '10 minutes', '1 hour', '8 hours', '24 hours', '10 days', 'Until dispelled']
+  }
+};
 
 function Haken({ label, wert, feld, aendern }: { label: string; wert: boolean; feld: string; aendern: (w: boolean) => void }) {
   return (
@@ -554,115 +748,237 @@ const RETTUNG_NAME: Record<(typeof RETTUNGSWUERFE)[number], [string, string]> = 
   cha: ['Charisma', 'Charisma']
 };
 
+/** Kommagetrennte Liste ↔ Feld; leere Teile fallen weg. */
+function alsListe(text: string): string[] {
+  return text.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 12);
+}
+
+/** Ein Listenfeld, das beim Tippen den Text behält (Komma und Leerzeichen) und erst danach zerlegt. */
+function ListenFeld({ label, wert, feld, platz, aendern }: { label: string; wert: readonly string[]; feld: string; platz: string; aendern: (w: string[]) => void }) {
+  const [text, setText] = useState(wert.join(', '));
+  useEffect(() => {
+    if (alsListe(text).join('\u0000') !== wert.join('\u0000')) setText(wert.join(', '));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wert]);
+  return (
+    <label className="feld feld--breit">
+      <span className="feld__name">{label}</span>
+      <input
+        className="feld__eingabe"
+        value={text}
+        placeholder={platz}
+        data-feld={feld}
+        onChange={(e) => {
+          setText(e.target.value);
+          aendern(alsListe(e.target.value));
+        }}
+      />
+    </label>
+  );
+}
+
 function ZauberFelder({ z, setze }: { z: Zauber; setze: (teil: Partial<Zauber>) => void }) {
   const s = sprache();
   const i = s === 'de' ? 0 : 1;
   const klassen = new Set(z.klassen);
+  const [eigeneZustaende, setEigeneZustaende] = useState<string[]>([]);
+  useEffect(() => {
+    void api.sammlung.zustaende().then(setEigeneZustaende);
+  }, []);
   const schalte = (k: (typeof ZAUBERKLASSEN)[number]) => {
     const neu = new Set(klassen);
     if (neu.has(k)) neu.delete(k);
     else neu.add(k);
     setze({ klassen: ZAUBERKLASSEN.filter((x) => neu.has(x)) });
   };
+  const wirkt = (w: Zauberwirkung) => z.wirkungen.includes(w);
+  const schalteWirkung = (w: Zauberwirkung) =>
+    setze({ wirkungen: ZAUBERWIRKUNGEN.filter((x) => (x === w ? !wirkt(x) : wirkt(x))) });
+  const srdZustaende = SRD_ZUSTAENDE.map((x) => x.name[s]);
   return (
     <div className="artfelder" data-zauber>
-      <div className="zeile">
-        <Wahl
-          label={t('feld.grad')}
-          wert={String(z.grad)}
-          feld="grad"
-          optionen={Array.from({ length: 10 }, (_, g) => ({ wert: String(g), text: g === 0 ? t('grad.trick') : String(g) }))}
-          aendern={(x) => setze({ grad: Number(x) })}
-        />
-        <Wahl
-          label={t('feld.schule')}
-          wert={z.schule}
-          feld="schule"
-          optionen={ZAUBERSCHULEN.map((x) => ({ wert: x, text: SCHULE_NAME[x][s] }))}
-          aendern={(schule) => setze({ schule })}
-        />
-      </div>
-      <fieldset className="chips" data-klassen>
-        <legend className="feld__name">{t('feld.klassen')}</legend>
-        {ZAUBERKLASSEN.map((k) => (
-          <button key={k} type="button" className={klassen.has(k) ? 'chip chip--an' : 'chip'} aria-pressed={klassen.has(k)} data-klasse={k} onClick={() => schalte(k)}>
-            {KLASSE_NAME[k][s]}
-          </button>
-        ))}
-      </fieldset>
-      <div className="zeile">
-        <Textfeld label={t('feld.zeit')} wert={z.zeit} feld="zeit" aendern={(zeit) => setze({ zeit })} />
-        <Textfeld label={t('feld.zauberReichweite')} wert={z.reichweite} feld="zauberReichweite" aendern={(reichweite) => setze({ reichweite })} />
-        <Textfeld label={t('feld.komponenten')} wert={z.komponenten} feld="komponenten" aendern={(komponenten) => setze({ komponenten })} />
-        <Textfeld label={t('feld.dauer')} wert={z.dauer} feld="dauer" aendern={(dauer) => setze({ dauer })} />
-      </div>
-      <div className="zeile">
-        <Haken label={t('feld.konzentration')} wert={z.konzentration} feld="konzentration" aendern={(konzentration) => setze({ konzentration })} />
-        <Haken label={t('feld.ritual')} wert={z.ritual} feld="ritual" aendern={(ritual) => setze({ ritual })} />
-      </div>
-      <h3 className="feld__name">{t('feld.schaden')}</h3>
-      <div className="zeile">
-        <label className="feld">
-          <span className="feld__name">{t('feld.wuerfel')}</span>
-          <span className="paar">
-            <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={40} value={z.schadenAnzahl} data-feld="schadenAnzahl" onChange={(e) => setze({ schadenAnzahl: Math.max(0, Math.min(40, Math.round(Number(e.target.value) || 0))) })} />
-            <select className="feld__wahl" value={String(z.schadenSeiten)} data-feld="schadenSeiten" onChange={(e) => setze({ schadenSeiten: Number(e.target.value) })}>
-              {[4, 6, 8, 10, 12].map((w) => (
-                <option key={w} value={w}>
-                  {s === 'de' ? 'W' : 'd'}
-                  {w}
-                </option>
-              ))}
-            </select>
-            +
-            <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={200} value={z.schadenPlus} data-feld="schadenPlus" onChange={(e) => setze({ schadenPlus: Math.max(0, Math.min(200, Math.round(Number(e.target.value) || 0))) })} />
-          </span>
-        </label>
-        <Wahl
-          label={t('feld.schadensart')}
-          wert={z.schadensart}
-          feld="schadensart"
-          optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
-          aendern={(schadensart: Schadensart) => setze({ schadensart })}
-        />
-        <Wahl
-          label={t('feld.ziel')}
-          wert={z.ziel}
-          feld="ziel"
-          optionen={(['einzel', 'mehrere', 'flaeche'] as const).map((x) => ({ wert: x, text: t(`ziel.${x}` as TextKey) }))}
-          aendern={(ziel) => setze({ ziel })}
-        />
-        {z.ziel === 'flaeche' ? (
-          <>
-            <Wahl
-              label={t('feld.flaeche')}
-              wert={z.flaeche}
-              feld="flaeche"
-              optionen={FLAECHEN.map((x) => ({ wert: x, text: t(`flaeche.${x}` as TextKey) }))}
-              aendern={(flaeche) => setze({ flaeche })}
-            />
+      <Abschnitt titel={t('abschnitt.grund')} kennung="grund">
+        <div className="zeile">
+          <Wahl
+            label={t('feld.grad')}
+            wert={String(z.grad)}
+            feld="grad"
+            optionen={Array.from({ length: 10 }, (_, g) => ({ wert: String(g), text: g === 0 ? t('grad.trick') : String(g) }))}
+            aendern={(x) => setze({ grad: Number(x) })}
+          />
+          <Wahl
+            label={t('feld.schule')}
+            wert={z.schule}
+            feld="schule"
+            optionen={ZAUBERSCHULEN.map((x) => ({ wert: x, text: SCHULE_NAME[x][s] }))}
+            aendern={(schule) => setze({ schule })}
+          />
+        </div>
+        <p className="erklaerung" data-schule-text>
+          {SCHULE_TEXT[z.schule][s]}
+        </p>
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.klassen')} kennung="klassen">
+        <fieldset className="chips" data-klassen>
+          <legend className="feld__name">{t('feld.klassen')}</legend>
+          {ZAUBERKLASSEN.map((k) => (
+            <button key={k} type="button" className={klassen.has(k) ? 'chip chip--an' : 'chip'} aria-pressed={klassen.has(k)} data-klasse={k} onClick={() => schalte(k)}>
+              {KLASSE_NAME[k][s]}
+            </button>
+          ))}
+        </fieldset>
+        <ListenFeld label={t('feld.eigeneKlassen')} wert={z.eigeneKlassen} feld="eigeneKlassen" platz={t('feld.eigeneKlassenPlatz')} aendern={(eigeneKlassen) => setze({ eigeneKlassen })} />
+        <ListenFeld label={t('feld.unterklassen')} wert={z.unterklassen} feld="unterklassen" platz={t('feld.unterklassenPlatz')} aendern={(unterklassen) => setze({ unterklassen })} />
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.zauberwerte')} kennung="zauberwerte">
+        <div className="zeile">
+          <WahlOderText label={t('feld.zeit')} wert={z.zeit} vorlagen={VORLAGEN.zeit[s]} feld="zeit" aendern={(zeit) => setze({ zeit })} />
+          <WahlOderText label={t('feld.zauberReichweite')} wert={z.reichweite} vorlagen={VORLAGEN.reichweite[s]} feld="zauberReichweite" aendern={(reichweite) => setze({ reichweite })} />
+        </div>
+        <div className="zeile">
+          <WahlOderText label={t('feld.komponenten')} wert={z.komponenten} vorlagen={VORLAGEN.komponenten[s]} feld="komponenten" aendern={(komponenten) => setze({ komponenten })} />
+          <WahlOderText label={t('feld.dauer')} wert={z.dauer} vorlagen={VORLAGEN.dauer[s]} feld="dauer" aendern={(dauer) => setze({ dauer })} />
+        </div>
+        <div className="zeile">
+          <Haken label={t('feld.konzentration')} wert={z.konzentration} feld="konzentration" aendern={(konzentration) => setze({ konzentration })} />
+          <Haken label={t('feld.ritual')} wert={z.ritual} feld="ritual" aendern={(ritual) => setze({ ritual })} />
+        </div>
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.wirkung')} kennung="wirkung">
+        <fieldset className="chips" data-wirkungen>
+          <legend className="feld__name">{t('feld.zauberWirkung')}</legend>
+          {ZAUBERWIRKUNGEN.map((w) => (
+            <button key={w} type="button" className={wirkt(w) ? 'chip chip--an' : 'chip'} aria-pressed={wirkt(w)} data-wirkung-art={w} onClick={() => schalteWirkung(w)}>
+              {t(`wirkung.${w}` as TextKey)}
+            </button>
+          ))}
+        </fieldset>
+        {z.wirkungen.length === 0 ? <p className="leise">{t('wirkung.keine')}</p> : null}
+        {wirkt('schaden') ? (
+          <div className="zeile">
             <label className="feld">
-              <span className="feld__name">{t('feld.flaecheGroesse')}</span>
-              <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={z.flaecheGroesse} data-feld="flaecheGroesse" onChange={(e) => setze({ flaecheGroesse: Math.max(5, Math.round(Number(e.target.value) || 5)) })} />
+              <span className="feld__name">{t('feld.schaden')}</span>
+              <span className="paar">
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={40} value={z.schadenAnzahl} data-feld="schadenAnzahl" onChange={(e) => setze({ schadenAnzahl: Math.max(0, Math.min(40, Math.round(Number(e.target.value) || 0))) })} />
+                <select className="feld__wahl" value={String(z.schadenSeiten)} data-feld="schadenSeiten" onChange={(e) => setze({ schadenSeiten: Number(e.target.value) })}>
+                  {SEITEN.map((w) => (
+                    <option key={w} value={w}>
+                      {s === 'de' ? 'W' : 'd'}
+                      {w}
+                    </option>
+                  ))}
+                </select>
+                +
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={200} value={z.schadenPlus} data-feld="schadenPlus" onChange={(e) => setze({ schadenPlus: Math.max(0, Math.min(200, Math.round(Number(e.target.value) || 0))) })} />
+              </span>
             </label>
-          </>
+            <Wahl
+              label={t('feld.schadensart')}
+              wert={z.schadensart}
+              feld="schadensart"
+              optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
+              aendern={(schadensart: Schadensart) => setze({ schadensart })}
+            />
+          </div>
         ) : null}
-      </div>
-      <div className="zeile">
-        <Wahl
-          label={t('feld.rettungswurf')}
-          wert={z.rettungswurf}
-          feld="rettungswurf"
-          optionen={RETTUNGSWUERFE.map((x) => ({ wert: x, text: RETTUNG_NAME[x][i] }))}
-          aendern={(rettungswurf) => setze({ rettungswurf })}
-        />
-        {z.rettungswurf ? <Haken label={t('feld.halb')} wert={z.halbBeiErfolg} feld="halbBeiErfolg" aendern={(halbBeiErfolg) => setze({ halbBeiErfolg })} /> : null}
-        <Haken label={t('feld.angriffswurf')} wert={z.angriffswurf} feld="angriffswurf" aendern={(angriffswurf) => setze({ angriffswurf })} />
-      </div>
-      <label className="feld feld--hoch">
-        <span className="feld__name">{t('feld.hoehererGrad')}</span>
-        <textarea className="feld__flaeche" rows={2} value={z.hoehererGrad} data-feld="hoehererGrad" onChange={(e) => setze({ hoehererGrad: e.target.value })} />
-      </label>
+        {wirkt('heilung') ? (
+          <div className="zeile">
+            <label className="feld">
+              <span className="feld__name">{t('feld.heilung')}</span>
+              <span className="paar">
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={40} value={z.heilAnzahl} data-feld="heilAnzahl" onChange={(e) => setze({ heilAnzahl: Math.max(0, Math.min(40, Math.round(Number(e.target.value) || 0))) })} />
+                <select className="feld__wahl" value={String(z.heilSeiten)} data-feld="heilSeiten" onChange={(e) => setze({ heilSeiten: Number(e.target.value) })}>
+                  {SEITEN.map((w) => (
+                    <option key={w} value={w}>
+                      {s === 'de' ? 'W' : 'd'}
+                      {w}
+                    </option>
+                  ))}
+                </select>
+                +
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={200} value={z.heilPlus} data-feld="heilPlus" onChange={(e) => setze({ heilPlus: Math.max(0, Math.min(200, Math.round(Number(e.target.value) || 0))) })} />
+              </span>
+            </label>
+          </div>
+        ) : null}
+        {wirkt('zustand') ? (
+          <div className="zeile">
+            <label className="feld">
+              <span className="feld__name">{t('feld.zustand')}</span>
+              <span className="paar">
+                <select
+                  className="feld__wahl"
+                  value={[...srdZustaende, ...eigeneZustaende].includes(z.zustand) ? z.zustand : '\u0000'}
+                  data-feld="zustandWahl"
+                  onChange={(e) => setze({ zustand: e.target.value === '\u0000' ? '' : e.target.value })}
+                >
+                  <optgroup label={t('zustand.srd')}>
+                    {srdZustaende.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {eigeneZustaende.length ? (
+                    <optgroup label={t('zustand.eigene')}>
+                      {eigeneZustaende.map((n) => (
+                        <option key={`e-${n}`} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  <option value={'\u0000'}>{t('eigen')}</option>
+                </select>
+                {[...srdZustaende, ...eigeneZustaende].includes(z.zustand) ? null : (
+                  <input className="feld__eingabe" value={z.zustand} data-feld="zustand" onChange={(e) => setze({ zustand: e.target.value })} />
+                )}
+              </span>
+            </label>
+          </div>
+        ) : null}
+        <div className="zeile">
+          <Wahl
+            label={t('feld.ziel')}
+            wert={z.ziel}
+            feld="ziel"
+            optionen={(['einzel', 'mehrere', 'flaeche'] as const).map((x) => ({ wert: x, text: t(`ziel.${x}` as TextKey) }))}
+            aendern={(ziel) => setze({ ziel })}
+          />
+          {z.ziel === 'flaeche' ? (
+            <>
+              <Wahl
+                label={t('feld.flaeche')}
+                wert={z.flaeche}
+                feld="flaeche"
+                optionen={FLAECHEN.map((x) => ({ wert: x, text: t(`flaeche.${x}` as TextKey) }))}
+                aendern={(flaeche) => setze({ flaeche })}
+              />
+              <label className="feld">
+                <span className="feld__name">{t('feld.flaecheGroesse')}</span>
+                <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={z.flaecheGroesse} data-feld="flaecheGroesse" onChange={(e) => setze({ flaecheGroesse: Math.max(5, Math.round(Number(e.target.value) || 5)) })} />
+              </label>
+            </>
+          ) : null}
+        </div>
+        <div className="zeile">
+          <Wahl
+            label={t('feld.rettungswurf')}
+            wert={z.rettungswurf}
+            feld="rettungswurf"
+            optionen={RETTUNGSWUERFE.map((x) => ({ wert: x, text: RETTUNG_NAME[x][i] }))}
+            aendern={(rettungswurf) => setze({ rettungswurf })}
+          />
+          {z.rettungswurf && wirkt('schaden') ? <Haken label={t('feld.halb')} wert={z.halbBeiErfolg} feld="halbBeiErfolg" aendern={(halbBeiErfolg) => setze({ halbBeiErfolg })} /> : null}
+          <Haken label={t('feld.angriffswurf')} wert={z.angriffswurf} feld="angriffswurf" aendern={(angriffswurf) => setze({ angriffswurf })} />
+        </div>
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.hoeher')} kennung="hoeher">
+        <label className="feld feld--hoch">
+          <span className="feld__name">{t('feld.hoehererGrad')}</span>
+          <textarea className="feld__flaeche" rows={2} value={z.hoehererGrad} data-feld="hoehererGrad" onChange={(e) => setze({ hoehererGrad: e.target.value })} />
+        </label>
+      </Abschnitt>
     </div>
   );
 }
@@ -673,6 +989,7 @@ function MagischFelder({ m, setze }: { m: Magisch; setze: (teil: Partial<Magisch
   const setzeWirkung = (i: number, text: string) => setze({ wirkungen: wirkungen.map((w, j) => (j === i ? text : w)) });
   return (
     <div className="artfelder" data-magisch>
+      <Abschnitt titel={t('abschnitt.grund')} kennung="grund">
       <div className="zeile">
         <Wahl
           label={t('feld.gegenstandsart')}
@@ -690,6 +1007,8 @@ function MagischFelder({ m, setze }: { m: Magisch; setze: (teil: Partial<Magisch
         />
         <Haken label={t('feld.einstimmung')} wert={m.einstimmung} feld="einstimmung" aendern={(einstimmung) => setze({ einstimmung })} />
       </div>
+      </Abschnitt>
+      <Abschnitt titel={t('abschnitt.wirkungen')} kennung="wirkungen">
       <span className="feld__name">{t('feld.wirkungen')}</span>
       {wirkungen.map((w, i) => (
         <div key={i} className="wirkung">
@@ -710,6 +1029,7 @@ function MagischFelder({ m, setze }: { m: Magisch; setze: (teil: Partial<Magisch
         <span className="feld__name">{t('feld.fluch')}</span>
         <textarea className="feld__flaeche" rows={2} value={m.fluch} data-feld="fluch" onChange={(e) => setze({ fluch: e.target.value })} />
       </label>
+      </Abschnitt>
     </div>
   );
 }

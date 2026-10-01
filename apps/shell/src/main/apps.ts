@@ -40,7 +40,7 @@ import { mountDice } from '../../../dice/src/main/embed';
 import { mountNpc } from '../../../npc/src/main/embed';
 import { mountInspiration } from '../../../inspiration/src/main/embed';
 import { mountMonster } from '../../../monster/src/main/embed';
-import { mountZustaende } from '../../../zustaende/src/main/embed';
+import { leseEintraege as leseZustaendeEintraege, mountZustaende } from '../../../zustaende/src/main/embed';
 import { mountEncounter } from '../../../encounter/src/main/embed';
 import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
@@ -1614,7 +1614,9 @@ async function montiereHomebrew(id: string, haken: MontageHaken): Promise<Montie
     devServerUrl: process.env.HOMEBREW_DEV_SERVER_URL,
     language: haken.language,
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
-    onEreignis: haken.onEreignis
+    onEreignis: haken.onEreignis,
+    eigeneZustaende: async () =>
+      (await leseZustaendeEintraege(app.getPath('userData'), sammlungssprache === 'de' ? 'de' : 'en')).map((e) => e.name)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);

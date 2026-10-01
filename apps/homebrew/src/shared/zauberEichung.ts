@@ -154,7 +154,19 @@ export function eicheZauber(z: Zauber): ZauberEichung {
   if (z.konzentration && /^(unmittelbar|instantaneous)/i.test(z.dauer.trim()))
     warn('Konzentration bei „Unmittelbar" ergibt keinen Sinn.', 'Concentration with an “Instantaneous” duration makes no sense.');
   if (z.rettungswurf && z.angriffswurf) hin('Rettungswurf und Angriffswurf zugleich ist im SRD selten.', 'A saving throw and an attack roll together is rare in the SRD.');
-  if (!z.schadenAnzahl) {
+  if (z.wirkungen.includes('heilung') && z.heilAnzahl) {
+    const heil = (z.heilAnzahl * (z.heilSeiten + 1)) / 2 + z.heilPlus;
+    hin(
+      `Heilung im Schnitt ${zahl(heil)} (ohne Attributsmodifikator). Zum Vergleich im SRD 5.2: Wunden heilen 2W8, Heilendes Wort 2W4, je plus Modifikator.`,
+      `Average healing ${zahl(heil)} (without ability modifier). For comparison in SRD 5.2: Cure Wounds 2d8, Healing Word 2d4, each plus modifier.`
+    );
+  }
+  if (z.wirkungen.includes('zustand'))
+    hin(
+      'Zustände lassen sich nicht in Zahlen eichen. Vergleiche mit SRD-Zaubern, die denselben Zustand verursachen (z. B. Person festhalten: Gelähmt, Grad 2).',
+      'Conditions cannot be calibrated in numbers. Compare with SRD spells that cause the same condition (e.g. Hold Person: Paralyzed, level 2).'
+    );
+  if (!z.wirkungen.includes('schaden') || !z.schadenAnzahl) {
     return {
       urteil: null,
       satz: {

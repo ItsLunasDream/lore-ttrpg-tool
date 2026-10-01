@@ -492,7 +492,7 @@ export function App() {
               </section>
 
               <section className="abgang">
-                <button type="button" className="knopf knopf--haupt" onClick={() => void speichern()}>
+                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichern()}>
                   {t('knopf.speichern')}
                 </button>
                 {offenId && (

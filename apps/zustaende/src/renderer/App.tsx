@@ -630,7 +630,7 @@ export function App() {
               </section>
 
               <section className="abgang">
-                <button type="button" className="knopf knopf--haupt" onClick={() => void speichern()}>
+                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichern()}>
                   {t('knopf.speichern')}
                 </button>
                 {offenId && (
@@ -726,7 +726,7 @@ export function App() {
               </div>
 
               <section className="abgang">
-                <button type="button" className="knopf knopf--haupt" onClick={() => void speicherePaket()}>
+                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speicherePaket()}>
                   {t('paket.alleSpeichern')}
                 </button>
                 <button type="button" className="knopf" onClick={() => setKarte(paket.zustaende)}>

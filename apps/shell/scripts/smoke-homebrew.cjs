@@ -79,15 +79,37 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe((await urteil()) === 'im_rahmen', 'Kriegswaffe 1W8, vielseitig 1W10: im Rahmen (wie das Langschwert)');
   pruefe(/Langschwert/.test(await js(`document.querySelector('[data-eichung-satz]').textContent`)), 'und nennt das Langschwert als Vergleich');
-  await waehle('wuerfel', '2d8');
+  await tippe('schadenAnzahl', '2');
   await warte(200);
   pruefe((await urteil()) === 'weit_ueber', '2W8: deutlich staerker als jede SRD-Kriegswaffe');
-  await waehle('wuerfel', '1d8');
+  await tippe('schadenAnzahl', '1');
   await js(`document.querySelector('[data-eigenschaft="leicht"]').click(); document.querySelector('[data-eigenschaft="zweihaendig"]').click(); true`);
   await warte(200);
   pruefe(await js(`Boolean(document.querySelector('[data-befund="warnung"]'))`), 'leicht und zweihaendig: eine Warnung');
   await js(`document.querySelector('[data-eigenschaft="leicht"]').click(); document.querySelector('[data-eigenschaft="zweihaendig"]').click(); true`);
   await waehle('bonus', '2');
+
+  // Neu: Schaden aufgeteilt, zweite Schadenszeile, Reichweite, Erklärungen, zuklappbar.
+  pruefe(/Angriff und Schaden/.test(await js(`document.querySelector('[data-eigenschaft="finesse"]').title`)), 'Eigenschaften erklären sich beim Darüberfahren');
+  pruefe((await js(`document.querySelector('[data-eigenschaft-texte]')?.textContent ?? ''`)).includes('Vielseitig'), 'gewählte Eigenschaften stehen mit einem Satz darunter');
+  pruefe((await js(`document.querySelector('[data-meisterschaft-text]').textContent`)).length > 20, 'die Meisterschaft hat einen Satz');
+  await js(`document.querySelector('[data-zusatz-dazu]').click(); true`);
+  await warte(200);
+  await waehle('zusatz0Art', 'blitz');
+  await tippe('schadenPlus', '1');
+  await warte(200);
+  pruefe((await js(`document.querySelector('select[data-feld="zusatz0Art"]')?.value ?? ''`)) === 'blitz', 'eine zweite Schadenszeile (gemischter Schaden)');
+  pruefe((await urteil()) !== 'im_rahmen', 'Plus und Zusatzschaden fließen in die Eichung');
+  await js(`document.querySelector('[data-zusatz="0"] button').click(); true`);
+  await tippe('schadenPlus', '0');
+  await js(`document.querySelector('[data-eigenschaft="reichweite"]').click(); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelector('[data-feld="reichweiteNah"]').value`)) === '10', '„Weitreichend" setzt die Reichweite auf 10 Fuß');
+  await js(`document.querySelector('[data-eigenschaft="reichweite"]').click(); true`);
+  await js(`document.querySelector('[data-abschnitt="schaden"] summary').click(); true`);
+  await warte(150);
+  pruefe(!(await js(`document.querySelector('[data-abschnitt="schaden"]').open`)), 'der Abschnitt „Schaden" klappt zu');
+  await js(`document.querySelector('[data-abschnitt="schaden"] summary').click(); true`);
   // Ein Bild: ein kleines Canvas als PNG, ueber das Dateifeld wie von Hand gewaehlt.
   await js(`(async () => {
     const c = document.createElement('canvas'); c.width = 40; c.height = 20;
@@ -100,9 +122,11 @@ app.whenReady().then(async () => {
   pruefe(await js(`Boolean(document.querySelector('[data-bild] img'))`), 'ein Bild ist gewaehlt');
   await warte(200);
   pruefe(/Selten/.test(await js(`document.querySelector('[data-eichung-seltenheit]')?.textContent ?? ''`)), 'Bonus +2: Seltenheit selten (SRD)');
-  await js(`document.querySelector('[data-speichern]').click(); true`);
+  // Strg+S aus einem Textfeld heraus speichert (Rückmeldung).
+  await js(`(() => { const e = document.querySelector('[data-feld="name"]'); e.focus();
+    e.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true })); return true; })()`);
   await warte(800);
-  pruefe(/Gespeichert/.test(await js(`document.querySelector('[data-meldung]')?.textContent ?? ''`)), 'gespeichert');
+  pruefe(/Gespeichert/.test(await js(`document.querySelector('[data-meldung]')?.textContent ?? ''`)), 'Strg+S speichert');
   const ordner = path.join(userData, 'homebrew', 'eintraege');
   const datei = path.join(ordner, 'sturmklinge.md');
   pruefe(fs.existsSync(datei), 'liegt als Datei in homebrew/eintraege');
@@ -156,11 +180,25 @@ app.whenReady().then(async () => {
   pruefe((await urteil()) === 'weit_ueber', '14W6 auf Grad 3: deutlich staerker');
   await tippe('schadenAnzahl', '8');
   await js(`document.querySelector('[data-klasse="magier"]').click(); true`);
+  pruefe((await js(`document.querySelector('[data-schule-text]').textContent`)).length > 10, 'die Schule hat einen erklärenden Satz');
+  await waehle('zeitWahl', 'Bonusaktion');
+  await waehle('komponentenWahl', '\u0000');
+  await warte(150);
+  await tippe('komponenten', 'V, G, M (ein Stück Kohle)');
+  await tippe('eigeneKlassen', 'Blutjäger, Artificer');
+  await tippe('unterklassen', 'Kleriker: Schmiededomäne');
+  await js(`document.querySelector('[data-wirkung-art="zustand"]').click(); true`);
+  await warte(150);
+  await waehle('zustandWahl', 'Liegend');
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(800);
   const zdatei = path.join(userData, 'homebrew', 'eintraege', 'glutregen.md');
   const zinhalt = fs.existsSync(zdatei) ? fs.readFileSync(zdatei, 'utf8') : '';
   pruefe(/"grad": 3/.test(zinhalt) && /"schadenAnzahl": 8/.test(zinhalt) && /"magier"/.test(zinhalt), 'der Zauber liegt mit seinen Werten in der Datei');
+  pruefe(
+    /"zeit": "Bonusaktion"/.test(zinhalt) && /Stück Kohle/.test(zinhalt) && /Blutjäger/.test(zinhalt) && /Schmiededomäne/.test(zinhalt) && /"zustand": "Liegend"/.test(zinhalt),
+    'Auswahl, freier Text, eigene Klassen, Unterklasse und Zustand sind gespeichert'
+  );
   await js(`document.querySelector('[data-zurueck]').click(); true`);
   await warte(400);
   pruefe((await js(`document.querySelectorAll('.hbkachel').length`)) === 3, 'drei Kacheln in der Sammlung');

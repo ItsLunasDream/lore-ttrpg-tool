@@ -58,13 +58,29 @@ interface Kopf {
   imLoot?: boolean;
 }
 
+/** Weiterer Schaden neben dem Hauptschaden (z. B. „+ 1W6 Feuer"). */
+export interface Zusatzschaden {
+  /** „1d6" oder „0" (nur das Plus). */
+  wuerfel: string;
+  plus: number;
+  art: Schadensart;
+}
+
+export const HOECHSTENS_ZUSATZ = 4;
+
 export interface Waffe extends Kopf {
   art: 'waffe';
   kategorie: 'einfach' | 'kriegs';
   fern: boolean;
-  /** „1d8", „2d6" oder „1". */
+  /** „1d8", „2d6" oder „1"; Anzahl und Würfel getrennt wählbar. */
   wuerfel: string;
+  /** Festes Plus auf den Hauptschaden (nicht der magische Bonus). */
+  schadenPlus: number;
   schadensart: Schadensart;
+  /** Gemischter Schaden: weitere Zeilen. */
+  zusatz: Zusatzschaden[];
+  /** Nahkampf: Reichweite in Fuß (5, mit „Weitreichend" 10). */
+  reichweiteNah: number;
   eigenschaften: WaffenEigenschaft[];
   /** Bei „vielseitig": der Wuerfel zweihaendig. */
   vielseitig: string;
@@ -122,24 +138,39 @@ export type Flaeche = (typeof FLAECHEN)[number];
 export const RETTUNGSWUERFE = ['', 'sta', 'ges', 'kon', 'int', 'wei', 'cha'] as const;
 export type Rettungswurf = (typeof RETTUNGSWUERFE)[number];
 
+/** Was ein Zauber tut; keine Auswahl = etwas ohne Zahlen (z. B. Magierhand). */
+export const ZAUBERWIRKUNGEN = ['schaden', 'heilung', 'zustand'] as const;
+export type Zauberwirkung = (typeof ZAUBERWIRKUNGEN)[number];
+
 export interface Zauber extends Kopf {
   art: 'zauber';
   /** 0 = Zaubertrick. */
   grad: number;
   schule: Zauberschule;
   klassen: Zauberklasse[];
+  /** Eigene Klassen (z. B. aus Drittanbieter-Büchern), frei geschrieben. */
+  eigeneKlassen: string[];
+  /** Nur für bestimmte Unterklassen, frei geschrieben (z. B. „Kleriker: Lichtdomäne"). */
+  unterklassen: string[];
   zeit: string;
   reichweite: string;
   komponenten: string;
   dauer: string;
   konzentration: boolean;
   ritual: boolean;
-  /** Schaden fuer die Eichung; anzahl 0 = kein Schaden. */
+  /** Was der Zauber tut (mehreres zugleich möglich). */
+  wirkungen: Zauberwirkung[];
+  /** Schaden fuer die Eichung; zählt nur mit „schaden" in `wirkungen`. */
   schadenAnzahl: number;
   schadenSeiten: number;
   /** Festes Plus wie bei „10W6 + 40". */
   schadenPlus: number;
   schadensart: Schadensart;
+  heilAnzahl: number;
+  heilSeiten: number;
+  heilPlus: number;
+  /** Zustand, den der Zauber verursacht: SRD-Name, eigener aus dem Status Effect Creator oder frei. */
+  zustand: string;
   /** Einzelziel oder Flaeche. */
   ziel: 'einzel' | 'mehrere' | 'flaeche';
   flaeche: Flaeche;
@@ -169,7 +200,10 @@ export function leererEintrag(art: Art, sprache: 'de' | 'en' = 'de'): Eintrag {
         kategorie: 'kriegs',
         fern: false,
         wuerfel: '1d8',
+        schadenPlus: 0,
         schadensart: 'hieb',
+        zusatz: [],
+        reichweiteNah: 5,
         eigenschaften: [],
         vielseitig: '1d10',
         reichweiteNormal: 20,
@@ -192,6 +226,8 @@ export function leererEintrag(art: Art, sprache: 'de' | 'en' = 'de'): Eintrag {
         grad: 1,
         schule: 'hervorrufung',
         klassen: [],
+        eigeneKlassen: [],
+        unterklassen: [],
         // Wortlaut wie in den SRD-Zaubern der jeweiligen Sprache.
         zeit: sprache === 'de' ? 'Aktion' : 'Action',
         reichweite: sprache === 'de' ? '18 Meter' : '60 feet',
@@ -199,10 +235,15 @@ export function leererEintrag(art: Art, sprache: 'de' | 'en' = 'de'): Eintrag {
         dauer: sprache === 'de' ? 'Unmittelbar' : 'Instantaneous',
         konzentration: false,
         ritual: false,
+        wirkungen: ['schaden'],
         schadenAnzahl: 0,
         schadenSeiten: 6,
         schadenPlus: 0,
         schadensart: 'feuer',
+        heilAnzahl: 0,
+        heilSeiten: 8,
+        heilPlus: 0,
+        zustand: '',
         ziel: 'einzel',
         flaeche: 'kugel',
         flaecheGroesse: 20,
@@ -233,6 +274,12 @@ function oderNull(x: unknown, max: number): number | null {
 
 function eins<T extends string>(x: unknown, liste: readonly T[], ersatz: T): T {
   return (liste as readonly string[]).includes(x as string) ? (x as T) : ersatz;
+}
+
+function liste(x: unknown, max: number, laenge: number): string[] {
+  return Array.isArray(x)
+    ? x.filter((y): y is string => typeof y === 'string').map((y) => y.trim().slice(0, laenge)).filter(Boolean).slice(0, max)
+    : [];
 }
 
 function wuerfelText(x: unknown, ersatz: string): string {
@@ -270,7 +317,13 @@ export function bereinige(roh: unknown, id: string): Eintrag {
         kategorie: r.kategorie === 'einfach' ? 'einfach' : 'kriegs',
         fern: r.fern === true,
         wuerfel: wuerfelText(r.wuerfel, leer.wuerfel),
+        schadenPlus: Math.round(zahl(r.schadenPlus, 0, 0, 50)),
         schadensart: eins(r.schadensart, SCHADENSARTEN, leer.schadensart),
+        zusatz: (Array.isArray(r.zusatz) ? r.zusatz : []).slice(0, HOECHSTENS_ZUSATZ).map((x) => {
+          const z = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+          return { wuerfel: wuerfelText(z.wuerfel, '1d6'), plus: Math.round(zahl(z.plus, 0, 0, 50)), art: eins(z.art, SCHADENSARTEN, 'feuer') };
+        }),
+        reichweiteNah: Math.round(zahl(r.reichweiteNah, (Array.isArray(r.eigenschaften) && r.eigenschaften.includes('reichweite')) ? 10 : 5, 5, 100)),
         eigenschaften,
         vielseitig: wuerfelText(r.vielseitig, leer.vielseitig),
         reichweiteNormal: Math.round(zahl(r.reichweiteNormal, leer.reichweiteNormal, 5, 2000)),
@@ -308,16 +361,28 @@ export function bereinige(roh: unknown, id: string): Eintrag {
         grad: Math.round(zahl(r.grad, leer.grad, 0, 9)),
         schule: eins(r.schule, ZAUBERSCHULEN, leer.schule),
         klassen: Array.isArray(r.klassen) ? ZAUBERKLASSEN.filter((c) => (r.klassen as unknown[]).includes(c)) : [],
+        eigeneKlassen: liste(r.eigeneKlassen, 12, 60),
+        unterklassen: liste(r.unterklassen, 12, 80),
         zeit: text(r.zeit, 80) || leer.zeit,
         reichweite: text(r.reichweite, 80) || leer.reichweite,
         komponenten: text(r.komponenten, 200) || leer.komponenten,
         dauer: text(r.dauer, 80) || leer.dauer,
         konzentration: r.konzentration === true,
         ritual: r.ritual === true,
+        // Ältere Zauber ohne das Feld: Schaden, wenn Würfel eingetragen sind.
+        wirkungen: Array.isArray(r.wirkungen)
+          ? ZAUBERWIRKUNGEN.filter((w) => (r.wirkungen as unknown[]).includes(w))
+          : Number(r.schadenAnzahl) > 0
+            ? ['schaden']
+            : [],
         schadenAnzahl: Math.round(zahl(r.schadenAnzahl, 0, 0, 40)),
         schadenSeiten: Number(eins(String(r.schadenSeiten), ['4', '6', '8', '10', '12'] as const, '6')),
         schadenPlus: Math.round(zahl(r.schadenPlus, 0, 0, 200)),
         schadensart: eins(r.schadensart, SCHADENSARTEN, leer.schadensart),
+        heilAnzahl: Math.round(zahl(r.heilAnzahl, 0, 0, 40)),
+        heilSeiten: Number(eins(String(r.heilSeiten), ['4', '6', '8', '10', '12'] as const, '8')),
+        heilPlus: Math.round(zahl(r.heilPlus, 0, 0, 200)),
+        zustand: text(r.zustand, 80),
         ziel: r.ziel === 'flaeche' ? 'flaeche' : r.ziel === 'mehrere' ? 'mehrere' : 'einzel',
         flaeche: eins(r.flaeche, FLAECHEN, leer.flaeche),
         flaecheGroesse: Math.round(zahl(r.flaecheGroesse, leer.flaecheGroesse, 5, 1000)),

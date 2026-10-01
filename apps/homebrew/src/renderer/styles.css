@@ -700,6 +700,43 @@ textarea {
   margin: 12px 0;
 }
 
+/* Aufklappbare Abschnitte im Formular (Rückmeldung: Kategorien zuklappbar). */
+.abschnitt {
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--grund-hoch);
+}
+
+.abschnitt__kopf {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.abschnitt__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 12px 12px;
+}
+
+.erklaerung {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  color: var(--text-leise);
+  font-size: 0.9em;
+}
+
+.erklaerung li + li {
+  margin-top: 2px;
+}
+
+.feld--breit {
+  flex: 1 1 100%;
+}
+
 .paar {
   display: flex;
   gap: 4px;

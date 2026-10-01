@@ -52,3 +52,11 @@ test('alsKnopf löst mit Enter und Leertaste aus, nicht aus einem Feld darin', (
   k.onKeyDown(ev('Enter', {}));
   assert.equal(n, 2);
 });
+
+test('Strg+S und Cmd+S speichern, Strg+Umschalt+S nicht', () => {
+  const k = (x) => ({ key: 's', ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...x });
+  assert.equal(T.istSpeichertaste(k({ ctrlKey: true })), true);
+  assert.equal(T.istSpeichertaste(k({ metaKey: true, key: 'S' })), true);
+  assert.equal(T.istSpeichertaste(k({ ctrlKey: true, shiftKey: true })), false);
+  assert.equal(T.istSpeichertaste(k({})), false);
+});

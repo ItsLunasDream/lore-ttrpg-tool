@@ -9,7 +9,7 @@
  */
 import { SELTENHEIT_NAME } from '@suite/srd';
 import type { Eintrag } from './modell';
-import { ART_NAME, MEISTERSCHAFT_NAME, SCHADENSART_NAME, eigenschaftenText, kurzzeile } from './texte';
+import { ART_NAME, MEISTERSCHAFT_NAME, SCHADENSART_NAME, eigenschaftenText, kurzzeile, wuerfelMitPlus } from './texte';
 
 export interface InventarEintrag {
   readonly quelle: 'homebrew';
@@ -36,6 +36,12 @@ export interface InventarEintrag {
       readonly meisterschaft: [string, string];
     };
   };
+}
+
+function artMitZusatz(e: Extract<Eintrag, { art: 'waffe' }>, s: 'de' | 'en'): string {
+  const plus = e.schadenPlus ? `+${e.schadenPlus} ` : '';
+  const extra = e.zusatz.map((z) => ` + ${wuerfelMitPlus(z.wuerfel, z.plus, s)} ${SCHADENSART_NAME[z.art][s]}`).join('');
+  return `${plus}${SCHADENSART_NAME[e.schadensart][s]}${extra}`;
 }
 
 export function inventarEintrag(e: Eintrag, s: 'de' | 'en'): InventarEintrag | null {
@@ -76,7 +82,8 @@ export function inventarEintrag(e: Eintrag, s: 'de' | 'en'): InventarEintrag | n
         fern: e.fern,
         wuerfel: e.wuerfel,
         vielseitig: e.eigenschaften.includes('vielseitig') ? e.vielseitig : null,
-        art: [SCHADENSART_NAME[e.schadensart].de, SCHADENSART_NAME[e.schadensart].en],
+        // Plus und Zusatzschaden reisen im Text der Schadensart mit: der Bogen rechnet nur mit einem Würfel.
+        art: [artMitZusatz(e, 'de'), artMitZusatz(e, 'en')],
         finesse: e.eigenschaften.includes('finesse'),
         eigenschaften: [eigenschaftenText(e, 'de') || '—', eigenschaftenText(e, 'en') || '—'],
         meisterschaft: [MEISTERSCHAFT_NAME[e.meisterschaft].de, MEISTERSCHAFT_NAME[e.meisterschaft].en]

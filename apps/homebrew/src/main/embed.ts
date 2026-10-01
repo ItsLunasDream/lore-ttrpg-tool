@@ -28,6 +28,8 @@ export interface HomebrewEmbedOptions {
   readonly onLanguageChange?: (language: string) => void;
   /** Meldet der Huelle, dass in einem anderen Werkzeug etwas dazukam (Wisch). */
   readonly onEreignis?: (appId: string) => void;
+  /** Namen der eigenen Zustände aus dem Status Effect Creator (Auswahl bei Zaubern). */
+  readonly eigeneZustaende?: () => Promise<string[]>;
 }
 
 export interface HomebrewEmbed {
@@ -145,6 +147,13 @@ export async function mountHomebrew(options: HomebrewEmbedOptions): Promise<Home
     ipcMain.handle(kanal(name), hoerer as never);
   };
 
+  handle('zustaende', async (): Promise<string[]> => {
+    try {
+      return (await options.eigeneZustaende?.()) ?? [];
+    } catch {
+      return [];
+    }
+  });
   handle('liste', async (): Promise<Kachel[]> => (await leseOrdner(ordner)).map(alsKachel));
 
   handle('lesen', async (_e: never, id: string): Promise<Eintrag | null> => {

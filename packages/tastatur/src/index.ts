@@ -11,6 +11,7 @@
  *   das Ende. Tab springt wie gewohnt in die nächste Gruppe. Ein einziger
  *   Hörer am Dokument (`installierePfeile`) genügt; neue Listen brauchen nur
  *   das Attribut.
+ * - **Strg+S** klickt den Knopf mit `data-speichern`, wo es einen gibt.
  * - **Klickflächen, die keine Knöpfe sind** (`alsKnopf`): erreichbar mit
  *   Tab, ausgelöst mit Enter oder Leertaste.
  *
@@ -160,9 +161,31 @@ export function pfeilInGruppe(ereignis: KeyboardEvent, dokument: Document = docu
 export function installierePfeile(dokument: Document = document): () => void {
   const hoerer = (ereignis: KeyboardEvent) => {
     pfeilInGruppe(ereignis, dokument);
+    speichernPerTaste(ereignis, dokument);
   };
   dokument.addEventListener('keydown', hoerer);
   return () => dokument.removeEventListener('keydown', hoerer);
+}
+
+/** Strg+S (macOS: Cmd+S), ohne Umschalt: „Speichern unter" bleibt dem Werkzeug. */
+export function istSpeichertaste(e: { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean }): boolean {
+  return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's';
+}
+
+/**
+ * Strg+S löst den sichtbaren Knopf `[data-speichern]` aus, auch aus einem
+ * Textfeld heraus (Rückmeldung: „Speichern mit Strg+S sollte immer gehen").
+ * Werkzeuge mit eigenem Hörer (Story Creator) haben keinen solchen Knopf
+ * oder verhindern das Ereignis vorher; dann passiert hier nichts.
+ */
+function speichernPerTaste(ereignis: KeyboardEvent, dokument: Document): void {
+  if (ereignis.defaultPrevented || !istSpeichertaste(ereignis)) return;
+  const knopf = [...dokument.querySelectorAll<HTMLButtonElement>('[data-speichern]')].find(
+    (k) => !k.disabled && k.getClientRects().length > 0
+  );
+  if (!knopf) return;
+  ereignis.preventDefault();
+  knopf.click();
 }
 
 /** Enter oder Leertaste: die Tasten, die einen Knopf auslösen. */
