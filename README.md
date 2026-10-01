@@ -28,6 +28,9 @@ connection you set up yourself.
 - **Loot Generator**: your own nested random tables.
 - **Campaign Calendar**: find a session date like on Crab.fit, answers via the room or as a file, export as .ics.
 - **Settlement Generator**: villages, towns and cities with inn, shops at SRD prices, people and rumours.
+- **Session log** (button in the title bar): records rolls, combat, loot,
+  encounters, rests and handovers during a session and turns them into a note
+  in the Story Creator.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
 - **TTRPG Map Editor**: battlemaps and world maps, export as Universal VTT.
@@ -375,7 +378,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
 | `magicitems.md` | Magic Item Generator |
 | `homebrew-creator.md` | Homebrew Creator |
-| `sitzungsprotokoll.md` | Session log (concept, not built) |
+| `sitzungsprotokoll.md` | Session log |
 | `kampagnenkalender.md` | Campaign Calendar |
 | `ortsgenerator.md` | Settlement Generator |
 | `nachschlagewerk.md` | Reference |

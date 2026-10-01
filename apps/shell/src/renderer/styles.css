@@ -2240,3 +2240,74 @@ body {
   gap: 6px;
   line-height: 1.45;
 }
+
+/* --- Sitzungsprotokoll (docs/sitzungsprotokoll.md) ----------------------- */
+.dialog__knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  color: var(--grund);
+  font-weight: 600;
+}
+
+.dialog__knopf--haupt:hover {
+  background: color-mix(in srgb, var(--betont) 85%, var(--text));
+}
+
+.protokoll__zeile {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.protokoll__zeile .feld__eingabe {
+  flex: 1;
+}
+
+.protokoll__feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.protokoll__feld .feld__eingabe {
+  width: 100%;
+}
+
+.protokoll__liste {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.protokoll__liste li {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--rand);
+}
+
+.protokoll__eintrag--wichtig {
+  font-weight: 600;
+}
+
+.protokoll__vorschau {
+  white-space: pre-wrap;
+  font-size: 12px;
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.titelleiste__sitzung {
+  color: var(--gefahr, #e5484d);
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}

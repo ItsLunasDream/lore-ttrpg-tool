@@ -266,8 +266,14 @@ export function App() {
         : null
     };
     const ging = await api.inDenTracker(uebergabe);
-    if (ging) setMeldung(t('tracker.unterwegs'));
-    else setFehler(t('tracker.ging-nicht'));
+    if (ging) {
+      setMeldung(t('tracker.unterwegs'));
+      const wer = uebergabe.gegner.map((g) => (g.anzahl > 1 ? `${g.anzahl}× ${g.name}` : g.name)).join(', ');
+      api.protokoll({
+        art: 'begegnung',
+        text: `${spr === 'de' ? 'Begegnung' : 'Encounter'}: ${uebergabe.name}${wer ? ` (${wer})` : ''}${uebergabe.umgebung ? ` · ${uebergabe.umgebung.name}` : ''}`
+      });
+    } else setFehler(t('tracker.ging-nicht'));
   };
 
   // --- Eine offene Begegnung ------------------------------------------------

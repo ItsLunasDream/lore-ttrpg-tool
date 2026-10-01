@@ -14,6 +14,8 @@ import type { LiveZustand } from '../main/live';
 type Antwort = { ok: boolean; text: string };
 
 const api = {
+  /** Rast und Geben an das Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: 'rast' | 'gegeben'; text: string }) => ipcRenderer.send('huelle:protokoll', meldung),
   /**
    * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
    * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal

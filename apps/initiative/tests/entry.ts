@@ -44,3 +44,4 @@ export { pruefeVerlust, nichtsZuVerlieren, alsVorlage, speicherZiel } from '../s
 export { alsTeilnehmer, alsTaktik } from '../src/shared/uebernahme';
 export { teileKampf, stufe, leseBotschaft, wendeAn, setzeBesitz } from '../src/shared/teilen';
 export { uebernimmFiguren, tpAenderungen, leseFiguren } from '../src/shared/boegen';
+export { kampfEreignisse } from '../src/shared/protokoll';

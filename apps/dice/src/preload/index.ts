@@ -4,6 +4,8 @@ import { kanal } from '../shared/kanaele';
 import type { Einstellungen } from '../shared/einstellungen';
 
 const api = {
+  /** Jeder Wurf geht an das Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: 'wurf'; text: string; wichtig: boolean }) => ipcRenderer.send('huelle:protokoll', meldung),
   einstellungen: {
     lesen: () => ipcRenderer.invoke(kanal('einstellungen:lesen')) as Promise<Einstellungen>,
     schreiben: (neu: Einstellungen) =>

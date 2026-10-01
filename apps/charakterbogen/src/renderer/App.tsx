@@ -651,7 +651,7 @@ export function App() {
           </label>
 
           {offen.werte && kompakt[offen.id] ? (
-            <Kompaktbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} />
+            <Kompaktbogen werte={offen.werte} aendere={aendereWerte} setMeldung={setMeldung} name={offen.name} />
           ) : offen.werte ? (
             // In Tiergestalt liegt der Kasten der Gestalt neben dem Bogen.
             <div className={offen.werte.tiergestalt?.aktiv ? 'mit-gestalt' : 'ohne-gestalt'}>

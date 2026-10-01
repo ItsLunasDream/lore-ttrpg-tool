@@ -752,6 +752,39 @@ async function legeNotizAn(
   return { ok: true, text: `${titel} → ${kampagne.name}`, kennung };
 }
 
+/** Die Notiz eines Sitzungsprotokolls (docs/sitzungsprotokoll.md); Typ „Sitzung", wenn es ihn gibt. */
+export function legeSitzungsnotizAn(titel: string, markdown: string, haken: MontageHaken) {
+  return legeNotizAn(titel, markdown, ['session', 'note'], haken);
+}
+
+/** Titel aller Notizen der offenen Kampagne, damit das Protokoll sie verlinken kann. */
+export async function bekannteNotiztitel(): Promise<string[]> {
+  if (!backstoryEmbed) return [];
+  try {
+    const kampagnen = await backstoryEmbed.vault.listCampaigns();
+    const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+    const kampagne = kampagnen.find((k) => k.id === letzte) ?? kampagnen[0];
+    if (!kampagne) return [];
+    return (await backstoryEmbed.vault.listNotes(kampagne.id)).map((n) => n.title);
+  } catch {
+    return [];
+  }
+}
+
+/** Der Titel einer Notiz der offenen Kampagne aus ihrer Kennung (so meldet der Story Creator seinen Ort). */
+export async function notizTitelVon(notizId: string): Promise<string | null> {
+  if (!backstoryEmbed || !notizId) return null;
+  try {
+    const kampagnen = await backstoryEmbed.vault.listCampaigns();
+    const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+    const kampagne = kampagnen.find((k) => k.id === letzte) ?? kampagnen[0];
+    if (!kampagne) return null;
+    return (await backstoryEmbed.vault.getNote(kampagne.id, notizId)).title;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Schreibt den Abschnitt des Charakterbogens in seine Notiz (stetiger
  * Abgleich, nur Bogen → Notiz). Was ausserhalb der Markierungen steht,

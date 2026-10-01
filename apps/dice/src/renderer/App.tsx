@@ -171,6 +171,12 @@ export function App() {
       setGezeigterEintrag(null);
       setRollt(false);
       teileWurf(`🎲 ${ausdruck}: ${neuerWurf.summe}  (${rechenweg(neuerWurf)})`, einstellungen.teilen);
+      // Eine natürliche 1 oder 20 auf einem gezählten W20 steht im Verlauf der Notiz.
+      api.protokoll({
+        art: 'wurf',
+        text: `${ausdruck}: ${neuerWurf.summe} (${rechenweg(neuerWurf)})`,
+        wichtig: neuerWurf.wuerfe.some((w) => w.art === 'd20' && !w.verworfen && (w.augen === 1 || w.augen === 20))
+      });
       setVerlauf((vorher) =>
         [
           {

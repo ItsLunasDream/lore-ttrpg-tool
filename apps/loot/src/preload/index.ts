@@ -9,6 +9,8 @@ import type { Gespeichert, Kachel } from '../shared/ablage';
 type Antwort = { ok: boolean; text: string };
 
 const api = {
+  /** Gewürfelte Beute an das Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: 'beute'; text: string }) => ipcRenderer.send('huelle:protokoll', meldung),
   /**
    * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
    * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal

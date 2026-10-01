@@ -138,6 +138,12 @@ export async function leseEintraege(datenordner: string, sprache: 'de' | 'en' = 
   }));
 }
 
+/** Der Titel einer Umfrage, deren festgelegter Termin auf diesen Tag fällt (für das Sitzungsprotokoll). */
+export async function terminAm(datenordner: string, tag: string): Promise<string | null> {
+  const treffer = (await leseOrdner(ordnerVon(datenordner))).find((u) => u.termin?.tag === tag && u.titel.trim());
+  return treffer ? treffer.titel.trim() : null;
+}
+
 /**
  * Eine Nachricht aus dem Raum in die Ablage übernehmen. Die Hülle ruft das
  * für jede Nachricht an dieses Werkzeug, offen oder nicht. `true`, wenn sich
