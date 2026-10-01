@@ -10,7 +10,7 @@ künftig **Magic Item Generator**, damit der Unterschied klar ist:
 | Magic Item Generator (heute „Creator") | würfelt magische Gegenstände aus Tabellen | der Zufall, die SL wählt aus |
 | Homebrew Creator (neu) | baut Waffen, Rüstungen, Gegenstände und Zauber Feld für Feld | die Person am Werkzeug, die Eichung warnt |
 
-**Stand:** Konzept, nichts gebaut.
+**Stand:** Konzept fertig, nichts gebaut.
 
 ## Umbenennung
 
@@ -125,14 +125,16 @@ wie heute bei den Inventarquellen.
    Anbindung Zauberliste des Bogens.
 6. Gegenstand und magischer Gegenstand von Hand; Foundry-Export.
 
-## Offene Fragen
+## Entschieden
 
-1. **Bild je Eintrag?** Ein eigenes Bild (hochgeladen) zu Waffe, Rüstung,
-   Gegenstand oder Zauber. Es erschiene auf der Kachel im Homebrew
-   Creator, in der aufgeklappten Iteminfo im Inventar des Bogens, im
-   Eintrag im Nachschlagewerk und im Foundry-Export (Bildfeld). Vorbild
-   wäre das Porträt im Charakterbogen. Ohne Bild bleibt es Text wie bei
-   den magischen Gegenständen heute.
+- Ein Werkzeug „Homebrew Creator", Zauber als Reiter, mit Eichung.
+- Die Namen „Homebrew Creator" und „Magic Item Generator" bleiben auch in
+  der deutschen Oberfläche englisch.
+- **Bild je Eintrag möglich** (optional, hochgeladen) für Waffe, Rüstung,
+  Gegenstand, magischen Gegenstand und Zauber. Es erscheint auf der Kachel
+  im Homebrew Creator, in der aufgeklappten Iteminfo im Inventar des
+  Bogens, im Eintrag im Nachschlagewerk und im Foundry-Export (Bildfeld).
+  Umsetzung wie das Porträt im Charakterbogen: verkleinert und als Daten
+  im Eintrag gespeichert, mit Größengrenze.
 
-Entschieden: Die Namen „Homebrew Creator" und „Magic Item Generator"
-bleiben auch in der deutschen Oberfläche englisch.
+Derzeit keine offenen Fragen.
