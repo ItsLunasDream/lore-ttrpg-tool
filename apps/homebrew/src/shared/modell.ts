@@ -9,6 +9,7 @@
  *
  * Plattformfrei, damit die Tests ohne Electron laufen.
  */
+import { ARTEN as MAGIE_ARTEN, type Art as MagieArt } from '@suite/magie/tabellen';
 import { SELTENHEITEN, type Seltenheit } from '@suite/srd';
 import {
   MEISTERSCHAFTEN,
@@ -93,7 +94,7 @@ export interface Gegenstand extends Kopf {
 export interface Magisch extends Kopf {
   art: 'magisch';
   /** Art aus @suite/magie (waffe, ruestung, ring, stab, …). */
-  gegenstandsart: string;
+  gegenstandsart: MagieArt;
   seltenheit: Seltenheit;
   einstimmung: boolean;
   wirkungen: string[];
@@ -136,6 +137,8 @@ export interface Zauber extends Kopf {
   /** Schaden fuer die Eichung; anzahl 0 = kein Schaden. */
   schadenAnzahl: number;
   schadenSeiten: number;
+  /** Festes Plus wie bei „10W6 + 40". */
+  schadenPlus: number;
   schadensart: Schadensart;
   /** Einzelziel oder Flaeche. */
   ziel: 'einzel' | 'mehrere' | 'flaeche';
@@ -157,7 +160,7 @@ function kopf(name = ''): Kopf {
   return { id: '', name, beschreibung: '', bild: null, preis: null, gewicht: null, geaendert: '' };
 }
 
-export function leererEintrag(art: Art): Eintrag {
+export function leererEintrag(art: Art, sprache: 'de' | 'en' = 'de'): Eintrag {
   switch (art) {
     case 'waffe':
       return {
@@ -189,14 +192,16 @@ export function leererEintrag(art: Art): Eintrag {
         grad: 1,
         schule: 'hervorrufung',
         klassen: [],
-        zeit: '1 Aktion',
-        reichweite: '18 m',
-        komponenten: 'V, G',
-        dauer: 'Unmittelbar',
+        // Wortlaut wie in den SRD-Zaubern der jeweiligen Sprache.
+        zeit: sprache === 'de' ? 'Aktion' : 'Action',
+        reichweite: sprache === 'de' ? '18 Meter' : '60 feet',
+        komponenten: sprache === 'de' ? 'V, G' : 'V, S',
+        dauer: sprache === 'de' ? 'Unmittelbar' : 'Instantaneous',
         konzentration: false,
         ritual: false,
         schadenAnzahl: 0,
         schadenSeiten: 6,
+        schadenPlus: 0,
         schadensart: 'feuer',
         ziel: 'einzel',
         flaeche: 'kugel',
@@ -290,7 +295,7 @@ export function bereinige(roh: unknown, id: string): Eintrag {
       return {
         ...leer,
         ...k,
-        gegenstandsart: text(r.gegenstandsart, 40) || leer.gegenstandsart,
+        gegenstandsart: eins(r.gegenstandsart, MAGIE_ARTEN, leer.gegenstandsart),
         seltenheit: eins(r.seltenheit, SELTENHEITEN, leer.seltenheit),
         einstimmung: r.einstimmung === true,
         wirkungen: Array.isArray(r.wirkungen) ? r.wirkungen.map((w) => text(w, 2000)).slice(0, 12) : [],
@@ -311,6 +316,7 @@ export function bereinige(roh: unknown, id: string): Eintrag {
         ritual: r.ritual === true,
         schadenAnzahl: Math.round(zahl(r.schadenAnzahl, 0, 0, 40)),
         schadenSeiten: Number(eins(String(r.schadenSeiten), ['4', '6', '8', '10', '12'] as const, '6')),
+        schadenPlus: Math.round(zahl(r.schadenPlus, 0, 0, 200)),
         schadensart: eins(r.schadensart, SCHADENSARTEN, leer.schadensart),
         ziel: r.ziel === 'flaeche' ? 'flaeche' : r.ziel === 'mehrere' ? 'mehrere' : 'einzel',
         flaeche: eins(r.flaeche, FLAECHEN, leer.flaeche),

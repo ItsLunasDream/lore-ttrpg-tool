@@ -339,6 +339,50 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     ]
   },
   {
+    id: 'kalender',
+    titel: { de: 'Campaign Calendar', en: 'Campaign Calendar' },
+    satz: {
+      de: 'Einen Termin finden: alle markieren, wann sie können, die Heatmap zeigt die besten Abende.',
+      en: 'Find a date: everyone marks when they can, the heatmap shows the best evenings.'
+    },
+    punkte: [
+      {
+        de: 'Neue Umfrage anlegen, Tage und Uhrzeiten wählen, dann im eigenen Raster ziehen: „Kann" oder „Notfalls".',
+        en: 'Create a poll, pick days and times, then drag in your own grid: “Available” or “If need be”.'
+      },
+      {
+        de: 'Im Raum teilen: Antworten kommen von selbst zurück. Ohne Raum als Datei herumschicken und wieder einlesen.',
+        en: 'Share in the room: answers come back on their own. Without a room, send it around as a file and import it again.'
+      },
+      {
+        de: 'Unter „Beste Termine" festlegen und als .ics in den eigenen Kalender holen.',
+        en: 'Set the date under “Best dates” and add it to your own calendar as .ics.'
+      }
+    ]
+  },
+  {
+    id: 'orte',
+    titel: { de: 'Settlement Generator', en: 'Settlement Generator' },
+    satz: {
+      de: 'Ein Klick, ein ganzer Ort: Gasthaus, Läden mit SRD-Preisen, Personen und Gerüchte.',
+      en: 'One click, a whole settlement: inn, shops at SRD prices, people and rumours.'
+    },
+    punkte: [
+      {
+        de: 'Größe und Lage vorgeben oder würfeln lassen. Mit 🔒 hältst du ein Teil fest, 🎲 würfelt nur dieses neu.',
+        en: 'Set size and location or let them be rolled. 🔒 keeps a part, 🎲 rerolls only that part.'
+      },
+      {
+        de: 'Zauberdienste, Gasthauspreise und Waren kommen aus dem SRD; welche Läden es wo gibt, ist eine Annahme und so gekennzeichnet.',
+        en: 'Spellcasting services, inn prices and wares come from the SRD; which shops exist where is an assumption and marked as such.'
+      },
+      {
+        de: 'Gespeicherte Orte gehen als Notizen in den Story Creator, ihre Läden als Tabellen in den Loot Generator.',
+        en: 'Saved settlements go to the Story Creator as notes, their shops to the Loot Generator as tables.'
+      }
+    ]
+  },
+  {
     id: 'homebrew',
     titel: { de: 'Homebrew Creator', en: 'Homebrew Creator' },
     satz: {

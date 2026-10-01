@@ -9,7 +9,7 @@ import { waffenpunkte } from './AngriffeBlock';
 import { getLanguage, t } from './i18n';
 import type { Kachel } from '../shared/ablage';
 import type { Bogen, Muenzen } from '../shared/bogen';
-import type { Uebergabe } from '../shared/uebergabe';
+import { geldText, type Uebergabe } from '../shared/uebergabe';
 import {
   MUENZARTEN,
   MUENZ_NAMEN,
@@ -81,6 +81,9 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
 
   /** Geben: auf der Platte oder beim Gastgeber im Raum. */
   const gib = (nachId: string, was: Uebergabe, erfolg: string) => {
+    const an = andere.find((k) => k.id === nachId)?.name ?? '?';
+    const sache = was.art === 'geld' ? geldText(was.betrag, sprache) : `${was.anzahl > 1 ? `${was.anzahl}× ` : ''}${bogen.gegenstaende.find((g) => g.id === was.gegenstandId)?.name ?? '?'}`;
+    api.protokoll({ art: 'gegeben', text: sprache === 'de' ? `${bogen.name} gibt ${an}: ${sache}` : `${bogen.name} gives ${an}: ${sache}` });
     if (raum) {
       raum.gib(nachId, was);
       setMeldung(erfolg);
@@ -307,6 +310,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
             </div>
             {offen === g.id ? (
               <div className="gegenstand__detail">
+                {g.bild ? <img className="gegenstand__bild" src={g.bild} alt="" data-gegenstand-bild={g.id} /> : null}
                 <textarea
                   rows={3}
                   aria-label={t('gegenstand.beschreibung')}

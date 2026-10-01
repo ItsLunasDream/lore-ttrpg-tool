@@ -21,3 +21,4 @@ export * from '../src/main/raum';
 export * from '../src/main/raumkrypto';
 export * from '../src/main/raeume';
 export * from '../src/shared/tasten';
+export * from '../src/shared/protokoll';

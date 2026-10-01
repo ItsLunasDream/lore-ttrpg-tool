@@ -46,10 +46,13 @@ import { mountNachschlagewerk } from '../../../nachschlagewerk/src/main/embed';
 import { leseFuerInventar, leseNamenUndSeltenheit, mountMagicItems } from '../../../magicitems/src/main/embed';
 import {
   leseFuerInventar as leseHomebrewFuerInventar,
+  leseZauberFuerBogen as leseHomebrewZauber,
   leseFuerLoot as leseHomebrewFuerLoot,
   leseFuerNachschlagewerk as leseHomebrewFuerNachschlagewerk,
   mountHomebrew
 } from '../../../homebrew/src/main/embed';
+import { leseFuerLoot as leseOrteFuerLoot, mountOrte } from '../../../orte/src/main/embed';
+import { mountKalender } from '../../../kalender/src/main/embed';
 import { leseTabellen, mountLoot } from '../../../loot/src/main/embed';
 import { srdTabellen } from '../../../loot/src/shared/srd';
 import { gegenstandsTabellen } from '../../../loot/src/shared/gegenstaende';
@@ -603,6 +606,8 @@ export async function mountApp(id: string, haken: MontageHaken): Promise<Montier
   if (id === 'nachschlagewerk') return montiereNachschlagewerk(id, haken);
   if (id === 'magicitems') return montiereMagicItems(id, haken);
   if (id === 'homebrew') return montiereHomebrew(id, haken);
+  if (id === 'orte') return montiereOrte(id, haken);
+  if (id === 'kalender') return montiereKalender(id, haken);
   if (id === 'loot') return montiereLoot(id, haken);
   if (id === 'charakterbogen') return montiereCharakterbogen(id, haken);
   return null;
@@ -745,6 +750,39 @@ async function legeNotizAn(
   }
   haken.onEreignis?.('backstory');
   return { ok: true, text: `${titel} → ${kampagne.name}`, kennung };
+}
+
+/** Die Notiz eines Sitzungsprotokolls (docs/sitzungsprotokoll.md); Typ „Sitzung", wenn es ihn gibt. */
+export function legeSitzungsnotizAn(titel: string, markdown: string, haken: MontageHaken) {
+  return legeNotizAn(titel, markdown, ['session', 'note'], haken);
+}
+
+/** Titel aller Notizen der offenen Kampagne, damit das Protokoll sie verlinken kann. */
+export async function bekannteNotiztitel(): Promise<string[]> {
+  if (!backstoryEmbed) return [];
+  try {
+    const kampagnen = await backstoryEmbed.vault.listCampaigns();
+    const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+    const kampagne = kampagnen.find((k) => k.id === letzte) ?? kampagnen[0];
+    if (!kampagne) return [];
+    return (await backstoryEmbed.vault.listNotes(kampagne.id)).map((n) => n.title);
+  } catch {
+    return [];
+  }
+}
+
+/** Der Titel einer Notiz der offenen Kampagne aus ihrer Kennung (so meldet der Story Creator seinen Ort). */
+export async function notizTitelVon(notizId: string): Promise<string | null> {
+  if (!backstoryEmbed || !notizId) return null;
+  try {
+    const kampagnen = await backstoryEmbed.vault.listCampaigns();
+    const letzte = backstoryEmbed.aktuelleEinstellungen().lastCampaignId;
+    const kampagne = kampagnen.find((k) => k.id === letzte) ?? kampagnen[0];
+    if (!kampagne) return null;
+    return (await backstoryEmbed.vault.getNote(kampagne.id, notizId)).title;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -927,6 +965,121 @@ async function montiereNpc(id: string, haken: MontageHaken): Promise<MontierteAp
  * Kampagne, und die wird einmal zu Beginn bestimmt — nicht je Notiz, sonst
  * koennte ein Kampagnenwechsel mitten im Anlegen das Geflecht zerreissen.
  */
+/**
+ * Legt mehrere Notizen auf einmal an (Inspirationshilfe, Settlement
+ * Generator): erst alle Titel prüfen, dann anlegen; was es schon gibt, wird
+ * übersprungen oder auf Wunsch ersetzt.
+ */
+async function legeNotizenAn(
+  notizen: readonly { typ: string; titel: string; markdown: string }[],
+  kampagneId: string | null | undefined,
+  optionen: { ersetzen?: boolean } | undefined,
+  haken: MontageHaken
+): Promise<{ ok: boolean; text: string; angelegt: number; vorhanden?: number }> {
+  if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
+  if (!backstoryEmbed) {
+    return {
+      ok: false,
+      text: OHNE_STORY(),
+      angelegt: 0
+    };
+  }
+  if (notizen.length === 0) {
+    return {
+      ok: false,
+      text: zweisprachig('Es gibt nichts zu übernehmen.', 'There is nothing to take over.'),
+      angelegt: 0
+    };
+  }
+  const kampagnen = await backstoryEmbed.vault.listCampaigns();
+  if (kampagnen.length === 0) {
+    return { ok: false, text: OHNE_KAMPAGNE(), angelegt: 0 };
+  }
+  const kampagne = waehleKampagne(kampagnen, kampagneId);
+
+  /*
+   * Erst pruefen, dann anlegen. Ein Titel mit [ ] | scheiterte sonst
+   * mitten im Geflecht, und die Haelfte lag schon da (Testbericht).
+   */
+  const kaputt = notizen.find((notiz) => !notiz.titel.trim() || hasLinkReservedChars(notiz.titel));
+  if (kaputt) {
+    const schluessel: MessageKey = kaputt.titel.trim() ? 'error.linkChars' : 'error.noteTitle';
+    return { ok: false, text: storyText(sammlungssprache, schluessel, { name: kaputt.titel }), angelegt: 0 };
+  }
+
+  /*
+   * Was es schon gibt, wird uebersprungen. Zweimal senden legte vorher
+   * das ganze Geflecht doppelt an, obwohl dort „nichts wird
+   * ueberschrieben" steht — und jeder Verweis war danach mehrdeutig.
+   */
+  let angelegt = 0;
+  let uebersprungen = 0;
+  let aktualisiert = 0;
+  try {
+    for (const notiz of notizen) {
+      const vorhandene = await findeNotiz(kampagne.id, notiz.titel);
+      if (vorhandene) {
+        // Auf ausdruecklichen Wunsch den Text ersetzen; Steckbrief,
+        // Aliasse und Beziehungen bleiben, die alte Fassung im Verlauf.
+        if (optionen?.ersetzen) {
+          await backstoryEmbed.vault.saveNote(kampagne.id, { ...vorhandene, body: notiz.markdown });
+          aktualisiert += 1;
+        } else {
+          uebersprungen += 1;
+        }
+        continue;
+      }
+      const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
+      await backstoryEmbed.vault.saveNote(kampagne.id, { ...neu, body: notiz.markdown });
+      angelegt += 1;
+    }
+  } catch (fehler) {
+    // Was schon liegt, bleibt liegen: geloescht wird hier nichts, was
+    // der Nutzer nicht selbst geloescht hat.
+    return {
+      ok: false,
+      text: `${fehlerText(fehler)} ${zweisprachig(`(${angelegt} angelegt)`, `(${angelegt} created)`)}`,
+      angelegt
+    };
+  }
+  if (angelegt === 0 && aktualisiert === 0 && uebersprungen > 0) {
+    return {
+      ok: false,
+      text: zweisprachig(
+        `Alles davon steht schon in ${kampagne.name}; nichts doppelt angelegt.`,
+        `All of it is already in ${kampagne.name}; nothing was duplicated.`
+      ),
+      angelegt: 0,
+      vorhanden: uebersprungen
+    };
+  }
+
+  // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
+  // liegen die Notizen zwar auf der Platte, seine offene Liste zeigt sie
+  // aber nicht.
+  if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
+    backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
+  }
+  haken.onEreignis?.('backstory');
+  return {
+    ok: true,
+    text:
+      uebersprungen > 0
+        ? zweisprachig(
+            `${kampagne.name} (${uebersprungen} schon vorhanden, übersprungen)`,
+            `${kampagne.name} (${uebersprungen} already there, skipped)`
+          )
+        : aktualisiert > 0
+          ? zweisprachig(
+              `${kampagne.name} (${aktualisiert} aktualisiert)`,
+              `${kampagne.name} (${aktualisiert} updated)`
+            )
+          : kampagne.name,
+    angelegt,
+    vorhanden: uebersprungen
+  };
+}
+
 async function montiereInspiration(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountInspiration({
     distDir: appDistDir(id, 'main'),
@@ -968,110 +1121,8 @@ async function montiereInspiration(id: string, haken: MontageHaken): Promise<Mon
             ?.slice(0, 90) ?? ''
         }));
     },
-    anlegen: async (notizen, kampagneId?: string | null, optionen?: { ersetzen?: boolean }) => {
-      if (!backstoryEmbed) await haken.stelleStoryBereit?.().catch(() => undefined);
-      if (!backstoryEmbed) {
-        return {
-          ok: false,
-          text: OHNE_STORY(),
-          angelegt: 0
-        };
-      }
-      if (notizen.length === 0) {
-        return {
-          ok: false,
-          text: zweisprachig('Es gibt nichts zu übernehmen.', 'There is nothing to take over.'),
-          angelegt: 0
-        };
-      }
-      const kampagnen = await backstoryEmbed.vault.listCampaigns();
-      if (kampagnen.length === 0) {
-        return { ok: false, text: OHNE_KAMPAGNE(), angelegt: 0 };
-      }
-      const kampagne = waehleKampagne(kampagnen, kampagneId);
-
-      /*
-       * Erst pruefen, dann anlegen. Ein Titel mit [ ] | scheiterte sonst
-       * mitten im Geflecht, und die Haelfte lag schon da (Testbericht).
-       */
-      const kaputt = notizen.find((notiz) => !notiz.titel.trim() || hasLinkReservedChars(notiz.titel));
-      if (kaputt) {
-        const schluessel: MessageKey = kaputt.titel.trim() ? 'error.linkChars' : 'error.noteTitle';
-        return { ok: false, text: storyText(sammlungssprache, schluessel, { name: kaputt.titel }), angelegt: 0 };
-      }
-
-      /*
-       * Was es schon gibt, wird uebersprungen. Zweimal senden legte vorher
-       * das ganze Geflecht doppelt an, obwohl dort „nichts wird
-       * ueberschrieben" steht — und jeder Verweis war danach mehrdeutig.
-       */
-      let angelegt = 0;
-      let uebersprungen = 0;
-      let aktualisiert = 0;
-      try {
-        for (const notiz of notizen) {
-          const vorhandene = await findeNotiz(kampagne.id, notiz.titel);
-          if (vorhandene) {
-            // Auf ausdruecklichen Wunsch den Text ersetzen; Steckbrief,
-            // Aliasse und Beziehungen bleiben, die alte Fassung im Verlauf.
-            if (optionen?.ersetzen) {
-              await backstoryEmbed.vault.saveNote(kampagne.id, { ...vorhandene, body: notiz.markdown });
-              aktualisiert += 1;
-            } else {
-              uebersprungen += 1;
-            }
-            continue;
-          }
-          const neu = await backstoryEmbed.vault.createNote(kampagne.id, notiz.typ, notiz.titel);
-          await backstoryEmbed.vault.saveNote(kampagne.id, { ...neu, body: notiz.markdown });
-          angelegt += 1;
-        }
-      } catch (fehler) {
-        // Was schon liegt, bleibt liegen: geloescht wird hier nichts, was
-        // der Nutzer nicht selbst geloescht hat.
-        return {
-          ok: false,
-          text: `${fehlerText(fehler)} ${zweisprachig(`(${angelegt} angelegt)`, `(${angelegt} created)`)}`,
-          angelegt
-        };
-      }
-      if (angelegt === 0 && aktualisiert === 0 && uebersprungen > 0) {
-        return {
-          ok: false,
-          text: zweisprachig(
-            `Alles davon steht schon in ${kampagne.name}; nichts doppelt angelegt.`,
-            `All of it is already in ${kampagne.name}; nothing was duplicated.`
-          ),
-          angelegt: 0,
-          vorhanden: uebersprungen
-        };
-      }
-
-      // Dem Story Creator sagen, dass etwas dazugekommen ist. Ohne das
-      // liegen die Notizen zwar auf der Platte, seine offene Liste zeigt sie
-      // aber nicht.
-      if (backstorySicht && !backstorySicht.webContents.isDestroyed()) {
-        backstoryEmbed.meldeFremdeAenderung(backstorySicht.webContents);
-      }
-      haken.onEreignis?.('backstory');
-      return {
-        ok: true,
-        text:
-          uebersprungen > 0
-            ? zweisprachig(
-                `${kampagne.name} (${uebersprungen} schon vorhanden, übersprungen)`,
-                `${kampagne.name} (${uebersprungen} already there, skipped)`
-              )
-            : aktualisiert > 0
-              ? zweisprachig(
-                  `${kampagne.name} (${aktualisiert} aktualisiert)`,
-                  `${kampagne.name} (${aktualisiert} updated)`
-                )
-              : kampagne.name,
-        angelegt,
-        vorhanden: uebersprungen
-      };
-    }
+    anlegen: (notizen, kampagneId?: string | null, optionen?: { ersetzen?: boolean }) =>
+      legeNotizenAn(notizen, kampagneId, optionen, haken)
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1596,6 +1647,101 @@ async function montiereHomebrew(id: string, haken: MontageHaken): Promise<Montie
   };
 }
 
+/**
+ * Der Campaign Calendar (docs/kampagnenkalender.md). Nachrichten im Raum
+ * fuehrt die Huelle selbst in die Ablage (index.ts, nimmRaumNachricht);
+ * das offene Werkzeug laedt danach nur neu.
+ */
+async function montiereKalender(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountKalender({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.KALENDER_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    raum: haken.raum
+      ? {
+          sende: (inhalt, an) => haken.raum?.sende('kalender', inhalt, an) ?? false,
+          lage: () => haken.raum?.anfang('kalender').lage ?? { rolle: 'aus', ich: null, personen: [] }
+        }
+      : undefined
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    raumNachricht: () => eingebettet.raumNachricht(sicht.webContents as WebContents),
+    raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage)
+  };
+}
+
+/** Der Settlement Generator (docs/ortsgenerator.md). Notizen wie die Inspirationshilfe. */
+async function montiereOrte(id: string, haken: MontageHaken): Promise<MontierteApp> {
+  const eingebettet = await mountOrte({
+    distDir: appDistDir(id, 'main'),
+    datenordner: datenordner(id),
+    devServerUrl: process.env.ORTE_DEV_SERVER_URL,
+    language: haken.language,
+    onLanguageChange: (language) => haken.onLanguageChange(language as Language),
+    onEreignis: haken.onEreignis,
+    kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
+    anlegen: (notizen, kampagneId, optionen) => legeNotizenAn(notizen, kampagneId, optionen, haken)
+  });
+
+  setzeCsp(sitzung(id), eingebettet.csp);
+
+  const sicht = new WebContentsView({
+    webPreferences: {
+      preload: eingebettet.preloadPath,
+      partition: sitzung(id),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  sichereAb(sicht, eingebettet.devServerUrl);
+
+  let geladen = false;
+  return {
+    id,
+    sicht,
+    nachladen: async () => {
+      await lade(sicht, eingebettet);
+      await eingebettet.setLanguage(sicht.webContents as WebContents, haken.language);
+      geladen = true;
+    },
+    istGeladen: () => geladen,
+    flush: () => eingebettet.flush(),
+    setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+  };
+}
+
 /** Der Loot Generator. Gebaut wie der Magic Item Generator. */
 async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteApp> {
   const eingebettet = await mountLoot({
@@ -1611,7 +1757,8 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
     // beiden Werkzeuge kennen einander nicht, die Huelle kennt beide.
     gegenstaende: async () => [
       ...(await leseNamenUndSeltenheit(app.getPath('userData'))),
-      ...(await leseHomebrewFuerLoot(app.getPath('userData')))
+      ...(await leseHomebrewFuerLoot(app.getPath('userData'))),
+      ...(await leseOrteFuerLoot(app.getPath('userData')))
     ]
   });
 
@@ -1648,8 +1795,15 @@ async function montiereLoot(id: string, haken: MontageHaken): Promise<MontierteA
 /** Alle Loot-Tabellen, wie der Loot Generator sie zeigt: eigene, SRD und die aus dem Magic Item Generator. */
 async function alleLootTabellen(sprache: 'de' | 'en') {
   const datenordner = app.getPath('userData');
-  const [eigene, gegenstaende] = await Promise.all([leseTabellen(datenordner), leseNamenUndSeltenheit(datenordner)]);
-  return [...eigene, ...srdTabellen(sprache), ...gegenstandsTabellen(gegenstaende, sprache)];
+  // Dieselben Quellen wie im Loot Generator selbst (montiereLoot): sonst
+  // fehlten im Bogen die Tabellen „Homebrew" und die der Läden.
+  const [eigene, magie, homebrew, orte] = await Promise.all([
+    leseTabellen(datenordner),
+    leseNamenUndSeltenheit(datenordner),
+    leseHomebrewFuerLoot(datenordner),
+    leseOrteFuerLoot(datenordner)
+  ]);
+  return [...eigene, ...srdTabellen(sprache), ...gegenstandsTabellen([...magie, ...homebrew, ...orte], sprache)];
 }
 
 /** Der Charakterbogen. Gebaut wie der Loot Generator. */
@@ -1685,6 +1839,7 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     quellen: {
       magicitems: (sprache) => leseFuerInventar(app.getPath('userData'), sprache),
       homebrew: async (sprache) => [...(await leseHomebrewFuerInventar(app.getPath('userData'), sprache))],
+      homebrewZauber: (sprache) => leseHomebrewZauber(app.getPath('userData'), sprache),
       lootTabellen: async (sprache) => (await alleLootTabellen(sprache)).map((x) => ({ id: x.id, name: x.name })),
       lootWuerfle: async (tabellenId, sprache) => {
         const alle = await alleLootTabellen(sprache);

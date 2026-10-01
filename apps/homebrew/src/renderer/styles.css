@@ -785,3 +785,15 @@ textarea {
   color: var(--text-leise);
   font-size: 12px;
 }
+
+/* Eine Wirkung eines magischen Gegenstands: Text und daneben Entfernen. */
+.wirkung {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.wirkung .feld__flaeche {
+  flex: 1;
+}

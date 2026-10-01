@@ -5,6 +5,7 @@
  * `ipcRenderer`. Sonst koennte jede Zeile im Renderer jeden Kanal aufrufen —
  * auch die der eingebetteten Anwendungen.
  */
+import type { Sitzung } from '../shared/protokoll';
 import { contextBridge, ipcRenderer } from 'electron';
 import type { GefundenerRaum, Raumereignis, Raumzustand } from '../main/raum';
 import type { GespeicherterRaum, Raumeinstellungen } from '../main/raeume';
@@ -212,6 +213,24 @@ const api = {
       ipcRenderer.on('fokus:huelle', hoerer);
       return () => {
         ipcRenderer.off('fokus:huelle', hoerer);
+      };
+    }
+  },
+  /** Sitzungsprotokoll (docs/sitzungsprotokoll.md). */
+  protokoll: {
+    zustand: () => ipcRenderer.invoke('protokoll:zustand') as Promise<Sitzung | null>,
+    start: () => ipcRenderer.invoke('protokoll:start') as Promise<Sitzung>,
+    hand: (text: string) => ipcRenderer.invoke('protokoll:hand', text) as Promise<Sitzung | null>,
+    stopp: () => ipcRenderer.invoke('protokoll:stopp') as Promise<Sitzung | null>,
+    bearbeite: (s: Sitzung) => ipcRenderer.invoke('protokoll:bearbeite', s) as Promise<Sitzung | null>,
+    vorschau: (zusammenfassung: string) => ipcRenderer.invoke('protokoll:vorschau', zusammenfassung) as Promise<string>,
+    anlegen: (zusammenfassung: string) => ipcRenderer.invoke('protokoll:anlegen', zusammenfassung) as Promise<{ ok: boolean; text: string }>,
+    verwerfen: () => ipcRenderer.invoke('protokoll:verwerfen') as Promise<boolean>,
+    beiAenderung: (fn: (z: { laeuft: boolean; anzahl: number } | null) => void): (() => void) => {
+      const hoerer = (_e: unknown, z: { laeuft: boolean; anzahl: number } | null) => fn(z);
+      ipcRenderer.on('protokoll:geaendert', hoerer);
+      return () => {
+        ipcRenderer.off('protokoll:geaendert', hoerer);
       };
     }
   },

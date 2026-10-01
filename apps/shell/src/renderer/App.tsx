@@ -50,6 +50,7 @@ import { WERKZEUG_APP, type Eintrag } from '@suite/eintraege';
 import { Einstellungen, type KiZustandAnsicht } from './Einstellungen';
 import { Suche } from './Suche';
 import { Austausch } from './Austausch';
+import { Protokoll } from './Protokoll';
 import { Ueber } from './Ueber';
 import { Einfuehrung } from './Einfuehrung';
 import { WILLKOMMEN, einfuehrungFuer, stehtAus } from '../shared/einfuehrung';
@@ -136,6 +137,12 @@ export function App() {
    */
   const [buehne, setBuehne] = useState<BuehnenZustand>({ zustand: 'laedt' });
   const [maximiert, setMaximiert] = useState(false);
+  // Sitzungsprotokoll: läuft eins, steht ein roter Punkt mit der Zahl der Einträge in der Titelleiste.
+  const [sitzungLaeuft, setSitzungLaeuft] = useState<{ laeuft: boolean; anzahl: number } | null>(null);
+  useEffect(() => {
+    void window.shell.protokoll.zustand().then((s) => setSitzungLaeuft(s && s.ende === null ? { laeuft: true, anzahl: s.eintraege.length } : null));
+    return window.shell.protokoll.beiAenderung((z) => setSitzungLaeuft(z && z.laeuft ? z : null));
+  }, []);
   const [version, setVersion] = useState('');
   const [sprache, setSprache] = useState<Language>(DEFAULT_LANGUAGE);
   /**
@@ -189,7 +196,7 @@ export function App() {
     phase: 'waechst' | 'wartet';
   } | null>(null);
   /** Welcher Dialog offen ist, oder `null`. Es ist immer hoechstens einer. */
-  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null>(null);
+  const [dialog, setDialog] = useState<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | null>(null);
   /**
    * Ob zurueck und vorwaerts gerade moeglich sind.
    *
@@ -221,7 +228,7 @@ export function App() {
    * liegt unter den Anwendungen. Ohne diese Meldung waere ein geoeffneter
    * Dialog hinter der laufenden Anwendung nicht zu sehen.
    */
-  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null) => {
+  const zeigeDialog = useCallback((welcher: 'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | null) => {
     setDialog(welcher);
     void window.shell.app.dialog(welcher !== null);
   }, []);
@@ -233,7 +240,7 @@ export function App() {
    * Hauptprozesses heraus aufgerufen wird und dort der Zustand von vorhin
    * stuende.
    */
-  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | null>(null);
+  const dialogRef = useRef<'einstellungen' | 'ueber' | 'einfuehrung' | 'suche' | 'teilen' | 'protokoll' | null>(null);
   dialogRef.current = dialog;
 
   /**
@@ -823,6 +830,16 @@ export function App() {
             )}
           </button>
         )}
+        <button
+          type="button"
+          className={sitzungLaeuft ? 'titelleiste__knopf titelleiste__sitzung' : 'titelleiste__knopf'}
+          data-protokoll-knopf
+          title={sitzungLaeuft ? t('session.badge') : t('session.title')}
+          onClick={() => zeigeDialog('protokoll')}
+        >
+          {sitzungLaeuft ? '●' : '○'} {t('title.session')}
+          {sitzungLaeuft && sitzungLaeuft.anzahl > 0 ? <span className="titelleiste__raumzahl"> {sitzungLaeuft.anzahl}</span> : null}
+        </button>
         <button type="button" className="titelleiste__knopf titelleiste__knopf--symbol" data-teilen-knopf onClick={() => zeigeDialog('teilen')}>
           <AppSymbol id="austausch" size={16} bild={symbole.austausch} />
           {t('title.share')}
@@ -970,6 +987,7 @@ export function App() {
           t={t}
         />
       )}
+      {dialog === 'protokoll' && <Protokoll onClose={() => zeigeDialog(null)} t={t} />}
       {dialog === 'teilen' && (
         <Austausch
           onClose={() => {

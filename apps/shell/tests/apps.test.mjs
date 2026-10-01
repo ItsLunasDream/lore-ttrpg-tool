@@ -111,14 +111,14 @@ test('jede Gruppe hat eine Ueberschrift in beiden Sprachen', () => {
   }
 });
 
-test('Wuerfel, Story Creator, Nachschlagewerk und Charakterbogen gehoeren allen', () => {
+test('Wuerfel, Story Creator, Nachschlagewerk, Charakterbogen und Kalender gehoeren allen', () => {
   // Die eine inhaltliche Festlegung, die es hier gibt: an der Kampagne
   // schreiben beide Seiten mit, gewuerfelt wird von allen, und
   // nachgeschlagen auch — am Tisch meist von jemand anderem als dem, der
-  // leitet. Den Charakterbogen fuehren die Spielenden selbst. Alles andere
-  // ist Vorbereitung oder Leitung.
+  // leitet. Den Charakterbogen fuehren die Spielenden selbst, und auf eine
+  // Terminumfrage antworten alle. Alles andere ist Vorbereitung oder Leitung.
   const fuerAlle = appsMitRolle('alle').map((a) => a.id).sort();
-  assert.deepEqual(fuerAlle, ['backstory', 'charakterbogen', 'dice', 'nachschlagewerk']);
+  assert.deepEqual(fuerAlle, ['backstory', 'charakterbogen', 'dice', 'kalender', 'nachschlagewerk']);
 });
 
 test('bei vergroesserter Oberflaeche rueckt die Anwendung mit Titelleiste und Schiene', () => {

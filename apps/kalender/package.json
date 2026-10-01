@@ -1,0 +1,34 @@
+{
+  "name": "ttrpg-kalender",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Campaign Calendar — Termine finden wie bei Crab.fit, über den Raum oder als Datei",
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "node scripts/build-main.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "^0.24.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  },
+  "author": {
+    "name": "ItsLunasDream"
+  },
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "@suite/eintraege": "*",
+    "@suite/i18n": "*",
+    "@suite/motion": "*",
+    "@suite/tastatur": "*"
+  }
+}

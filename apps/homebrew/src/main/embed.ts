@@ -15,7 +15,7 @@ import { kanal } from '../shared/kanaele';
 import { alsKachel, alsMarkdown, freieKennung, leseEintrag, zuId, type Kachel } from '../shared/ablage';
 import type { Eintrag } from '../shared/modell';
 import { inventarEintrag, type InventarEintrag } from '../shared/inventar';
-import { ART_NAME, kurzzeile } from '../shared/texte';
+import { ART_NAME, kurzzeile, zauberEigenschaften, zauberText } from '../shared/texte';
 
 export const WERKZEUG = 'homebrew';
 export const ORDNER_NAME = 'eintraege';
@@ -98,12 +98,18 @@ export async function leseFuerInventar(datenordner: string, sprache: 'de' | 'en'
   });
 }
 
+/** Eigene Zauber fuer die Zauberliste des Charakterbogens (ueber die Huelle). */
+export async function leseZauberFuerBogen(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<{ id: string; name: string; grad: number; text: string }[]> {
+  return (await leseAlle(datenordner)).flatMap((e) => (e.art === 'zauber' ? [{ id: e.id, name: e.name, grad: e.grad, text: zauberText(e, sprache) }] : []));
+}
+
 /** Alle Eintraege fuer das Nachschlagewerk: Name, Kurzzeile und Text je Sprache. */
 export async function leseFuerNachschlagewerk(datenordner: string): Promise<
-  { id: string; name: string; unterzeile: { de: string; en: string }; absaetze: { de: string[]; en: string[] } }[]
+  { id: string; name: string; unterzeile: { de: string; en: string }; absaetze: { de: string[]; en: string[] }; bild?: string }[]
 > {
   const absaetze = (e: Eintrag, s: 'de' | 'en'): string[] => {
     const teile = e.beschreibung.split(/\n{2,}/).map((x) => x.trim()).filter(Boolean);
+    if (e.art === 'zauber') teile.unshift(zauberEigenschaften(e, s));
     if (e.art === 'magisch') {
       teile.push(...e.wirkungen.filter((w) => w.trim()));
       if (e.fluch.trim()) teile.push(`${s === 'de' ? 'Fluch' : 'Curse'}: ${e.fluch.trim()}`);
@@ -115,7 +121,8 @@ export async function leseFuerNachschlagewerk(datenordner: string): Promise<
     id: e.id,
     name: e.name,
     unterzeile: { de: `Homebrew · ${kurzzeile(e, 'de')}`, en: `Homebrew · ${kurzzeile(e, 'en')}` },
-    absaetze: { de: absaetze(e, 'de'), en: absaetze(e, 'en') }
+    absaetze: { de: absaetze(e, 'de'), en: absaetze(e, 'en') },
+    ...(e.bild ? { bild: e.bild } : {})
   }));
 }
 

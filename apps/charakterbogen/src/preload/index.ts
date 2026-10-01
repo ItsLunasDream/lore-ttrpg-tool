@@ -14,6 +14,8 @@ import type { LiveZustand } from '../main/live';
 type Antwort = { ok: boolean; text: string };
 
 const api = {
+  /** Rast und Geben an das Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: 'rast' | 'gegeben'; text: string }) => ipcRenderer.send('huelle:protokoll', meldung),
   /**
    * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
    * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal
@@ -62,6 +64,7 @@ const api = {
         { id: string; name: string; art: string; einstimmung: boolean; beschreibung: string; wert: number }[]
       >,
     homebrew: () => ipcRenderer.invoke(kanal('quellen:homebrew')) as Promise<Quelleintrag[]>,
+    homebrewZauber: () => ipcRenderer.invoke(kanal('quellen:homebrewZauber')) as Promise<{ id: string; name: string; grad: number; text: string }[]>,
     lootTabellen: () => ipcRenderer.invoke(kanal('quellen:lootTabellen')) as Promise<{ id: string; name: string }[]>,
     lootWuerfle: (id: string) => ipcRenderer.invoke(kanal('quellen:lootWuerfle'), id) as Promise<string | null>
   },

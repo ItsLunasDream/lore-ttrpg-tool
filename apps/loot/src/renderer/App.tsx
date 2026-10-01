@@ -87,6 +87,13 @@ function istFest(id: string): boolean {
 }
 
 /** Irgendwo im Baum etwas, das nicht aufging? */
+/** Was gewürfelt wurde, als eine Zeile für das Sitzungsprotokoll der Hülle. */
+function meldeBeute(ergebnisse: readonly Ergebnis[]): void {
+  const gut = ergebnisse.filter((e) => !hatFehler(e) && e.text.trim());
+  if (gut.length === 0) return;
+  api.protokoll({ art: 'beute', text: `${gut[0].tabelle}: ${gut.map((e) => e.text.trim()).join('; ')}` });
+}
+
 function hatFehler(e: Ergebnis): boolean {
   return Boolean(e.fehler) || e.teile.some(hatFehler);
 }
@@ -418,7 +425,9 @@ export function App() {
               disabled={aktuell.eintraege.length === 0 || (!nurLesen && sperre.length > 0)}
               title={!nurLesen && sperre.length > 0 ? befundText(sperre[0]) : undefined}
               onClick={() => {
-                setErgebnisse(wuerfleReihe(aktuell, bestand, anzahl, Math.random, gezogen.current));
+                const neu = wuerfleReihe(aktuell, bestand, anzahl, Math.random, gezogen.current);
+                setErgebnisse(neu);
+                meldeBeute(neu);
                 gezogenZeichnen((n) => n + 1);
                 setMeldung('');
               }}
@@ -711,7 +720,10 @@ export function App() {
                 title={gesperrteIds.has(k.id) ? t('schnell.gesperrt') : t('schnell')}
                 onClick={() => {
                   const tabelle = alle.find((a) => a.id === k.id);
-                  if (tabelle) setSchnell(wuerfle(tabelle, alle, Math.random, 0, gezogen.current));
+                  if (!tabelle) return;
+                  const neu = wuerfle(tabelle, alle, Math.random, 0, gezogen.current);
+                  setSchnell(neu);
+                  meldeBeute([neu]);
                 }}
               >
                 ⚄

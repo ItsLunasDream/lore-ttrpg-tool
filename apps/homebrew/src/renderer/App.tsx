@@ -7,21 +7,42 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
-import { SELTENHEIT_NAME } from '@suite/srd';
+import { SELTENHEITEN, SELTENHEIT_NAME } from '@suite/srd';
+import { ARTEN as MAGIE_ARTEN, ART_NAME as MAGIE_ART_NAME } from '@suite/magie/tabellen';
 import { MEISTERSCHAFTEN, RUESTUNGSARTEN, WAFFEN_EIGENSCHAFTEN, type Meisterschaft, type RuestungsArt } from '@suite/srd/waffen';
 import { api } from './api';
 import { getLanguage, setLanguage, t, type TextKey } from './i18n';
-import { ARTEN, SCHADENSARTEN, leererEintrag, type Art, type Eintrag, type Ruestung, type Schadensart, type Waffe } from '../shared/modell';
+import {
+  ARTEN,
+  FLAECHEN,
+  RETTUNGSWUERFE,
+  SCHADENSARTEN,
+  ZAUBERKLASSEN,
+  ZAUBERSCHULEN,
+  leererEintrag,
+  type Art,
+  type Eintrag,
+  type Magisch,
+  type Ruestung,
+  type Schadensart,
+  type Waffe,
+  type Zauber
+} from '../shared/modell';
 import type { Kachel } from '../shared/ablage';
 import {
   ART_NAME,
   ART_ZEICHEN,
   EIGENSCHAFT_NAME,
+  KLASSE_NAME,
   MEISTERSCHAFT_NAME,
   RUESTUNGSART_NAME,
-  SCHADENSART_NAME
+  SCHADENSART_NAME,
+  SCHULE_NAME
 } from '../shared/texte';
 import { eicheRuestung, eicheWaffe, type Eichung } from '../shared/eichung';
+import { eicheZauber } from '../shared/zauberEichung';
+import { eicheMagisch } from '../shared/magischEichung';
+import { alsFoundryDatei, kannFoundry } from '../shared/foundry';
 
 type Sprache = 'de' | 'en';
 
@@ -30,7 +51,7 @@ function sprache(): Sprache {
 }
 
 /** Arten, die schon einen Reiter haben. Die uebrigen folgen (docs/homebrew-creator.md, Schritte). */
-export const BEREIT: readonly Art[] = ['waffe', 'ruestung', 'gegenstand'];
+export const BEREIT: readonly Art[] = ['waffe', 'ruestung', 'gegenstand', 'magisch', 'zauber'];
 
 export function App() {
   const [, neuZeichnen] = useState(0);
@@ -111,7 +132,7 @@ export function App() {
 
   const neu = (art: Art) => {
     if (!darfVerwerfen()) return;
-    setzeGrund(leererEintrag(art));
+    setzeGrund(leererEintrag(art, sprache()));
     setIstNeu(true);
     setMeldung('');
     setFehler('');
@@ -192,6 +213,28 @@ export function App() {
           >
             {offen.imLoot ? t('loot.drin') : t('loot')}
           </button>
+          {kannFoundry(offen) ? (
+            <button
+              type="button"
+              className="knopf"
+              data-foundry
+              onClick={() =>
+                void (async () => {
+                  if (!offen.name.trim()) {
+                    setFehler(t('fehler.name'));
+                    return;
+                  }
+                  const datei = alsFoundryDatei(offen);
+                  if (!datei) return;
+                  const ergebnis = await api.foundry(datei.name, datei.inhalt);
+                  if (ergebnis.ok) setMeldung(t('foundry.fertig', { pfad: ergebnis.text }));
+                  else if (ergebnis.text) setFehler(ergebnis.text);
+                })()
+              }
+            >
+              {t('foundry')}
+            </button>
+          ) : null}
           <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
             {t('speichern')}
           </button>
@@ -206,15 +249,19 @@ export function App() {
                   <span className="feld__name">{t('feld.name')}</span>
                   <input className="feld__eingabe" value={offen.name} data-feld="name" onChange={(e) => setze({ name: e.target.value })} />
                 </label>
-                <div className="zeile">
-                  <Zahlfeld label={t('feld.preis')} wert={offen.preis} feld="preis" aendern={(preis) => setze({ preis })} />
-                  <Zahlfeld label={t('feld.gewicht')} wert={offen.gewicht} feld="gewicht" aendern={(gewicht) => setze({ gewicht })} />
-                </div>
+                {offen.art === 'zauber' ? null : (
+                  <div className="zeile">
+                    <Zahlfeld label={t('feld.preis')} wert={offen.preis} feld="preis" aendern={(preis) => setze({ preis })} />
+                    <Zahlfeld label={t('feld.gewicht')} wert={offen.gewicht} feld="gewicht" aendern={(gewicht) => setze({ gewicht })} />
+                  </div>
+                )}
               </div>
             </div>
 
             {offen.art === 'waffe' ? <WaffenFelder w={offen} setze={setze} /> : null}
             {offen.art === 'ruestung' ? <RuestungsFelder r={offen} setze={setze} /> : null}
+            {offen.art === 'zauber' ? <ZauberFelder z={offen} setze={setze} /> : null}
+            {offen.art === 'magisch' ? <MagischFelder m={offen} setze={setze} /> : null}
 
             <label className="feld feld--hoch">
               <span className="feld__name">{t('feld.beschreibung')}</span>
@@ -480,7 +527,196 @@ function RuestungsFelder({ r, setze }: { r: Ruestung; setze: (teil: Partial<Rues
   );
 }
 
+function Textfeld({ label, wert, feld, aendern }: { label: string; wert: string; feld: string; aendern: (w: string) => void }) {
+  return (
+    <label className="feld">
+      <span className="feld__name">{label}</span>
+      <input className="feld__eingabe" value={wert} data-feld={feld} onChange={(e) => aendern(e.target.value)} />
+    </label>
+  );
+}
+
+function Haken({ label, wert, feld, aendern }: { label: string; wert: boolean; feld: string; aendern: (w: boolean) => void }) {
+  return (
+    <label className="feld feld--haken">
+      <input type="checkbox" checked={wert} data-feld={feld} onChange={(e) => aendern(e.target.checked)} /> {label}
+    </label>
+  );
+}
+
+const RETTUNG_NAME: Record<(typeof RETTUNGSWUERFE)[number], [string, string]> = {
+  '': ['keiner', 'none'],
+  sta: ['Stärke', 'Strength'],
+  ges: ['Geschicklichkeit', 'Dexterity'],
+  kon: ['Konstitution', 'Constitution'],
+  int: ['Intelligenz', 'Intelligence'],
+  wei: ['Weisheit', 'Wisdom'],
+  cha: ['Charisma', 'Charisma']
+};
+
+function ZauberFelder({ z, setze }: { z: Zauber; setze: (teil: Partial<Zauber>) => void }) {
+  const s = sprache();
+  const i = s === 'de' ? 0 : 1;
+  const klassen = new Set(z.klassen);
+  const schalte = (k: (typeof ZAUBERKLASSEN)[number]) => {
+    const neu = new Set(klassen);
+    if (neu.has(k)) neu.delete(k);
+    else neu.add(k);
+    setze({ klassen: ZAUBERKLASSEN.filter((x) => neu.has(x)) });
+  };
+  return (
+    <div className="artfelder" data-zauber>
+      <div className="zeile">
+        <Wahl
+          label={t('feld.grad')}
+          wert={String(z.grad)}
+          feld="grad"
+          optionen={Array.from({ length: 10 }, (_, g) => ({ wert: String(g), text: g === 0 ? t('grad.trick') : String(g) }))}
+          aendern={(x) => setze({ grad: Number(x) })}
+        />
+        <Wahl
+          label={t('feld.schule')}
+          wert={z.schule}
+          feld="schule"
+          optionen={ZAUBERSCHULEN.map((x) => ({ wert: x, text: SCHULE_NAME[x][s] }))}
+          aendern={(schule) => setze({ schule })}
+        />
+      </div>
+      <fieldset className="chips" data-klassen>
+        <legend className="feld__name">{t('feld.klassen')}</legend>
+        {ZAUBERKLASSEN.map((k) => (
+          <button key={k} type="button" className={klassen.has(k) ? 'chip chip--an' : 'chip'} aria-pressed={klassen.has(k)} data-klasse={k} onClick={() => schalte(k)}>
+            {KLASSE_NAME[k][s]}
+          </button>
+        ))}
+      </fieldset>
+      <div className="zeile">
+        <Textfeld label={t('feld.zeit')} wert={z.zeit} feld="zeit" aendern={(zeit) => setze({ zeit })} />
+        <Textfeld label={t('feld.zauberReichweite')} wert={z.reichweite} feld="zauberReichweite" aendern={(reichweite) => setze({ reichweite })} />
+        <Textfeld label={t('feld.komponenten')} wert={z.komponenten} feld="komponenten" aendern={(komponenten) => setze({ komponenten })} />
+        <Textfeld label={t('feld.dauer')} wert={z.dauer} feld="dauer" aendern={(dauer) => setze({ dauer })} />
+      </div>
+      <div className="zeile">
+        <Haken label={t('feld.konzentration')} wert={z.konzentration} feld="konzentration" aendern={(konzentration) => setze({ konzentration })} />
+        <Haken label={t('feld.ritual')} wert={z.ritual} feld="ritual" aendern={(ritual) => setze({ ritual })} />
+      </div>
+      <h3 className="feld__name">{t('feld.schaden')}</h3>
+      <div className="zeile">
+        <label className="feld">
+          <span className="feld__name">{t('feld.wuerfel')}</span>
+          <span className="paar">
+            <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={40} value={z.schadenAnzahl} data-feld="schadenAnzahl" onChange={(e) => setze({ schadenAnzahl: Math.max(0, Math.min(40, Math.round(Number(e.target.value) || 0))) })} />
+            <select className="feld__wahl" value={String(z.schadenSeiten)} data-feld="schadenSeiten" onChange={(e) => setze({ schadenSeiten: Number(e.target.value) })}>
+              {[4, 6, 8, 10, 12].map((w) => (
+                <option key={w} value={w}>
+                  {s === 'de' ? 'W' : 'd'}
+                  {w}
+                </option>
+              ))}
+            </select>
+            +
+            <input className="feld__eingabe feld__eingabe--kurz" type="number" min={0} max={200} value={z.schadenPlus} data-feld="schadenPlus" onChange={(e) => setze({ schadenPlus: Math.max(0, Math.min(200, Math.round(Number(e.target.value) || 0))) })} />
+          </span>
+        </label>
+        <Wahl
+          label={t('feld.schadensart')}
+          wert={z.schadensart}
+          feld="schadensart"
+          optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
+          aendern={(schadensart: Schadensart) => setze({ schadensart })}
+        />
+        <Wahl
+          label={t('feld.ziel')}
+          wert={z.ziel}
+          feld="ziel"
+          optionen={(['einzel', 'mehrere', 'flaeche'] as const).map((x) => ({ wert: x, text: t(`ziel.${x}` as TextKey) }))}
+          aendern={(ziel) => setze({ ziel })}
+        />
+        {z.ziel === 'flaeche' ? (
+          <>
+            <Wahl
+              label={t('feld.flaeche')}
+              wert={z.flaeche}
+              feld="flaeche"
+              optionen={FLAECHEN.map((x) => ({ wert: x, text: t(`flaeche.${x}` as TextKey) }))}
+              aendern={(flaeche) => setze({ flaeche })}
+            />
+            <label className="feld">
+              <span className="feld__name">{t('feld.flaecheGroesse')}</span>
+              <input className="feld__eingabe feld__eingabe--kurz" type="number" min={5} step={5} value={z.flaecheGroesse} data-feld="flaecheGroesse" onChange={(e) => setze({ flaecheGroesse: Math.max(5, Math.round(Number(e.target.value) || 5)) })} />
+            </label>
+          </>
+        ) : null}
+      </div>
+      <div className="zeile">
+        <Wahl
+          label={t('feld.rettungswurf')}
+          wert={z.rettungswurf}
+          feld="rettungswurf"
+          optionen={RETTUNGSWUERFE.map((x) => ({ wert: x, text: RETTUNG_NAME[x][i] }))}
+          aendern={(rettungswurf) => setze({ rettungswurf })}
+        />
+        {z.rettungswurf ? <Haken label={t('feld.halb')} wert={z.halbBeiErfolg} feld="halbBeiErfolg" aendern={(halbBeiErfolg) => setze({ halbBeiErfolg })} /> : null}
+        <Haken label={t('feld.angriffswurf')} wert={z.angriffswurf} feld="angriffswurf" aendern={(angriffswurf) => setze({ angriffswurf })} />
+      </div>
+      <label className="feld feld--hoch">
+        <span className="feld__name">{t('feld.hoehererGrad')}</span>
+        <textarea className="feld__flaeche" rows={2} value={z.hoehererGrad} data-feld="hoehererGrad" onChange={(e) => setze({ hoehererGrad: e.target.value })} />
+      </label>
+    </div>
+  );
+}
+
+function MagischFelder({ m, setze }: { m: Magisch; setze: (teil: Partial<Magisch>) => void }) {
+  const s = sprache();
+  const wirkungen = m.wirkungen.length ? m.wirkungen : [''];
+  const setzeWirkung = (i: number, text: string) => setze({ wirkungen: wirkungen.map((w, j) => (j === i ? text : w)) });
+  return (
+    <div className="artfelder" data-magisch>
+      <div className="zeile">
+        <Wahl
+          label={t('feld.gegenstandsart')}
+          wert={m.gegenstandsart}
+          feld="gegenstandsart"
+          optionen={MAGIE_ARTEN.map((x) => ({ wert: x, text: MAGIE_ART_NAME[x][s] }))}
+          aendern={(gegenstandsart) => setze({ gegenstandsart })}
+        />
+        <Wahl
+          label={t('feld.seltenheit')}
+          wert={m.seltenheit}
+          feld="seltenheit"
+          optionen={SELTENHEITEN.map((x) => ({ wert: x, text: SELTENHEIT_NAME[x][s] }))}
+          aendern={(seltenheit) => setze({ seltenheit })}
+        />
+        <Haken label={t('feld.einstimmung')} wert={m.einstimmung} feld="einstimmung" aendern={(einstimmung) => setze({ einstimmung })} />
+      </div>
+      <span className="feld__name">{t('feld.wirkungen')}</span>
+      {wirkungen.map((w, i) => (
+        <div key={i} className="wirkung">
+          <textarea className="feld__flaeche" rows={2} value={w} data-wirkung={i} onChange={(e) => setzeWirkung(i, e.target.value)} />
+          {wirkungen.length > 1 ? (
+            <button type="button" className="knopf knopf--klein" aria-label={t('wirkung.weg')} title={t('wirkung.weg')} onClick={() => setze({ wirkungen: wirkungen.filter((_, j) => j !== i) })}>
+              ✕
+            </button>
+          ) : null}
+        </div>
+      ))}
+      {wirkungen.length < 12 ? (
+        <button type="button" className="knopf knopf--klein" data-wirkung-dazu onClick={() => setze({ wirkungen: [...wirkungen, ''] })}>
+          {t('wirkung.dazu')}
+        </button>
+      ) : null}
+      <label className="feld feld--hoch">
+        <span className="feld__name">{t('feld.fluch')}</span>
+        <textarea className="feld__flaeche" rows={2} value={m.fluch} data-feld="fluch" onChange={(e) => setze({ fluch: e.target.value })} />
+      </label>
+    </div>
+  );
+}
+
 function EichungsTafel({ e }: { e: Eintrag }) {
+  if (e.art === 'zauber') return <EinfacheTafel eichung={eicheZauber(e)} hinweis="eichung.zauberHinweis" />;
+  if (e.art === 'magisch') return <EinfacheTafel eichung={eicheMagisch(e)} hinweis="eichung.magischHinweis" />;
   const s = sprache();
   const eichung: Eichung<{ name: readonly [string, string] }> | null =
     e.art === 'waffe' ? eicheWaffe(e) : e.art === 'ruestung' ? eicheRuestung(e) : null;
@@ -515,6 +751,32 @@ function EichungsTafel({ e }: { e: Eintrag }) {
       ) : (
         <p className="leise">{t('eichung.bald')}</p>
       )}
+    </aside>
+  );
+}
+
+/** Die Tafel fuer Zauber und magische Gegenstaende: Urteil (falls es eines gibt), Satz, Befunde. */
+function EinfacheTafel({ eichung, hinweis }: { eichung: { urteil: Eichung<never>['urteil'] | null; satz: { de: string; en: string }; befunde: readonly { stufe: string; text: { de: string; en: string } }[] }; hinweis: TextKey }) {
+  const s = sprache();
+  return (
+    <aside className="karte eichung" data-eichung={eichung.urteil ?? 'keine'}>
+      <h2>{t('eichung')}</h2>
+      {eichung.urteil ? (
+        <p className={`eichung__urteil eichung__urteil--${eichung.urteil}`} data-urteil={eichung.urteil}>
+          {t(`eichung.${eichung.urteil}` as TextKey)}
+        </p>
+      ) : null}
+      <p data-eichung-satz>{eichung.satz[s]}</p>
+      {eichung.befunde.length ? (
+        <ul className="eichung__befunde">
+          {eichung.befunde.map((b) => (
+            <li key={b.text.en} className={`befund befund--${b.stufe}`} data-befund={b.stufe}>
+              {b.text[s]}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="leise">{t(hinweis)}</p>
     </aside>
   );
 }

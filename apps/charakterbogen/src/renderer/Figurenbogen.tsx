@@ -165,7 +165,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
             <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
             <Todesrettung w={w} aendere={aendere} />
             <Trefferwuerfel w={w} aendere={aendere} />
-            <Rasten w={w} aendere={aendere} setMeldung={setMeldung} />
+            <Rasten w={w} aendere={aendere} setMeldung={setMeldung} name={name} />
           </section>
 
 
@@ -235,7 +235,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
  * Trefferwürfel und Rasten, Zauberplätze, Zustände. Dieselben Bausteine wie
  * im vollen Bogen, damit beide nie auseinanderlaufen.
  */
-export function Kompaktbogen({ werte: w, aendere, setMeldung }: Pick<FigurProps, 'werte' | 'aendere' | 'setMeldung'>) {
+export function Kompaktbogen({ werte: w, aendere, setMeldung, name }: Pick<FigurProps, 'werte' | 'aendere' | 'setMeldung' | 'name'>) {
   const plaetze = w.zauber?.plaetze.filter((p) => p.max > 0) ?? [];
   return (
     <div className="kompakt" data-kompakt>
@@ -251,7 +251,7 @@ export function Kompaktbogen({ werte: w, aendere, setMeldung }: Pick<FigurProps,
         <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
         {w.tp.aktuell === 0 ? <Todesrettung w={w} aendere={aendere} /> : null}
         <Trefferwuerfel w={w} aendere={aendere} />
-        <Rasten w={w} aendere={aendere} setMeldung={setMeldung} />
+        <Rasten w={w} aendere={aendere} setMeldung={setMeldung} name={name} />
       </section>
       <GestaltKasten w={w} aendere={aendere} />
       {plaetze.length ? (
@@ -717,7 +717,9 @@ function Trefferwuerfel({ w, aendere }: { w: Werte; aendere: FigurProps['aendere
   );
 }
 
-function Rasten({ w, aendere, setMeldung }: TeilProps) {
+function Rasten({ w, aendere, setMeldung, name }: TeilProps & { readonly name?: string }) {
+  const de = getLanguage() === 'de';
+  const wer = name?.trim() || (de ? 'Figur' : 'Character');
   const [kurz, setKurz] = useState<Record<number, number> | null>(null);
   const w_ = getLanguage() === 'de' ? 'W' : 'd';
   return (
@@ -735,6 +737,7 @@ function Rasten({ w, aendere, setMeldung }: TeilProps) {
             if (!window.confirm(t('rast.langSicher'))) return;
             aendere(langeRast);
             setMeldung(t('rast.langFertig', { tp: w.tp.max }));
+            api.protokoll({ art: 'rast', text: de ? `${wer}: lange Rast` : `${wer}: long rest` });
           }}
         >
           ☀ {t('rast.lang')}
@@ -773,6 +776,7 @@ function Rasten({ w, aendere, setMeldung }: TeilProps) {
                 if (e) {
                   const summe = e.wuerfe.reduce((s, x) => s + x.geheilt, 0);
                   setMeldung(t('rast.kurzFertig', { wuerfe: e.wuerfe.map((x) => x.wurf).join(', ') || '—', summe }));
+                  api.protokoll({ art: 'rast', text: de ? `${wer}: kurze Rast, +${summe} TP` : `${wer}: short rest, +${summe} HP` });
                 }
                 setKurz(null);
               }}

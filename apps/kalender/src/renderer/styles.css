@@ -1,0 +1,348 @@
+/*
+ * Aussehen des Campaign Calendar (Grundlage wie im Homebrew Creator).
+ *
+ * Die Farben kommen aus dem Thema der Huelle (`--f-*`, siehe
+ * packages/farben). Die Rueckfallwerte hier gelten nur, wenn das Werkzeug
+ * einmal ohne Huelle laeuft — fest eingetragene Farben daneben waeren
+ * genau der Fehler, der die hellen Themen unlesbar gemacht hat.
+ */
+
+:root {
+  --grund: var(--f-grund, #14161c);
+  --grund-hoch: var(--f-grund-hoch, #1b1e26);
+  --grund-tief: var(--f-grund-tief, #10121a);
+  --rand: var(--f-rand, #2a2e39);
+  --text: var(--f-text, #e6e8ee);
+  --text-leise: var(--f-text-leise, #939aab);
+  --betont: var(--f-betont, #7aa2f7);
+  --betont-leise: var(--f-betont-leise, #243049);
+  --gefahr: var(--f-gefahr, #e5484d);
+  --radius: 10px;
+  --lasur: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--grund);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--betont);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.rahmen {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+}
+
+.kopf h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.kopf p {
+  margin: 4px 0 18px;
+  color: var(--text-leise);
+}
+
+.leiste {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.leiste__luecke {
+  flex: 1;
+}
+
+.leiste__suche {
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+
+.knopf {
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.knopf:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 10%, var(--grund-tief));
+}
+
+.knopf:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.knopf--haupt {
+  background: var(--betont);
+  border-color: var(--betont);
+  /* Der Grund des Themas steht immer im Gegensatz zur Betonung — auf einem
+     hellen Thema hell, auf einem dunklen dunkel. */
+  color: var(--grund);
+  font-weight: 600;
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.karte {
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.karte {
+  margin-bottom: 14px;
+}
+
+.karte h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+h2 {
+  font-size: 15px;
+}
+
+.knopf--klein {
+  padding: 3px 8px;
+}
+
+.knopf--gefahr {
+  border-color: var(--gefahr);
+  color: var(--gefahr);
+}
+
+.leise {
+  color: var(--text-leise);
+}
+
+.klein {
+  font-size: 12px;
+}
+
+.meldung {
+  color: var(--betont);
+}
+
+.fehler {
+  color: var(--gefahr);
+}
+
+.wahl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wahl span {
+  color: var(--text-leise);
+}
+
+select,
+.eingabe,
+.flaeche {
+  background: var(--grund-tief);
+  border: 1px solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color-scheme: light dark;
+}
+
+.titel {
+  flex: 1;
+  min-width: 160px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.flaeche {
+  width: 100%;
+  resize: vertical;
+}
+
+.chip {
+  font: inherit;
+  border: 1px solid var(--rand);
+  background: var(--grund-tief);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.chip--an {
+  border-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.schalter {
+  display: inline-flex;
+  gap: 6px;
+}
+
+summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.zwei {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.zwei .karte {
+  overflow-x: auto;
+}
+
+.raster {
+  display: grid;
+  gap: 2px;
+  user-select: none;
+  touch-action: none;
+}
+
+.raster__kopf {
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-leise);
+  padding-bottom: 4px;
+}
+
+.raster__zeit {
+  font-size: 11px;
+  color: var(--text-leise);
+  text-align: right;
+  padding-right: 6px;
+  line-height: 22px;
+}
+
+.zelle {
+  height: 22px;
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+  background: var(--grund-tief);
+  padding: 0;
+  cursor: pointer;
+}
+
+.zelle--kann {
+  background: var(--betont);
+  border-color: var(--betont);
+}
+
+.zelle--notfalls {
+  background: repeating-linear-gradient(135deg, var(--betont) 0 4px, var(--betont-leise) 4px 8px);
+  border-color: var(--betont);
+}
+
+.zelle--heat {
+  cursor: default;
+  display: block;
+}
+
+.vorschlaege {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.vorschlaege li {
+  margin: 6px 0;
+}
+
+.termin {
+  font-size: 15px;
+}
+
+.termine {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.verweis {
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+}
+
+.verweis:hover {
+  color: var(--betont);
+}
+
+.kacheln {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.kachel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.kachel:hover {
+  border-color: var(--betont);
+}
+
+.kachel__name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.marke {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  border: 1px solid var(--rand);
+}
+
+.marke--an {
+  border-color: var(--betont);
+  color: var(--betont);
+}

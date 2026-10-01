@@ -2,7 +2,8 @@
  * Der Zauberteil eines Bogens: Zauberattribut mit SG und Angriffsbonus,
  * Plaetze je Grad, die Liste und das Hinzufuegen aus dem SRD.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from './api';
 import type { Zauberklasse } from '@suite/srd/zauber';
 import { Segment } from './Bedienung';
 import { getLanguage, t } from './i18n';
@@ -357,8 +358,12 @@ export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
       {suchen ? (
         <ZauberSuche
           vorhanden={new Set(z.liste.map((e) => e.srd).filter((x): x is string => Boolean(x)))}
+          eigeneDrin={new Set(z.liste.map((e) => e.eigen?.name).filter((x): x is string => Boolean(x)))}
           klassen={klassenAusNamen(w.klassen.map((k) => k.name))}
           dazu={(id) => setZ((x) => ({ ...x, liste: [...x.liste, { srd: id, vorbereitet: false, immer: false, herkunft: '' }] }))}
+          dazuEigen={(h) =>
+            setZ((x) => ({ ...x, liste: [...x.liste, { eigen: { name: h.name, grad: h.grad, text: h.text }, vorbereitet: false, immer: false, herkunft: 'Homebrew' }] }))
+          }
           schliessen={() => setSuchen(false)}
         />
       ) : null}
@@ -366,15 +371,27 @@ export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
   );
 }
 
+/** Ein eigener Zauber aus dem Homebrew Creator, wie die Huelle ihn liefert. */
+interface HomebrewZauber {
+  id: string;
+  name: string;
+  grad: number;
+  text: string;
+}
+
 function ZauberSuche({
   vorhanden,
+  eigeneDrin,
   klassen,
   dazu,
+  dazuEigen,
   schliessen
 }: {
   vorhanden: ReadonlySet<string>;
+  eigeneDrin: ReadonlySet<string>;
   klassen: readonly Zauberklasse[];
   dazu: (id: string) => void;
+  dazuEigen: (h: HomebrewZauber) => void;
   schliessen: () => void;
 }) {
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
@@ -383,6 +400,15 @@ function ZauberSuche({
   const [grad, setGrad] = useState<number | null>(null);
   const [klasse, setKlasse] = useState<Zauberklasse | null>(klassen[0] ?? null);
   const treffer = useMemo(() => sucheZauber(anfrage, { grad, klasse }, sprache).slice(0, 80), [anfrage, grad, klasse, sprache]);
+  // Eigene Zauber aus dem Homebrew Creator (docs/homebrew-creator.md); ohne Huelle bleibt die Liste leer.
+  const [homebrew, setHomebrew] = useState<HomebrewZauber[]>([]);
+  useEffect(() => {
+    void (api.quellen.homebrewZauber?.() ?? Promise.resolve([])).then(setHomebrew, () => setHomebrew([]));
+  }, []);
+  const eigeneTreffer = useMemo(() => {
+    const q = anfrage.trim().toLowerCase();
+    return homebrew.filter((h) => (grad === null || h.grad === grad) && (!q || h.name.toLowerCase().includes(q) || h.text.toLowerCase().includes(q)));
+  }, [homebrew, anfrage, grad]);
   return (
     <div className="zaubersuche" data-zaubersuche>
       <div className="leiste">
@@ -426,6 +452,16 @@ function ZauberSuche({
         />
       </div>
       <ul className="zaubertreffer">
+        {eigeneTreffer.map((h) => (
+          <li key={`hb-${h.id}`} data-homebrew-zauber={h.id}>
+            <span className="zauberzeile__grad">{h.grad === 0 ? t('zauber.trickKurz') : h.grad}</span>
+            <span>{h.name}</span>
+            <span className="leise">Homebrew</span>
+            <button type="button" className="knopf--klein" data-zauber-dazu-eigen={h.id} disabled={eigeneDrin.has(h.name)} onClick={() => dazuEigen(h)}>
+              {eigeneDrin.has(h.name) ? t('zauber.drin') : '+'}
+            </button>
+          </li>
+        ))}
         {treffer.map((s) => (
           <li key={s.id}>
             <span className="zauberzeile__grad">{s.grad === 0 ? t('zauber.trickKurz') : s.grad}</span>
@@ -443,7 +479,7 @@ function ZauberSuche({
           </li>
         ))}
       </ul>
-      {treffer.length === 0 ? <p className="leise">{t('liste.nichts')}</p> : null}
+      {treffer.length === 0 && eigeneTreffer.length === 0 ? <p className="leise">{t('liste.nichts')}</p> : null}
     </div>
   );
 }

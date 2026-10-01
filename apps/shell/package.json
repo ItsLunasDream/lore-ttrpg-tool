@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs",
     "proto:slide": "npm run build && xvfb-run -a electron scripts/proto-view-slide.cjs --no-sandbox",
-    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-startapp.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-initiative.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-dice.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-npc.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-npc-export.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-inspiration.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-inspiration-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-monster.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-zustaende.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-encounter.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-nachschlagewerk.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-magicitems.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-homebrew.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-magicitems-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-loot.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-einstellungen.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-farben.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-groesse.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-suche.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-austausch.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-initiative-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-charakterbogen.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-charakterbogen-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-charakterbogen-initiative.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-npc-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-symbole.cjs --no-sandbox && EINFUEHRUNG_LAUF=1 xvfb-run -a electron scripts/smoke-einfuehrung.cjs --no-sandbox && EINFUEHRUNG_LAUF=2 xvfb-run -a electron scripts/smoke-einfuehrung.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-maustasten.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-tastatur.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-verlauf-werkzeuge.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-zuletzt-story.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-fehlschlag.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-integration.cjs --no-sandbox",
+    "smoke": "npm run build && xvfb-run -a electron scripts/smoke.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-startapp.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-initiative.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-dice.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-npc.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-npc-export.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-inspiration.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-inspiration-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-monster.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-zustaende.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-encounter.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-nachschlagewerk.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-magicitems.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-homebrew.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-orte.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-kalender.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-kalender-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-protokoll.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-magicitems-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-loot.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-einstellungen.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-farben.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-groesse.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-suche.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-austausch.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-initiative-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-charakterbogen.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-charakterbogen-raum.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-charakterbogen-initiative.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-npc-ki.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-symbole.cjs --no-sandbox && EINFUEHRUNG_LAUF=1 xvfb-run -a electron scripts/smoke-einfuehrung.cjs --no-sandbox && EINFUEHRUNG_LAUF=2 xvfb-run -a electron scripts/smoke-einfuehrung.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-maustasten.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-tastatur.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-verlauf-werkzeuge.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-zuletzt-story.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-fehlschlag.cjs --no-sandbox && xvfb-run -a electron scripts/smoke-integration.cjs --no-sandbox",
     "icon": "node scripts/make-icon.mjs",
     "dist:linux": "npm run build && electron-builder --linux --publish never",
     "dist:linux:dir": "npm run build && electron-builder --linux dir --publish never",
@@ -186,6 +186,24 @@
       {
         "from": "../homebrew/dist",
         "to": "apps/homebrew/dist",
+        "filter": [
+          "**/*",
+          "!tests/**",
+          "!**/*.map"
+        ]
+      },
+      {
+        "from": "../orte/dist",
+        "to": "apps/orte/dist",
+        "filter": [
+          "**/*",
+          "!tests/**",
+          "!**/*.map"
+        ]
+      },
+      {
+        "from": "../kalender/dist",
+        "to": "apps/kalender/dist",
         "filter": [
           "**/*",
           "!tests/**",

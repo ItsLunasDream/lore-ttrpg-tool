@@ -20,6 +20,7 @@ export interface InventarEintrag {
   readonly wert: number | null;
   readonly beschreibung: string;
   readonly einstimmung?: boolean;
+  readonly bild?: string;
   readonly waffe?: {
     readonly id: string;
     readonly magie: number;
@@ -60,7 +61,8 @@ export function inventarEintrag(e: Eintrag, s: 'de' | 'en'): InventarEintrag | n
     gewicht: e.gewicht,
     wert: e.preis,
     beschreibung,
-    ...(e.art === 'magisch' ? { einstimmung: e.einstimmung } : {})
+    ...(e.art === 'magisch' ? { einstimmung: e.einstimmung } : {}),
+    ...(e.bild ? { bild: e.bild } : {})
   };
   if (e.art !== 'waffe') return basis;
   return {

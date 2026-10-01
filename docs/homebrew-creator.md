@@ -113,18 +113,48 @@ nächsten SRD-Vergleiche. Es verbietet nichts.
 Die Werkzeuge kennen einander nicht; die Hülle reicht die Daten durch,
 wie heute bei den Inventarquellen.
 
-## Schritte
+## Stand
 
-1. Umbenennung „Magic Item Generator" (nur sichtbare Namen).
-2. Gemeinsames Paket für die Punkteskala magischer Gegenstände (aus dem
-   Generator herausgelöst, Tests mitnehmen).
-3. Homebrew Creator: Gerüst, Ablage, Reiter Waffe und Rüstung mit Eichung
-   und Tests gegen die SRD-Tabellen.
-4. Anbindung Charakterbogen (Waffenangriffe, Inventar), Loot,
-   Nachschlagewerk, Suche.
-5. Reiter Zauber: Eichpunkte auswählen und prüfen, Band je Grad, Tests;
-   Anbindung Zauberliste des Bogens.
-6. Gegenstand und magischer Gegenstand von Hand; Foundry-Export.
+Alle sechs Schritte sind umgesetzt (Rauchtest `apps/shell/scripts/smoke-homebrew.cjs`):
+
+1. Umbenennung „Magic Item Generator" (nur sichtbare Namen, intern `magicitems`).
+2. `packages/magie`: Punkteskala und Eichpunkte aus dem Generator, mit Tests.
+3. Reiter Waffe und Rüstung mit Eichung (`apps/homebrew/src/shared/eichung.ts`).
+   Leave-one-out über die SRD-Waffen: nur die Pistole gilt als „stärker".
+4. Anbindung Charakterbogen (Angriffe rechnen mit den eigenen Werten, Inventar
+   „Eigene"), Loot (Tabelle „Homebrew"), Nachschlagewerk, Strg+K, Teilen.
+5. Reiter Zauber (`zauberEichung.ts`): 37 handverlesene SRD-Zauber mit
+   sofortigem Schaden als Eichpunkte, je Grad und Zielart; jeder Punkt wird im
+   Test am SRD-Wortlaut geprüft. Fehlende Grade werden zwischen den Nachbarn
+   gemittelt. „Stärker" ab 25 % über dem stärksten Vergleich, „deutlich" ab
+   60 %; diese Grenzen sind **geschätzt**, nicht aus dem SRD. Leave-one-out
+   meldet drei SRD-Zauber als stark: Sengender Strahl (für Grad 2 bleibt ohne
+   ihn nur der Säurepfeil), Auflösung (10W6 + 40) und Meteoritenschwarm
+   (einziger Punkt in Grad 9). Eigene Zauber erscheinen in der Zaubersuche
+   des Bogens und werden dort als eigener Zauber mit Herkunft „Homebrew"
+   übernommen.
+6. Gegenstand und magischer Gegenstand von Hand. Der magische Gegenstand
+   nutzt die Grenzen des Generators (`@suite/magie/pruefung`) und meldet
+   nur, statt zu ändern. Foundry-Export für magische Gegenstände.
+
+Bild je Eintrag: auf der Kachel, in der aufgeklappten Iteminfo des Bogens
+und im Nachschlagewerk.
+
+### Was fehlt oder unsicher ist
+
+- **Foundry-Export nur für magische Gegenstände.** Für Waffen, Rüstungen,
+  einfache Gegenstände und Zauber liegt kein echter Foundry-Export vor, an dem
+  sich die Felder prüfen ließen; geraten wird nicht.
+- **Bild im Foundry-Export ungeprüft.** Es steht als `data:`-Adresse im Feld
+  `img` (auf Wunsch aufgenommen). Ob Foundry das beim Import annimmt, ist an
+  keinem echten Import getestet.
+- **Magischer Gegenstand:** gelesen werden nur Zahlen in festen Mustern
+  („+2 Bonus", „2W6 … Schaden", „SG 15", „(Grad 3)"). Frei Formuliertes
+  sieht die Eichung nicht; die Oberfläche sagt das.
+- **Gegenstand:** keine Eichung (geplant war nur ein Hinweis zu Preis und
+  Gewicht).
+- **Zauber ohne Schaden:** keine Eichung, nur der Hinweis auf das
+  Nachschlagewerk.
 
 ## Entschieden
 
@@ -138,4 +168,4 @@ wie heute bei den Inventarquellen.
   Umsetzung wie das Porträt im Charakterbogen: verkleinert und als Daten
   im Eintrag gespeichert, mit Größengrenze.
 
-Derzeit keine offenen Fragen.
+Offen: echte Foundry-Exporte (Waffe, Rüstung, Gegenstand, Zauber, Gegenstand mit Bild) als Vorlage, um den Export zu erweitern und das Bildfeld zu prüfen.

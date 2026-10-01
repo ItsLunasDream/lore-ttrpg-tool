@@ -571,6 +571,14 @@ textarea {
   border-left: 2px solid var(--betont-leise);
 }
 
+/* Bild eines eigenen Gegenstands aus dem Homebrew Creator. */
+.gegenstand__bild {
+  max-width: 160px;
+  max-height: 160px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 .schmal {
   width: 64px;
 }

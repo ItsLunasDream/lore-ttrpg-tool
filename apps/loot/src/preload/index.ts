@@ -9,6 +9,8 @@ import type { Gespeichert, Kachel } from '../shared/ablage';
 type Antwort = { ok: boolean; text: string };
 
 const api = {
+  /** Gewürfelte Beute an das Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: 'beute'; text: string }) => ipcRenderer.send('huelle:protokoll', meldung),
   /**
    * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
    * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal
@@ -34,7 +36,7 @@ const api = {
     weitergeben: (id: string) => ipcRenderer.invoke(kanal('weitergeben'), id) as Promise<Antwort>,
     einlesen: () => ipcRenderer.invoke(kanal('einlesen')) as Promise<Antwort & { namen: string[] }>
   },
-  gegenstaende: () => ipcRenderer.invoke(kanal('gegenstaende')) as Promise<{ name: string; seltenheit: string; herkunft?: string }[]>,
+  gegenstaende: () => ipcRenderer.invoke(kanal('gegenstaende')) as Promise<{ name: string; seltenheit: string; herkunft?: string; tabelle?: string }[]>,
   story: (titel: string, markdown: string) => ipcRenderer.invoke(kanal('story'), titel, markdown) as Promise<Antwort>,
   beiSuchtreffer: (hoerer: (kennung: string) => void) => {
     const lauscher = (_e: unknown, kennung: string) => hoerer(kennung);

@@ -122,6 +122,37 @@ export const NachschlagewerkIcon = (p: IconProps) => (
 );
 
 /**
+ * Ein Kalenderblatt mit Raster.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/kalender.png` eines liegt.
+ */
+export const KalenderIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M9,12 L39,12 L39,40 L9,40 Z" />
+    <path d="M9,19 L39,19" />
+    <path d="M16,8 L16,15 M32,8 L32,15" />
+    <path d="M14,25 L18,25 M22,25 L26,25 M30,25 L34,25 M14,31 L18,31 M22,31 L26,31 M30,31 L34,31" />
+  </Rahmen>
+);
+
+/**
+ * Drei Dächer: ein Ort.
+ *
+ * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
+ * `resources/symbole/orte.png` eines liegt.
+ */
+export const OrteIcon = (p: IconProps) => (
+  <Rahmen {...p}>
+    <path d="M7,38 L7,26 L14,19 L21,26 L21,38" />
+    <path d="M19,38 L19,20 L27,12 L35,20 L35,38" />
+    <path d="M33,38 L33,28 L38,23 L43,28 L43,38" />
+    <path d="M5,38 L43,38" />
+    <path d="M25,38 L25,31 L29,31 L29,38" />
+  </Rahmen>
+);
+
+/**
  * Hammer auf einem Amboss: selbst geschmiedet.
  *
  * Nur der Rueckfall: die Huelle nimmt ein eigenes Bild, sobald unter
@@ -290,6 +321,8 @@ const NACH_ID: Record<string, (p: IconProps) => ReactElement> = {
   nachschlagewerk: NachschlagewerkIcon,
   magicitems: MagicItemsIcon,
   homebrew: HomebrewIcon,
+  orte: OrteIcon,
+  kalender: KalenderIcon,
   loot: LootIcon,
   charakterbogen: CharakterbogenIcon
 };

@@ -26,6 +26,7 @@ import {
   zurueck as verlaufZurueck,
   type Verlauf
 } from '../shared/verlauf';
+import { kampfEreignisse } from '../shared/protokoll';
 import { getLanguage, onLanguageChange, t, type Language } from './i18n';
 import {
   aendereHp,
@@ -207,6 +208,7 @@ export function App() {
       // Hier laeuft alles durch, was den Kampf aendert — deshalb steht das
       // Merken genau hier und nicht an zwanzig Aufrufstellen.
       setzeStand(neu, fortsetzung ? verlaufRef.current : merke(verlaufRef.current, vorher));
+      for (const m of kampfEreignisse(vorher, neu, getLanguage())) window.initiative.protokoll(m);
     },
     [setzeStand]
   );

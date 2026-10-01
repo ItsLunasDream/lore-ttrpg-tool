@@ -11,6 +11,8 @@ import type { Uebergabe } from '@suite/uebergabe';
 import type { RaumLage } from '../shared/teilen';
 
 const api = {
+  /** Ereignisse für das Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: string; text: string; wichtig?: boolean }) => ipcRenderer.send('huelle:protokoll', meldung),
   /**
    * Wo das Werkzeug steht, fuer den Verlauf der Huelle und „Zuletzt
    * geoeffnet" im Teilen: die geladene Begegnung.

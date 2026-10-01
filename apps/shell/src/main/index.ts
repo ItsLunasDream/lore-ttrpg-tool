@@ -54,6 +54,10 @@ function startBericht(): void {
 import { join } from 'node:path';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
+import { terminAm as kalenderTerminAm } from '../../../kalender/src/main/embed';
+import { Protokollfuehrer } from './protokoll';
+import { alsMarkdown as protokollAlsMarkdown, standardTitel as protokollTitel, wurfAusChat } from '../shared/protokoll';
+import { nimmRaumNachricht as nimmKalenderNachricht } from '../../../kalender/src/main/embed';
 import { berechneAppFlaeche, GROESSEN, VORGABE_GROESSE } from '../shared/apps';
 import {
   meldeStoryCreatorAenderung,
@@ -64,8 +68,7 @@ import {
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
-  type RaumLage
-} from './apps';
+  type RaumLage, bekannteNotiztitel, legeSitzungsnotizAn, notizTitelVon } from './apps';
 import type { Wert } from '@suite/einstellungen';
 import type { Uebergabe } from '@suite/uebergabe';
 import { beobachteFarbe, gewaehlteGroesse, setzeGroesse, setzeThema as setzeFarbthema } from './farbe';
@@ -301,8 +304,17 @@ function verbergeAlle(): void {
  */
 const zuletztGeoeffnet: { werkzeug: string; ort: string }[] = [];
 
+/** Das Sitzungsprotokoll (docs/sitzungsprotokoll.md); entsteht beim Start. */
+let protokoll: Protokollfuehrer | null = null;
+
 function meldeOrt(appId: string, ort: string | null): void {
   huelle?.webContents.send('verlauf:ort', appId, ort);
+  // Sitzungsprotokoll: welche Notizen waehrend der Sitzung offen waren.
+  if (appId === 'backstory' && ort && ort !== 'entwurf' && protokoll?.laeuft()) {
+    void notizTitelVon(ort).then((titel) => {
+      if (titel) protokoll?.notiz(titel);
+    });
+  }
   if (ort && ort !== 'entwurf') {
     const alt = zuletztGeoeffnet.findIndex((z) => z.werkzeug === appId && z.ort === ort);
     if (alt >= 0) zuletztGeoeffnet.splice(alt, 1);
@@ -995,6 +1007,56 @@ function registriereKanaele(): void {
    * Bei jedem Oeffnen frisch von der Platte. Siehe suche.ts, warum kein
    * Verzeichnis gefuehrt wird.
    */
+  // --- Sitzungsprotokoll ----------------------------------------------------
+  protokoll = new Protokollfuehrer(app.getPath('userData'), (s) =>
+    huelle?.webContents.send('protokoll:geaendert', s ? { laeuft: s.ende === null, anzahl: s.eintraege.length } : null)
+  );
+  void protokoll.lade();
+  // Die Werkzeuge melden, was passiert; zugeordnet wird ueber den Absender.
+  ipcMain.on('huelle:protokoll', (ereignis, roh: unknown) => {
+    for (const [id, montiert] of offen) {
+      if (montiert.sicht.webContents !== ereignis.sender) continue;
+      protokoll?.melde(id, roh);
+      return;
+    }
+  });
+  handle('protokoll:zustand', () => protokoll?.zustand() ?? null);
+  handle('protokoll:start', async () => {
+    const sprache = gemerkteEinstellungen.language === 'de' ? 'de' : 'en';
+    const jetzt = new Date();
+    const tag = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}-${String(jetzt.getDate()).padStart(2, '0')}`;
+    // Ein festgelegter Termin von heute im Campaign Calendar gibt den Titel.
+    const ausKalender = await kalenderTerminAm(app.getPath('userData'), tag).catch(() => null);
+    const titel = ausKalender ?? protokollTitel(await protokoll!.naechsteNummer(), jetzt.toISOString(), sprache);
+    const zustand = raumDienst?.zustand();
+    return protokoll!.start(titel, zustand ? zustand.personen.map((p) => p.name) : []);
+  });
+  handle('protokoll:hand', (_e, text: unknown) => {
+    if (typeof text === 'string') protokoll?.eintrag('hand', 'hand', text);
+    return protokoll?.zustand() ?? null;
+  });
+  handle('protokoll:stopp', () => protokoll?.stopp() ?? null);
+  handle('protokoll:bearbeite', (_e, roh: unknown) => protokoll?.bearbeite(roh) ?? null);
+  handle('protokoll:vorschau', async (_e, zusammenfassung: unknown) => {
+    const s = protokoll?.zustand();
+    if (!s) return '';
+    const sprache = gemerkteEinstellungen.language === 'de' ? 'de' : 'en';
+    return protokollAlsMarkdown(s, sprache, typeof zusammenfassung === 'string' ? zusammenfassung : '', await bekannteNotiztitel());
+  });
+  handle('protokoll:anlegen', async (_e, zusammenfassung: unknown) => {
+    const s = protokoll?.zustand();
+    if (!s) return { ok: false, text: '' };
+    const sprache = gemerkteEinstellungen.language === 'de' ? 'de' : 'en';
+    const markdown = protokollAlsMarkdown(s, sprache, typeof zusammenfassung === 'string' ? zusammenfassung : '', await bekannteNotiztitel());
+    const ergebnis = await legeSitzungsnotizAn(s.titel || protokollTitel(1, s.beginn, sprache), markdown, montageHaken('protokoll', gemerkteEinstellungen.language));
+    if (ergebnis.ok) await protokoll!.schliesse(true);
+    return { ok: ergebnis.ok, text: ergebnis.text };
+  });
+  handle('protokoll:verwerfen', async () => {
+    await protokoll?.schliesse(false);
+    return true;
+  });
+
   handle('suche:eintraege', () =>
     alleEintraege(app.getPath('userData'), gemerkteEinstellungen.language === 'de' ? 'de' : 'en')
   );
@@ -1142,10 +1204,27 @@ function registriereKanaele(): void {
           .catch(() => undefined);
         return;
       }
+      // Terminumfragen: die Huelle fuehrt jede Antwort selbst in die Ablage,
+      // auch wenn der Kalender gerade zu ist; ist er offen, laedt er neu.
+      if (ereignis.werkzeug === 'kalender') {
+        const { von, inhalt } = ereignis;
+        void nimmKalenderNachricht(app.getPath('userData'), inhalt)
+          .then((geaendert) => {
+            if (geaendert) offen.get('kalender')?.raumNachricht?.(von, inhalt);
+          })
+          .catch(() => undefined);
+        return;
+      }
       offen.get(ereignis.werkzeug)?.raumNachricht?.(ereignis.von, ereignis.inhalt);
       return;
     }
+    // Sitzungsprotokoll: Würfe anderer aus dem Chat (nur 🎲-Zeilen, sonst kein Chat).
+    if (ereignis.art === 'chat' && !ereignis.zeile.eigene && !ereignis.zeile.system && protokoll?.laeuft()) {
+      const wurf = wurfAusChat(ereignis.zeile.text);
+      if (wurf) protokoll.eintrag('raum', 'wurf', `${ereignis.zeile.von.name}: ${wurf}`);
+    }
     if (ereignis.art === 'zustand') {
+      protokoll?.dabei(ereignis.zustand.personen.map((p) => p.name));
       if (ereignis.zustand.rolle === 'aus') geteilteStaende.clear();
       // Ein neuer Raum faengt ohne die Pakete des alten an (Testbericht:
       // „Angekommen" wuchs nur).

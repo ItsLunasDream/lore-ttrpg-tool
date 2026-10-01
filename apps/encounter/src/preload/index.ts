@@ -11,6 +11,8 @@ import type { Uebergabe } from '@suite/uebergabe';
 import type { Gruppe } from '../shared/schwierigkeit';
 
 const api = {
+  /** Eine Begegnung geht in den Tracker: Zeile im Sitzungsprotokoll der Hülle (docs/sitzungsprotokoll.md). */
+  protokoll: (meldung: { art: 'begegnung'; text: string }) => ipcRenderer.send('huelle:protokoll', meldung),
   /**
    * Der Ort im Werkzeug fuer den Verlauf der Huelle (eine offene Tabelle,
    * ein Gegenstand, ein Eintrag; `null` fuer die Liste). Gemeinsamer Kanal

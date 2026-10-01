@@ -42,7 +42,7 @@ export interface LootEmbedOptions {
   /** Legt eine Notiz im Story Creator an. Fehlt sie, meldet der Export es ehrlich. */
   readonly anlegen?: (titel: string, markdown: string) => Promise<{ ok: boolean; text: string }>;
   /** Die Gegenstaende des Magic Item Generators, von der Huelle durchgereicht. */
-  readonly gegenstaende?: () => Promise<{ name: string; seltenheit: string; herkunft?: string }[]>;
+  readonly gegenstaende?: () => Promise<{ name: string; seltenheit: string; herkunft?: string; tabelle?: string }[]>;
 }
 
 export interface LootEmbed {
@@ -223,7 +223,7 @@ export async function mountLoot(options: LootEmbedOptions): Promise<LootEmbed> {
     }
   });
 
-  handle('gegenstaende', async (): Promise<{ name: string; seltenheit: string; herkunft?: string }[]> => {
+  handle('gegenstaende', async (): Promise<{ name: string; seltenheit: string; herkunft?: string; tabelle?: string }[]> => {
     try {
       return (await options.gegenstaende?.()) ?? [];
     } catch {
