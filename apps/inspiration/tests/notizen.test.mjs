@@ -242,3 +242,8 @@ test('jeder erzeugte Ort bringt Dinge mit', () => {
     assert.equal(new Set(stuecke).size, stuecke.length, ort.ausstattung);
   }
 });
+
+test('doppelte Titel werden erkannt (Groß/klein egal), sonst keine', () => {
+  assert.deepEqual(T.doppelteTitel([{ titel: 'Moonshaft' }, { titel: 'moonshaft ' }, { titel: 'Ashford' }]), ['Moonshaft']);
+  assert.deepEqual(T.doppelteTitel([{ titel: 'A' }, { titel: 'B' }]), []);
+});

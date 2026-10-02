@@ -33,7 +33,7 @@ import {
   type Entwurf
 } from '../shared/erzeuge';
 import type { EntwurfsFigur, Fraktion, Ort, Verbindung } from '../shared/erzeuge';
-import { alsKartennotizen, alsMarkdown, alsNotizen } from '../shared/notizen';
+import { alsKartennotizen, alsMarkdown, alsNotizen, doppelteTitel } from '../shared/notizen';
 import { ZEITMARKEN } from '../shared/zeitstrahl';
 // `beschriftung` heisst hier schon etwas anderes (der Text eines Paares).
 import { berechneGeflecht } from '../shared/geflecht';
@@ -588,6 +588,11 @@ export function App() {
     if (!entwurf) return;
     setExportStand('laeuft');
     const notizen = alsNotizen(entwurf, getLanguage(), titel.trim() || t('export.titelVorgabe'));
+    const doppelt = doppelteTitel(notizen);
+    if (doppelt.length && !window.confirm(t('export.doppeltFrage', { namen: doppelt.join(', ') }))) {
+      setExportStand('ruht');
+      return;
+    }
     try {
       const ergebnis = await api.export(notizen, ziel, ersetzen);
       setVorhanden(ergebnis.vorhanden ?? 0);
@@ -602,6 +607,12 @@ export function App() {
       setExportText(t('export.fehler', { grund: String(fehler) }));
     }
   }, [entwurf, titel, ziel]);
+
+  // Gleiche Namen hießen gleiche Notiztitel; der Story Creator übersprange den zweiten.
+  const doppelteNamen = useMemo(
+    () => (entwurf ? doppelteTitel(alsNotizen(entwurf, getLanguage(), titel.trim() || t('export.titelVorgabe'))) : []),
+    [entwurf, titel]
+  );
 
   const kopieren = useCallback(async () => {
     if (!entwurf) return;
@@ -1181,6 +1192,11 @@ export function App() {
             </button>
           </div>
           <p className="fuss__hinweis">{t('export.hinweis')}</p>
+          {doppelteNamen.length > 0 && (
+            <p className="fuss__meldung fuss__meldung--warnung" role="alert" data-doppelt-warnung>
+              {t('export.doppelt', { namen: doppelteNamen.join(', ') })}
+            </p>
+          )}
           {exportStand !== 'ruht' && exportStand !== 'laeuft' && (
             <p className={exportStand === 'fehler' ? 'fuss__meldung fuss__meldung--fehler' : 'fuss__meldung'}>
               {exportText}

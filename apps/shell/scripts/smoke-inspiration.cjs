@@ -207,6 +207,20 @@ app.whenReady().then(async () => {
   pruefe(geflecht.includes('Zita Neuhafen'), 'eine umbenannte Figur heisst auch im Geflecht neu');
   pruefe(!geflecht.includes(alterName), `und der alte Name ist weg (${alterName})`);
 
+  // Zwei gleiche Namen: Warnung vor dem Export (sonst übersprange der Story Creator eine Notiz).
+  const zweite = `${figurenKarte}.querySelectorAll('.block__titel')[1]`;
+  const zweiterName = await js(`${zweite}.value`);
+  await js(`${zweite}.focus(); true`);
+  await setzeFeld(zweite, 'Zita Neuhafen');
+  await js(`${zweite}.blur(); true`);
+  await warte(300);
+  pruefe(/Zita Neuhafen/.test(await js(`document.querySelector('[data-doppelt-warnung]')?.textContent ?? ''`)), 'gleiche Namen: der Export warnt');
+  await js(`${zweite}.focus(); true`);
+  await setzeFeld(zweite, zweiterName);
+  await js(`${zweite}.blur(); true`);
+  await warte(300);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-doppelt-warnung]'))`)), 'wieder verschieden: die Warnung ist weg');
+
   // --- Das Geflecht gross ansehen ------------------------------------------
   /*
    * Klein steht es in der Karte, gross auf Klick. Beides gehoert hierher:

@@ -62,6 +62,7 @@ export { VERBINDUNGEN, fuelle } from '../src/shared/verbindungen';
 export { SCHRITTE, ZEITMARKEN } from '../src/shared/zeitstrahl';
 export {
   alsKartennotizen,
+  doppelteTitel,
   alsMarkdown,
   alsNotizen,
   ausstattungsstuecke,
