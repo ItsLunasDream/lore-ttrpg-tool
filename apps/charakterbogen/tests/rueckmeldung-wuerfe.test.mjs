@@ -104,3 +104,11 @@ test('Strahlen: je Strahl ein Angriff, eine 20 verdoppelt, eine 1 verfehlt', () 
   assert.match(z[3].text, /Schaden: 16 .*gegen RK/);
   assert.equal(z[3].d20, undefined);
 });
+
+test('Zustände zwischen Bogen und Tracker: Schlüssel hin, Delta zurück', () => {
+  const b = B.neuerBogen('x', 'Mira');
+  const mitZ = { ...b, werte: { ...b.werte, zustaende: ['poisoned', 'eigen:Segen des Mondes'] } };
+  assert.deepEqual(B.figurAus(mitZ, 'x').zustaende, ['poisoned', 'Segen des Mondes']);
+  assert.deepEqual(B.mitZustandsDelta(['poisoned', 'eigen:Segen des Mondes'], ['prone', 'Fluch', 'exhaustion'], ['Segen des Mondes']), ['poisoned', 'prone', 'eigen:Fluch']);
+  assert.deepEqual(B.mitZustandsDelta(['prone'], ['prone'], []), ['prone']);
+});

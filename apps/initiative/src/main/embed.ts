@@ -51,6 +51,8 @@ export interface InitiativeEmbedOptions {
   readonly eigeneZustaende?: () => Promise<readonly { name: string; text: string }[]>;
   /** TP einer Figur aus dem Charakterbogen haben sich im Kampf geaendert: zurueck an den Bogen. */
   readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
+  /** Zustände einer Figur aus dem Charakterbogen haben sich im Kampf geändert (Schlüssel, siehe shared/boegen.ts). */
+  readonly bogenZustaende?: (kennung: string, hinzu: string[], weg: string[]) => void;
 }
 
 export interface InitiativeEmbed {
@@ -177,6 +179,13 @@ export async function mountInitiative(
   ipcMain.on(kanal('bogen:tp'), (_e, kennung: unknown, hp: unknown, temp: unknown) => {
     if (typeof kennung !== 'string' || !kennung) return;
     options.bogenTp?.(kennung.slice(0, 120), Math.max(0, Math.round(Number(hp) || 0)), Math.max(0, Math.round(Number(temp) || 0)));
+  });
+  ipcMain.removeAllListeners(kanal('bogen:zustaende'));
+  ipcMain.on(kanal('bogen:zustaende'), (_e, kennung: unknown, hinzu: unknown, weg: unknown) => {
+    if (typeof kennung !== 'string' || !kennung) return;
+    const liste = (x: unknown) =>
+      Array.isArray(x) ? x.filter((z): z is string => typeof z === 'string' && z.trim() !== '').slice(0, 30).map((z) => z.trim().slice(0, 60)) : [];
+    options.bogenZustaende?.(kennung.slice(0, 120), liste(hinzu), liste(weg));
   });
   ipcMain.removeHandler(kanal('zustaende:eigene'));
   ipcMain.handle(kanal('zustaende:eigene'), async () => (await options.eigeneZustaende?.().catch(() => [])) ?? []);

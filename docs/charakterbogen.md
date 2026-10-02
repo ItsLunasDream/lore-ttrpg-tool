@@ -388,9 +388,16 @@ Gebaut:
   merkt sich, was der Bogen schon weiß: nichts läuft im Kreis.
 - Tippt man am Bogen gerade, wenn neue TP aus dem Tracker kommen, werden
   nur die TP übernommen.
-- Grenzen: Zustände, Todesrettungswürfe und Initiative gehen nicht zurück
-  an den Bogen. Im geteilten Kampf schreibt jede Person nur in Bögen, die
-  sie ändern darf.
+- **Zustände in beide Richtungen** (`shared/boegen.ts` im Tracker,
+  `mitZustandsDelta` hier): als Schlüssel, die SRD-Kennung oder der Name
+  eines eigenen Zustands. Jede Seite schickt nur, was seit dem zuletzt
+  bekannten Stand dazukam oder wegfiel; ein Zustand mit Dauer im Tracker
+  bleibt so stehen, wenn am Bogen etwas anderes geändert wird. Vom Bogen
+  kommen Zustände im Tracker als „offen“ an.
+- Grenzen: Erschöpfung bleibt außen vor (der Bogen führt sie als Stufe).
+  Todesrettungswürfe kennt der Tracker nicht. Die gewürfelte Initiative geht
+  nicht zurück: der Bogen führt nur den Bonus, keinen Wert für den Kampf.
+  Im geteilten Kampf schreibt jede Person nur in Bögen, die sie ändern darf.
 
 ## Hinweise nach Klasse und Stufe
 

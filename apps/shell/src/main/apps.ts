@@ -82,6 +82,8 @@ export interface MontierteApp {
   figuren?(figuren: readonly unknown[], hinzufuegen: boolean): boolean;
   /** Neue TP aus dem Initiative Tracker an einen Bogen (nur der Charakterbogen). */
   setzeTp?(kennung: string, hp: number, temp: number): Promise<void>;
+  /** Geänderte Zustände aus dem Initiative Tracker an einen Bogen (nur der Charakterbogen). */
+  setzeZustaende?(kennung: string, hinzu: string[], weg: string[]): Promise<void>;
   /**
    * Bringt die Anwendung an eine Stelle zurueck, die der Verlauf kennt.
    * Werkzeuge ohne eigene Stellen lassen das weg.
@@ -237,6 +239,8 @@ export interface MontageHaken {
   readonly figurenAnTracker?: (figuren: readonly unknown[], hinzufuegen: boolean) => void;
   /** Neue TP aus dem Tracker an den Charakterbogen. */
   readonly bogenTp?: (kennung: string, hp: number, temp: number) => void;
+  /** Geänderte Zustände aus dem Tracker an den Charakterbogen. */
+  readonly bogenZustaende?: (kennung: string, hinzu: string[], weg: string[]) => void;
   /** Holt den Story Creator nach vorn und zeigt eine Notiz (`<Kampagne>/<Notiz>`). */
   readonly zeigeInStory?: (kennung: string) => void;
   /** Holt das Nachschlagewerk nach vorn und zeigt einen Eintrag oder Filter. */
@@ -1225,7 +1229,8 @@ async function montiereInitiative(id: string, haken: MontageHaken): Promise<Mont
         }
       : undefined,
     eigeneZustaende: leseEigeneZustaende,
-    bogenTp: (kennung, hp, temp) => haken.bogenTp?.(kennung, hp, temp)
+    bogenTp: (kennung, hp, temp) => haken.bogenTp?.(kennung, hp, temp),
+    bogenZustaende: (kennung, hinzu, weg) => haken.bogenZustaende?.(kennung, hinzu, weg)
   });
 
   // Vor dem Laden: die Kopfzeile muss stehen, bevor die erste Antwort kommt.
@@ -1940,6 +1945,7 @@ async function montiereCharakterbogen(id: string, haken: MontageHaken): Promise<
     // Boegen im Raum: Nachrichten und Lage.
     raumNachricht: (von, inhalt) => eingebettet.raumNachricht(sicht.webContents as WebContents, von, inhalt),
     raumZustand: (lage) => eingebettet.raumZustand(sicht.webContents as WebContents, lage),
-    setzeTp: (kennung, hp, temp) => eingebettet.setzeTp(kennung, hp, temp)
+    setzeTp: (kennung, hp, temp) => eingebettet.setzeTp(kennung, hp, temp),
+    setzeZustaende: (kennung, hinzu, weg) => eingebettet.setzeZustaende(kennung, hinzu, weg)
   };
 }

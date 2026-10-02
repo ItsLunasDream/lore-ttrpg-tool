@@ -13,7 +13,7 @@ import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
 import type { Quelleintrag } from '../shared/quellen';
-import { alsKachel, alsMarkdown, storyBlock, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
+import { alsKachel, alsMarkdown, storyBlock, figurAus, mitZustandsDelta, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
@@ -80,6 +80,8 @@ export interface BogenEmbed {
   raumZustand(webContents: WebContents, lage: RaumLage): void;
   /** Der Initiative Tracker meldet neue TP einer Figur. */
   setzeTp(kennung: string, hp: number, temp: number): Promise<void>;
+  /** Der Initiative Tracker meldet geänderte Zustände einer Figur (Schlüssel, siehe mitZustandsDelta). */
+  setzeZustaende(kennung: string, hinzu: string[], weg: string[]): Promise<void>;
 }
 
 const CSP = [
@@ -535,6 +537,32 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
         if (!b.werte || (b.werte.tp.aktuell === hp && b.werte.tp.temp === temp)) return null;
         const tp = { ...b.werte.tp, aktuell: Math.min(hp, b.werte.tp.max), temp };
         return schreib({ ...b, werte: { ...b.werte, tp } });
+      });
+      if (neu && oberflaeche && !oberflaeche.isDestroyed()) oberflaeche.send(kanal('extern'), neu);
+    },
+    // Zustände aus dem Tracker: derselbe Weg wie die TP.
+    setzeZustaende: async (kennung, hinzu, weg) => {
+      const gleich = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+      if (kennung.includes('/')) {
+        const e = leitung.zustand().eintraege.find((x) => x.id === kennung);
+        const w = e?.bogen?.werte;
+        if (!e || !e.darfAendern || !w) return;
+        const zustaende = mitZustandsDelta(w.zustaende, hinzu, weg);
+        if (gleich(zustaende, w.zustaende)) return;
+        leitung.anfrage({ art: 'schritte', id: kennung, nr: 0, schritte: [{ typ: 'feld', pfad: ['werte', 'zustaende'], wert: zustaende }] });
+        return;
+      }
+      const neu = await inReihe(async () => {
+        let b: Bogen;
+        try {
+          b = await lies(kennung);
+        } catch {
+          return null;
+        }
+        if (!b.werte) return null;
+        const zustaende = mitZustandsDelta(b.werte.zustaende, hinzu, weg);
+        if (gleich(zustaende, b.werte.zustaende)) return null;
+        return schreib({ ...b, werte: { ...b.werte, zustaende } });
       });
       if (neu && oberflaeche && !oberflaeche.isDestroyed()) oberflaeche.send(kanal('extern'), neu);
     }
