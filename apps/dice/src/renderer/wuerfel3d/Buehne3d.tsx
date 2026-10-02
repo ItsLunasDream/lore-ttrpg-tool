@@ -385,9 +385,8 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
     /*
      * Wo die Zahlen stehen: ueber der Endlage jedes Wuerfels, aus Sicht der
      * Kamera. Neu berechnet auch nach jeder Groessenaenderung — sonst
-     * schwebten sie danach neben den Koerpern (Testbericht). Liegen zwei zu
-     * dicht, rueckt die spaetere ein Stueck nach unten, damit keine Zahl eine
-     * andere verdeckt.
+     * schwebten sie danach neben den Koerpern (Testbericht). Liegen zwei
+     * genau übereinander, weicht die spätere ein kleines Stück aus.
      */
     function berechneMarken(): Marke[] {
       const heraus: Marke[] = [];
@@ -397,12 +396,14 @@ export function Buehne3d({ einwuerfe, einstellungen, rollt, animieren, wurfId, o
         // project() liefert -1 bis 1 mit dem Ursprung in der Mitte und y
         // nach oben; die Seite rechnet in Prozent von links oben.
         const links = (ort.x * 0.5 + 0.5) * 100;
-        let oben = (-ort.y * 0.5 + 0.5) * 100;
-        for (let versuch = 0; versuch < 6; versuch += 1) {
-          const zuNah = heraus.some((m) => Math.abs(m.links - links) < 5 && Math.abs(m.oben - oben) < 6);
-          if (!zuNah) break;
-          oben += 6;
-        }
+        const mitte = (-ort.y * 0.5 + 0.5) * 100;
+        // Höchstens ein kleiner Schritt weg vom eigenen Würfel. Früher rückte
+        // eine Zahl bis zu sechsmal nach unten; bei vielen Würfeln standen die
+        // Zahlen dann weit unter ihren Würfeln (Testbericht mit Bild). Lieber
+        // überlappen zwei Zahlen etwas, als dass eine neben dem falschen
+        // Würfel steht.
+        const zuNah = (o: number) => heraus.some((m) => Math.abs(m.links - links) < 3 && Math.abs(m.oben - o) < 3);
+        const oben = [mitte, mitte + 2.5, mitte - 2.5].find((o) => !zuNah(o)) ?? mitte;
         heraus.push({
           nummer,
           links,

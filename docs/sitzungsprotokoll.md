@@ -5,7 +5,7 @@ Beute einer Sitzung landen automatisch als Notiz im Story Creator.)
 
 **Stand:** Schritte 1–3 gebaut, in der Hülle (`apps/shell/src/main/protokoll.ts`,
 `src/shared/protokoll.ts`, Dialog `Protokoll.tsx`), Rauchtest
-`smoke-protokoll.cjs`. Nicht gebaut: KI-Zusammenfassung, Kurzbefehl für die
+`smoke-protokoll.cjs`. Nicht gebaut: Kurzbefehl für die
 Zeile von Hand, Stufenaufstieg, Schwierigkeit/EP der Begegnung.
 
 ## Wie es gebaut ist
@@ -121,3 +121,14 @@ nur die wichtigen im Verlauf, jede Person kann ein Protokoll führen.
    markierte Würfe; der Rest eingeklappt.
 3. **Nur die SL oder alle?** Vorschlag: jede Person kann, die SL ist der
    Normalfall.
+
+## KI-Zusammenfassung (Rückmeldung)
+
+- In der Vorschau „Von der KI vorschlagen lassen", wenn eine KI eingerichtet
+  ist. Die Anfrage enthält Titel, Anwesende, offene Notizen und den Verlauf
+  (gewöhnliche Würfe nur als Anzahl).
+- Der Vorschlag steht im Feld „Zusammenfassung" und lässt sich bearbeiten;
+  übernommen wird er erst mit „Als Notiz anlegen". Eine schon geschriebene
+  Zusammenfassung wird nur nach Rückfrage ersetzt.
+- Rauchtest `smoke-protokoll-ki.cjs` gegen ein nachgebautes Ollama.
+

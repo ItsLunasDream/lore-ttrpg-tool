@@ -193,9 +193,14 @@ app.whenReady().then(async () => {
     return true;
   })()`);
   pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-portraet] img'))`)), 'ein Bild steht im Kopf');
-  await js(`document.querySelector('[data-bild-rahmen] [data-wert="schild"]').click(); true`);
+  pruefe(!(await js(`Boolean(document.querySelector('[data-portraet] [data-bild-rahmen]'))`)), 'der Rahmen steht nicht mehr am Bild');
+  await js(`document.querySelector('[data-design-knopf]').click(); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelectorAll('[data-bild-rahmen] [data-rahmen]').length`)) === 3, 'unter „Aussehen": Kreis, Quadrat, Fenster');
+  await js(`document.querySelector('[data-bild-rahmen] [data-rahmen="bogen"]').click(); true`);
+  await js(`document.querySelector('[data-design-knopf]').click(); true`);
   await warte(100);
-  pruefe(await js(`Boolean(document.querySelector('.portraet__rahmen--schild'))`), 'der Rahmen laesst sich wechseln');
+  pruefe(await js(`Boolean(document.querySelector('.portraet__rahmen--bogen'))`), 'der Rahmen laesst sich wechseln');
 
   // Eigene Zustaende aus dem Status Effect Creator stehen zur Wahl.
   await js(`document.querySelector('[data-zustand-dazu] button').click(); true`);
@@ -382,10 +387,49 @@ app.whenReady().then(async () => {
   pruefe(await bis(async () => js(`document.hasFocus() || document.visibilityState === 'visible'`)), 'der Bogen ist wieder vorn');
   await warte(500);
 
-  await js(tippe('[data-feld="tp-temp"]', '0'));
+  // Temporäre TP: gelöscht heißt 0 (Rückmeldung).
+  await js(tippe('[data-feld="tp-temp"]', '7'));
   await js(`document.querySelector('[data-feld="tp-temp"]').blur(); true`);
+  await js(tippe('[data-feld="tp-temp"]', ''));
+  await js(`document.querySelector('[data-feld="tp-temp"]').blur(); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelector('[data-feld="tp-temp"]').value`)) === '0', 'temporäre TP gelöscht: 0');
   await js(tippe('[data-feld="klasse-0"]', 'Schurkin'));
   await warte(300);
+
+  // Vorschläge beim Tippen (Rückmeldung: „Comm" → „Common").
+  await js(tippe('[data-feld="sprachen"]', 'Gemeinsprache, Elf'));
+  await warte(200);
+  pruefe((await js(`[...document.querySelectorAll('[data-vorschlag]')].map((e) => e.dataset.vorschlag).join(',')`)) === 'Elfisch', 'Sprachen: „Elf" schlägt „Elfisch" vor');
+  await js(`document.querySelector('[data-vorschlag="Elfisch"]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); true`);
+  await warte(200);
+  pruefe((await js(`document.querySelector('[data-feld="sprachen"]').value`)) === 'Gemeinsprache, Elfisch', 'die Wahl ersetzt nur den letzten Teil');
+  await js(tippe('[data-feld="spezies"]', 'Halbl'));
+  await warte(200);
+  pruefe(Boolean(await js(`document.querySelector('[data-vorschlag="Halbling"]')`)), 'Spezies: „Halbl" schlägt „Halbling" vor');
+  await js(`document.querySelector('[data-feld="spezies"]').blur(); true`);
+
+  // Würfeln vom Bogen: Klick auf den Namen einer Fertigkeit.
+  await js(`document.querySelector('[data-wurf-fertigkeit="acrobatics"], [data-wurf-fertigkeit]').click(); true`);
+  await warte(200);
+  pruefe(/\(d20 \d+/.test(await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)), `Klick auf eine Fertigkeit würfelt (${await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)})`);
+  await js(`document.querySelector('[data-wurf-attribut="cha"], [data-wurf-attribut]').click(); true`);
+  await warte(200);
+  pruefe(/Charisma|\(d20/.test(await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)), 'Klick auf ein Attribut würfelt');
+
+  // Todesrettung: würfeln und eintragen, bei drei Fehlschlägen „tot".
+  if (await js(`Boolean(document.querySelector('[data-todesrettung-wuerfeln]'))`)) {
+    await js(`window.__zufall = Math.random; Math.random = () => 0.2; true`);
+    for (let n = 0; n < 3; n++) {
+      await js(`document.querySelector('[data-todesrettung-wuerfeln]').click(); true`);
+      await warte(120);
+    }
+    pruefe(/Todesrettungswurf: 5/.test(await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)), 'der Todesrettungswurf steht in der Anzeige');
+    pruefe(await js(`Boolean(document.querySelector('[data-tot]'))`), 'drei Fehlschläge: der Bogen zeigt „Tot"');
+    pruefe(await js(`document.querySelector('[data-todesrettung-wuerfeln]').disabled`), 'und es wird nicht weiter gewürfelt');
+    await js(`Math.random = window.__zufall; (() => { const p = document.querySelectorAll('[data-todesrettung-fehlschlaege] [data-wert]'); p[0]?.click(); p[0]?.click(); return true; })()`);
+    await warte(200);
+  } else pruefe(false, 'der Knopf für den Todesrettungswurf ist da');
 
   // --- Waffenangriffe ----------------------------------------------------------
   const waehle = (auswahl, wert) =>

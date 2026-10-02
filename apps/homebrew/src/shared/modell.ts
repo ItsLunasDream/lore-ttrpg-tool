@@ -56,6 +56,8 @@ interface Kopf {
   geaendert: string;
   /** In den Loot Generator geschickt. */
   imLoot?: boolean;
+  /** Nur eine Markierung „magisch" (Waffe, Rüstung, Gegenstand); ändert keine Werte. */
+  magisch?: boolean;
 }
 
 /** Weiterer Schaden neben dem Hauptschaden (z. B. „+ 1W6 Feuer"). */
@@ -67,6 +69,8 @@ export interface Zusatzschaden {
 }
 
 export const HOECHSTENS_ZUSATZ = 4;
+/** Höchstens so viele Würfel in einem Schadens- oder Heilwurf (Rückmeldung: bis 100). */
+export const HOECHSTENS_WUERFEL = 100;
 
 export interface Waffe extends Kopf {
   art: 'waffe';
@@ -87,7 +91,8 @@ export interface Waffe extends Kopf {
   /** Bei Wurf- und Munitionswaffen, in Fuss. */
   reichweiteNormal: number;
   reichweiteMax: number;
-  meisterschaft: Meisterschaft;
+  /** Leer = keine Meisterschaft. */
+  meisterschaft: Meisterschaft | '';
   /** Magischer Bonus 0 bis 3. */
   bonus: number;
 }
@@ -284,7 +289,9 @@ function liste(x: unknown, max: number, laenge: number): string[] {
 
 function wuerfelText(x: unknown, ersatz: string): string {
   const s = text(x, 12).trim().toLowerCase().replace('w', 'd');
-  return /^(\d{1,2}d\d{1,3}|\d{1,3})$/.test(s) ? s : ersatz;
+  const m = /^(\d{1,3})d(\d{1,3})$/.exec(s);
+  if (m) return Number(m[1]) >= 1 && Number(m[1]) <= HOECHSTENS_WUERFEL ? s : ersatz;
+  return /^\d{1,3}$/.test(s) ? s : ersatz;
 }
 
 /** Macht aus beliebigem JSON einen gueltigen Eintrag (Datei von Hand bearbeitet, Austausch). */
@@ -304,7 +311,8 @@ export function bereinige(roh: unknown, id: string): Eintrag {
     preis: oderNull(r.preis, 10_000_000),
     gewicht: oderNull(r.gewicht, 100_000),
     geaendert: text(r.geaendert, 40),
-    ...(r.imLoot === true ? { imLoot: true } : {})
+    ...(r.imLoot === true ? { imLoot: true } : {}),
+    ...(r.magisch === true && (art === 'waffe' || art === 'ruestung' || art === 'gegenstand') ? { magisch: true } : {})
   };
   switch (leer.art) {
     case 'waffe': {
@@ -328,7 +336,7 @@ export function bereinige(roh: unknown, id: string): Eintrag {
         vielseitig: wuerfelText(r.vielseitig, leer.vielseitig),
         reichweiteNormal: Math.round(zahl(r.reichweiteNormal, leer.reichweiteNormal, 5, 2000)),
         reichweiteMax: Math.round(zahl(r.reichweiteMax, leer.reichweiteMax, 5, 6000)),
-        meisterschaft: eins(r.meisterschaft, MEISTERSCHAFTEN, leer.meisterschaft),
+        meisterschaft: r.meisterschaft === '' ? '' : eins(r.meisterschaft, MEISTERSCHAFTEN, 'sap'),
         bonus: Math.round(zahl(r.bonus, 0, 0, 3))
       };
     }
@@ -375,12 +383,12 @@ export function bereinige(roh: unknown, id: string): Eintrag {
           : Number(r.schadenAnzahl) > 0
             ? ['schaden']
             : [],
-        schadenAnzahl: Math.round(zahl(r.schadenAnzahl, 0, 0, 40)),
-        schadenSeiten: Number(eins(String(r.schadenSeiten), ['4', '6', '8', '10', '12'] as const, '6')),
+        schadenAnzahl: Math.round(zahl(r.schadenAnzahl, 0, 0, HOECHSTENS_WUERFEL)),
+        schadenSeiten: Number(eins(String(r.schadenSeiten), ['4', '6', '8', '10', '12', '20'] as const, '6')),
         schadenPlus: Math.round(zahl(r.schadenPlus, 0, 0, 200)),
         schadensart: eins(r.schadensart, SCHADENSARTEN, leer.schadensart),
-        heilAnzahl: Math.round(zahl(r.heilAnzahl, 0, 0, 40)),
-        heilSeiten: Number(eins(String(r.heilSeiten), ['4', '6', '8', '10', '12'] as const, '8')),
+        heilAnzahl: Math.round(zahl(r.heilAnzahl, 0, 0, HOECHSTENS_WUERFEL)),
+        heilSeiten: Number(eins(String(r.heilSeiten), ['4', '6', '8', '10', '12', '20'] as const, '8')),
         heilPlus: Math.round(zahl(r.heilPlus, 0, 0, 200)),
         zustand: text(r.zustand, 80),
         ziel: r.ziel === 'flaeche' ? 'flaeche' : r.ziel === 'mehrere' ? 'mehrere' : 'einzel',

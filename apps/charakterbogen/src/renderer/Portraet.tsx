@@ -7,8 +7,7 @@
  */
 import { useRef, useState } from 'react';
 import { t } from './i18n';
-import { RAHMEN, type Bogen, type Rahmen } from '../shared/bogen';
-import { Segment } from './Bedienung';
+import type { Bogen, Rahmen } from '../shared/bogen';
 
 const KANTE = 480;
 
@@ -69,14 +68,7 @@ export function Portraet({ bild, setze }: { bild: Bogen['bild']; setze: (b: Boge
       />
       {bild ? (
         <div className="portraet__wahl">
-          <Segment
-            klein
-            label={t('bild.rahmen')}
-            wert={rahmen}
-            daten={{ 'data-bild-rahmen': '' }}
-            optionen={RAHMEN.map((r) => ({ wert: r, text: <span className={`rahmenprobe rahmenprobe--${r}`} />, titel: t(`bild.rahmen.${r}`) }))}
-            aendern={(r) => setze({ ...bild, rahmen: r })}
-          />
+          {/* Der Rahmen steht unter „Aussehen" (Rückmeldung). */}
           <button type="button" className="knopf--klein knopf--leise" title={t('bild.weg')} onClick={() => setze(undefined)}>
             {t('bild.weg')}
           </button>

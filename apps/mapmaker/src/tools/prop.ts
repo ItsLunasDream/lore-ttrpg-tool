@@ -17,6 +17,7 @@
  */
 
 import { Sprite } from 'pixi.js';
+import { grundSkala } from '@/assets/library';
 import { AddObjects } from '@/model/commands';
 import { symmetryCopies } from '@/model/symmetry';
 import { snapPoint } from '@/model/grid';
@@ -110,8 +111,8 @@ export class PropTool implements Tool {
     const obj = createProp(ctx.doc, layerId, propId, p.x, p.y, {
       seed: this.previewSeed,
       rotation,
-      scaleX: s.scale,
-      scaleY: s.scale,
+      scaleX: s.scale * grundSkala(propId),
+      scaleY: s.scale * grundSkala(propId),
       tint: s.tint,
       opacity: s.opacity,
       flipX: s.flipX,
@@ -168,7 +169,7 @@ export class PropTool implements Tool {
     this.ghost.position.set(p.x, p.y);
     // Vorgaben mitzeigen: die Vorschau ist sonst kein Vorgriff, sondern nur
     // ein Umriss, und die eingestellte Größe fällt erst nach dem Klick auf.
-    const k = tileScale(ctx.doc) * s.scale;
+    const k = tileScale(ctx.doc) * s.scale * (ctx.state.activePropId ? grundSkala(ctx.state.activePropId) : 1);
     this.ghost.scale.set(s.flipX ? -k : k, s.flipY ? -k : k);
     this.ghost.tint = s.tint ?? 0xffffff;
     this.ghost.alpha = 0.55 * s.opacity;

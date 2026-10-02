@@ -17,7 +17,10 @@ import { GestaltKasten, TiergestaltBlock } from './TiergestaltBlock';
 import { druidenstufe } from '../shared/tiergestalt';
 import { SlMarke } from './LiveTeile';
 import { Portraet } from './Portraet';
-import { Pips, Segment, Suchwahl, Uebungspunkt, type Wahlpunkt } from './Bedienung';
+import { WurfBuehne, Wuerfelbar, useWurf } from './Wurf';
+import { istTot, todesrettungWurf } from '../shared/proben';
+import { Pips, Segment, Suchwahl, Uebungspunkt, VorschlagFeld, type Wahlpunkt } from './Bedienung';
+import { vorschlagsliste, type Vorschlagsart } from '../shared/vorschlaege';
 import type { Schritt } from '../shared/live';
 import {
   gesamtstufe,
@@ -70,7 +73,8 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
   const pb = uebungsbonus(stufe);
 
   return (
-    <>
+    <WurfBuehne imRaum={Boolean(imRaum)}>
+      {istTot(w) ? <TotMarke /> : null}
       <Kopf w={w} aendere={aendere} bild={bild} setzeBild={setzeBild} />
 
       <section className="blatt__leiste">
@@ -163,7 +167,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
               </label>
             </div>
             <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
-            <Todesrettung w={w} aendere={aendere} />
+            <Todesrettung w={w} aendere={aendere} name={name} />
             <Trefferwuerfel w={w} aendere={aendere} />
             <Rasten w={w} aendere={aendere} setMeldung={setMeldung} name={name} />
           </section>
@@ -223,7 +227,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
           <Langtext label={t('persoenlichkeit')} wert={w.persoenlichkeit} feld="persoenlichkeit" aendern={(v) => aendere((x) => ({ ...x, persoenlichkeit: v }))} />
         </div>
       </section>
-    </>
+    </WurfBuehne>
   );
 }
 
@@ -235,10 +239,12 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
  * Trefferwürfel und Rasten, Zauberplätze, Zustände. Dieselben Bausteine wie
  * im vollen Bogen, damit beide nie auseinanderlaufen.
  */
-export function Kompaktbogen({ werte: w, aendere, setMeldung, name }: Pick<FigurProps, 'werte' | 'aendere' | 'setMeldung' | 'name'>) {
+export function Kompaktbogen({ werte: w, aendere, setMeldung, name, imRaum }: Pick<FigurProps, 'werte' | 'aendere' | 'setMeldung' | 'name' | 'imRaum'>) {
   const plaetze = w.zauber?.plaetze.filter((p) => p.max > 0) ?? [];
   return (
+    <WurfBuehne imRaum={Boolean(imRaum)}>
     <div className="kompakt" data-kompakt>
+      {istTot(w) ? <TotMarke /> : null}
       <section className="kasten kampf">
         <div className="kampf__oben">
           <Initiative w={w} aendere={aendere} />
@@ -249,7 +255,7 @@ export function Kompaktbogen({ werte: w, aendere, setMeldung, name }: Pick<Figur
           </label>
         </div>
         <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
-        {w.tp.aktuell === 0 ? <Todesrettung w={w} aendere={aendere} /> : null}
+        {w.tp.aktuell === 0 ? <Todesrettung w={w} aendere={aendere} name={name} /> : null}
         <Trefferwuerfel w={w} aendere={aendere} />
         <Rasten w={w} aendere={aendere} setMeldung={setMeldung} name={name} />
       </section>
@@ -300,6 +306,16 @@ export function Kompaktbogen({ werte: w, aendere, setMeldung, name }: Pick<Figur
         <Zustaende w={w} aendere={aendere} />
       </section>
     </div>
+    </WurfBuehne>
+  );
+}
+
+/** Drei fehlgeschlagene Todesrettungswürfe: deutlich sichtbar oben im Bogen (Rückmeldung). */
+function TotMarke() {
+  return (
+    <div className="totmarke" role="status" data-tot title={t('tot.hinweis')}>
+      ☠ {t('tot')} <span className="leise">· {t('tot.hinweis')}</span>
+    </div>
   );
 }
 
@@ -315,12 +331,13 @@ function Kopf({ w, aendere, bild, setzeBild }: { w: Werte; aendere: FigurProps['
         {w.klassen.map((k, n) => (
           <div className="klassen__zeile" key={n}>
             <label className="linie linie--breit">
-              <input
+              <VorschlagFeld
                 placeholder={t('klasse')}
                 data-feld={`klasse-${n}`}
-                value={k.name}
+                wert={k.name}
                 maxLength={60}
-                onChange={(e) => setzeKlasse(n, { name: e.target.value })}
+                liste={vorschlagsliste('klasse', getLanguage() === 'de' ? 'de' : 'en')}
+                aendern={(v) => setzeKlasse(n, { name: v })}
               />
               <span className="linie__label">
                 {t('klasse')} <SlMarke feld="klassen" />
@@ -354,11 +371,11 @@ function Kopf({ w, aendere, bild, setzeBild }: { w: Werte; aendere: FigurProps['
         ) : null}
       </div>
       <div className="kopfraster">
-        <Linie label={t('spezies')} wert={w.spezies} feld="spezies" aendern={(v) => aendere((x) => ({ ...x, spezies: v }))} />
-        <Linie label={t('hintergrund')} wert={w.hintergrund} feld="hintergrund" aendern={(v) => aendere((x) => ({ ...x, hintergrund: v }))} />
+         <Linie art="spezies" label={t('spezies')} wert={w.spezies} feld="spezies" aendern={(v) => aendere((x) => ({ ...x, spezies: v }))} />
+        <Linie art="hintergrund" label={t('hintergrund')} wert={w.hintergrund} feld="hintergrund" aendern={(v) => aendere((x) => ({ ...x, hintergrund: v }))} />
         <Linie label={t('spieler')} wert={w.spieler} feld="spieler" aendern={(v) => aendere((x) => ({ ...x, spieler: v }))} />
-        <Linie label={t('gesinnung')} wert={w.gesinnung} feld="gesinnung" aendern={(v) => aendere((x) => ({ ...x, gesinnung: v }))} />
-        <Linie label={t('groesse')} wert={w.groesse} feld="groesse" aendern={(v) => aendere((x) => ({ ...x, groesse: v }))} />
+        <Linie art="gesinnung" label={t('gesinnung')} wert={w.gesinnung} feld="gesinnung" aendern={(v) => aendere((x) => ({ ...x, gesinnung: v }))} />
+        <Linie art="groesse" label={t('groesse')} wert={w.groesse} feld="groesse" aendern={(v) => aendere((x) => ({ ...x, groesse: v }))} />
         <label className="linie linie--zahl">
           <ZahlRoh wert={w.ep} min={0} max={10_000_000} feld="ep" label={t('ep')} aendern={(v) => aendere((x) => ({ ...x, ep: v }))} />
           <span className="linie__label">{t('ep')}</span>
@@ -375,10 +392,12 @@ function AttributKarte({ a, w, aendere }: { a: Attribut; w: Werte; aendere: Figu
   const wert = w.attribute[a];
   return (
     <div className="attribut" title={ATTRIBUT_NAMEN[a].lang[i]}>
-      <span className="attribut__name">{ATTRIBUT_NAMEN[a].lang[i]}</span>
-      <span className="attribut__mod" data-mod={a}>
+      <Wuerfelbar name={ATTRIBUT_NAMEN[a].lang[i]} bonus={modifikator(wert)} klasse="attribut__name" daten={{ 'data-wurf-attribut': a }}>
+        {ATTRIBUT_NAMEN[a].lang[i]}
+      </Wuerfelbar>
+      <Wuerfelbar name={ATTRIBUT_NAMEN[a].lang[i]} bonus={modifikator(wert)} klasse="attribut__mod" daten={{ 'data-mod': a }}>
         {mitVorzeichen(modifikator(wert))}
-      </span>
+      </Wuerfelbar>
       <span className="attribut__oval">
         <ZahlRoh
           wert={wert}
@@ -422,10 +441,12 @@ function Rettungswuerfe({ w, pb, aendere }: { w: Werte; pb: number; aendere: Fig
               >
                 <Uebungspunkt stufe={geuebt ? 1 : 0} />
               </button>
-              <span className="rettungen__name">{ATTRIBUT_NAMEN[a].kurz[i]}</span>
-              <span className="wertkasten" data-rettungswert={a}>
+              <Wuerfelbar name={`${t('rettung')}: ${ATTRIBUT_NAMEN[a].lang[i]}`} bonus={modifikator(w.attribute[a]) + (geuebt ? pb : 0)} klasse="rettungen__name" daten={{ 'data-wurf-rettung': a }}>
+                {ATTRIBUT_NAMEN[a].kurz[i]}
+              </Wuerfelbar>
+              <Wuerfelbar name={`${t('rettung')}: ${ATTRIBUT_NAMEN[a].lang[i]}`} bonus={modifikator(w.attribute[a]) + (geuebt ? pb : 0)} klasse="wertkasten" daten={{ 'data-rettungswert': a }}>
                 {mitVorzeichen(modifikator(w.attribute[a]) + (geuebt ? pb : 0))}
-              </span>
+              </Wuerfelbar>
             </li>
           );
         })}
@@ -458,9 +479,9 @@ function Uebungen({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }) 
           ))}
         </div>
       </div>
-      <Textfeld label={t('waffenuebung')} wert={w.waffenuebung} feld="waffenuebung" laenge={500} aendern={(v) => aendere((x) => ({ ...x, waffenuebung: v }))} />
-      <Textfeld label={t('werkzeuguebung')} wert={w.werkzeuguebung} feld="werkzeuguebung" laenge={500} aendern={(v) => aendere((x) => ({ ...x, werkzeuguebung: v }))} />
-      <Textfeld label={t('sprachen')} wert={w.sprachen} feld="sprachen" laenge={500} aendern={(v) => aendere((x) => ({ ...x, sprachen: v }))} />
+      <Textfeld art="waffen" label={t('waffenuebung')} wert={w.waffenuebung} feld="waffenuebung" laenge={500} aendern={(v) => aendere((x) => ({ ...x, waffenuebung: v }))} />
+      <Textfeld art="werkzeug" label={t('werkzeuguebung')} wert={w.werkzeuguebung} feld="werkzeuguebung" laenge={500} aendern={(v) => aendere((x) => ({ ...x, werkzeuguebung: v }))} />
+      <Textfeld art="sprachen" label={t('sprachen')} wert={w.sprachen} feld="sprachen" laenge={500} aendern={(v) => aendere((x) => ({ ...x, sprachen: v }))} />
     </section>
   );
 }
@@ -513,10 +534,12 @@ function Fertigkeiten({ w, pb, aendere }: { w: Werte; pb: number; aendere: Figur
                 <Uebungspunkt stufe={u} />
               </button>
               <span className="leise fertigkeiten__attr">{ATTRIBUT_NAMEN[f.attribut].kurz[i]}</span>
-              <span>{f.name[i]}</span>
-              <span className="wertkasten" data-bonus={f.id}>
+              <Wuerfelbar name={f.name[i]} bonus={bonus} daten={{ 'data-wurf-fertigkeit': f.id }}>
+                {f.name[i]}
+              </Wuerfelbar>
+              <Wuerfelbar name={f.name[i]} bonus={bonus} klasse="wertkasten" daten={{ 'data-bonus': f.id }}>
                 {mitVorzeichen(bonus)}
-              </span>
+              </Wuerfelbar>
             </li>
           );
         })}
@@ -534,7 +557,9 @@ function Fertigkeiten({ w, pb, aendere }: { w: Werte; pb: number; aendere: Figur
 function Initiative({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }) {
   return (
     <label className="raute" title={t('initiative.auto')}>
-      <span className="raute__titel">{t('initiative')}</span>
+      <Wuerfelbar name={t('initiative')} bonus={w.initiative ?? initiativeBonus({ ...w, initiative: null })} klasse="raute__titel" daten={{ 'data-wurf-initiative': '' }}>
+        {t('initiative')}
+      </Wuerfelbar>
       <input
         data-feld="initiative"
         inputMode="numeric"
@@ -631,11 +656,32 @@ function Trefferpunkte({ w, aendere, setMeldung }: TeilProps) {
   );
 }
 
-function Todesrettung({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }) {
+function Todesrettung({ w, aendere, name }: { w: Werte; aendere: FigurProps['aendere']; name?: string }) {
+  const { zeige } = useWurf();
+  const sprache = getLanguage() === 'de' ? 'de' : 'en';
   return (
-    <div className={`todesrettung${w.tp.aktuell === 0 ? ' ist-akut' : ''}`} data-todesrettung>
+    <div className={`todesrettung${w.tp.aktuell === 0 ? ' ist-akut' : ''}${istTot(w) ? ' ist-tot' : ''}`} data-todesrettung>
       <span className="kennbox__titel">
         {t('todesrettung')} <SlMarke feld="todesrettung" />
+        <button
+          type="button"
+          className="knopf--klein todesrettung__wurf"
+          data-todesrettung-wuerfeln
+          title={t('todesrettung.titel')}
+          disabled={istTot(w)}
+          onClick={() => {
+            // Gewürfelt wird gegen den aktuellen Stand; die Zeile entsteht mit.
+            let zeile = '';
+            aendere((x) => {
+              const r = todesrettungWurf(x, name?.trim() || t('figur'), sprache);
+              zeile = r.text;
+              return r.werte;
+            });
+            if (zeile) zeige(zeile);
+          }}
+        >
+          🎲 {t('todesrettung.wuerfeln')}
+        </button>
       </span>
       {(['erfolge', 'fehlschlaege'] as const).map((art) => (
         <div key={art} className={`todesrettung__zeile todesrettung__zeile--${art}`}>
@@ -918,10 +964,14 @@ function Ressourcen({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }
 
 // --- Kleine Felder ---------------------------------------------------------
 
-function Linie({ label, wert, feld, aendern }: { label: string; wert: string; feld: string; aendern: (v: string) => void }) {
+function Linie({ label, wert, feld, aendern, art }: { label: string; wert: string; feld: string; aendern: (v: string) => void; art?: Vorschlagsart }) {
   return (
     <label className="linie">
-      <input data-feld={feld} value={wert} maxLength={80} placeholder={label} onChange={(e) => aendern(e.target.value)} />
+      {art ? (
+        <VorschlagFeld data-feld={feld} wert={wert} maxLength={80} placeholder={label} liste={vorschlagsliste(art, getLanguage() === 'de' ? 'de' : 'en')} aendern={aendern} />
+      ) : (
+        <input data-feld={feld} value={wert} maxLength={80} placeholder={label} onChange={(e) => aendern(e.target.value)} />
+      )}
       <span className="linie__label">
         {label} <SlMarke feld={feld} />
       </span>
@@ -935,7 +985,8 @@ function Textfeld({
   feld,
   platzhalter,
   laenge = 80,
-  aendern
+  aendern,
+  art
 }: {
   label: string;
   wert: string;
@@ -943,13 +994,27 @@ function Textfeld({
   platzhalter?: string;
   laenge?: number;
   aendern: (v: string) => void;
+  /** Vorschläge beim Tippen; Waffen, Werkzeuge und Sprachen sind Listen mit Komma. */
+  art?: Vorschlagsart;
 }) {
   return (
     <label className="feld">
       <span className="feld__label">
         {label} <SlMarke feld={feld} />
       </span>
-      <input data-feld={feld} value={wert} maxLength={laenge} placeholder={platzhalter} onChange={(e) => aendern(e.target.value)} />
+      {art ? (
+        <VorschlagFeld
+          data-feld={feld}
+          wert={wert}
+          maxLength={laenge}
+          placeholder={platzhalter}
+          liste={vorschlagsliste(art, getLanguage() === 'de' ? 'de' : 'en')}
+          mehrere={art === 'waffen' || art === 'werkzeug' || art === 'sprachen'}
+          aendern={aendern}
+        />
+      ) : (
+        <input data-feld={feld} value={wert} maxLength={laenge} placeholder={platzhalter} onChange={(e) => aendern(e.target.value)} />
+      )}
     </label>
   );
 }
@@ -1009,7 +1074,10 @@ export function ZahlRoh({
       onBlur={() => {
         fokus.current = false;
         const n = Number(text);
-        const gueltig = text.trim() !== '' && Number.isFinite(n) ? begrenze(Math.round(n)) : wert;
+        // Leer gelassen heißt 0 (bzw. das Kleinste, was erlaubt ist), nicht „wie vorher"
+        // (Rückmeldung: gelöschte temporäre TP blieben stehen).
+        const gueltig = text.trim() === '' ? begrenze(0) : Number.isFinite(n) ? begrenze(Math.round(n)) : wert;
+        if (text.trim() === '' && gueltig !== wert) aendern(gueltig);
         setText(String(gueltig));
         if (gueltig !== wert) aendern(gueltig);
       }}

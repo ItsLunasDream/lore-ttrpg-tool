@@ -43,13 +43,15 @@ interface Ankunft {
 
 interface Props {
   readonly onClose: () => void;
+  /** Öffnet einen Eintrag in seinem Werkzeug, wenn es ihn hier gibt (Klick im Chat). */
+  readonly oeffneEintrag?: (werkzeug: string, kennung: string) => Promise<boolean>;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
   readonly symbole?: Record<string, string>;
   /** Ein Raumfehler, der bei geschlossenem Dialog kam (Schluessel wie `getrennt`). */
   readonly anfangsFehler?: string | null;
 }
 
-export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Props) {
+export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null, oeffneEintrag }: Props) {
   const [richtung, setRichtung] = useState<'raum' | 'datei'>('raum');
   const werkzeugName = (id: string) => t(nameKey(id));
 
@@ -414,7 +416,26 @@ export function Austausch({ onClose, t, symbole = {}, anfangsFehler = null }: Pr
 
       {richtung === 'raum' ? (
         <div key="raum" className="motion-erscheinen">
-          <Raum zustand={raum} raeume={raeume} fehler={raumFehler} t={t} />
+          <Raum
+            zustand={raum}
+            raeume={raeume}
+            fehler={raumFehler}
+            t={t}
+            oeffneEintrag={(e) =>
+              void (async () => {
+                // Liegt der Eintrag schon hier (eigener oder angenommener), öffnet ihn sein Werkzeug.
+                if (await oeffneEintrag?.(e.werkzeug, e.kennung)) return;
+                // Sonst die Vorschau des angekommenen Pakets, aus dem man ihn übernehmen kann.
+                const id = await window.shell.raum.paketMitEintrag(e.werkzeug, e.kennung);
+                if (id !== null) {
+                  zeige(await window.shell.raum.paketAnsehen(id), { art: 'raum', paket: id });
+                  // Die Vorschau steht unter „Angekommen": dorthin scrollen.
+                  window.setTimeout(() => document.querySelector('[data-austausch="raum-angekommen"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
+                }
+                else setRaumFehler(t('room.itemGone', { name: e.name }));
+              })()
+            }
+          />
           {raum.rolle !== 'aus' && (
             <>
               <section className="austausch austausch__abschnitt" data-austausch="raum-senden">

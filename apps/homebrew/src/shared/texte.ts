@@ -187,8 +187,9 @@ export function kurzzeile(e: Eintrag, s: 'de' | 'en'): string {
         `${waffenSchaden(e, s)}${bonus}`,
         eigenschaftenText(e, s),
         !e.fern && e.reichweiteNah !== 5 ? `${de ? 'Reichweite' : 'Reach'} ${weite(e.reichweiteNah, s)}` : '',
-        MEISTERSCHAFT_NAME[e.meisterschaft][s]
+        e.meisterschaft ? MEISTERSCHAFT_NAME[e.meisterschaft][s] : ''
       ];
+      if (e.magisch) teile.unshift(de ? 'Magisch' : 'Magical');
       return teile.filter(Boolean).join(' · ');
     }
     case 'ruestung': {
@@ -200,10 +201,11 @@ export function kurzzeile(e: Eintrag, s: 'de' | 'en'): string {
         e.staerke ? `${de ? 'Stä.' : 'Str'} ${e.staerke}` : '',
         e.heimlichkeitNachteil ? (de ? 'Heimlichkeit: Nachteil' : 'Stealth: Disadvantage') : ''
       ];
+      if (e.magisch) teile.unshift(de ? 'Magisch' : 'Magical');
       return teile.filter(Boolean).join(' · ');
     }
     case 'gegenstand':
-      return ART_NAME.gegenstand[s];
+      return e.magisch ? (de ? 'Gegenstand, magisch' : 'Item, magical') : ART_NAME.gegenstand[s];
     case 'magisch':
       return `${ART_NAME.magisch[s]}${e.einstimmung ? (de ? ' (Einstimmung)' : ' (attunement)') : ''}`;
     case 'zauber': {

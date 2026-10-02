@@ -32,7 +32,7 @@ import { NoteTypesDialog } from './components/NoteTypesDialog';
 import { HistoryDialog } from './components/HistoryDialog';
 import { PromptsDialog } from './components/PromptsDialog';
 import { ExportDialog, type ExportFormat } from './components/ExportDialog';
-import { GraphView } from './components/GraphView';
+import { GraphView, type GraphAnsicht } from './components/GraphView';
 import { CleanupDialog } from './components/CleanupDialog';
 import { HelpDialog } from './components/HelpDialog';
 import { AboutDialog } from './components/AboutDialog';
@@ -114,6 +114,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   const [reloadKey, setReloadKey] = useState(0);
   const [prompts, setPrompts] = useState<PromptCategory[] | null>(null);
   const [showGraph, setShowGraph] = useState(false);
+  /** Reiter der Graph-Ansicht; im Verlauf der Hülle als „#graph", „#zeit", „#straenge". */
+  const [graphAnsicht, setGraphAnsicht] = useState<GraphAnsicht>('graph');
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
   const [orphans, setOrphans] = useState<OrphanedAsset[] | null>(null);
   const [unreadable, setUnreadable] = useState<UnreadableNote[]>([]);
@@ -358,8 +360,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
    * davon tut etwas — die Bruecke ist dieselbe.
    */
   useEffect(() => {
-    api.verlauf.melde(draft?.id ?? null);
-  }, [draft?.id]);
+    // Graph, Zeitstrahl und Handlungsstränge sind eigene Orte: sonst führte
+    // „Zurück" nicht dorthin zurück (Rückmeldung).
+    api.verlauf.melde(showGraph ? `#${graphAnsicht}` : (draft?.id ?? null));
+  }, [draft?.id, showGraph, graphAnsicht]);
 
   useEffect(() => {
     if (!activeCampaignId) return;
@@ -823,10 +827,16 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   useEffect(() => {
     return api.verlauf.beiSprung((ort) => {
       if (!ort) return;
+      if (ort === '#graph' || ort === '#zeit' || ort === '#straenge') {
+        setGraphAnsicht(ort.slice(1) as GraphAnsicht);
+        setShowGraph(true);
+        return;
+      }
       // Eine Notiz, die es nicht mehr gibt, ist kein Fehler: sie kann
       // geloescht worden sein, seit der Schritt in den Verlauf kam.
       if (!index.byId.has(ort)) return;
       openNote(ort);
+      setShowGraph(false);
     });
   }, [index, openNote]);
 
@@ -1028,6 +1038,8 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
                 }
                 onClose={() => setShowGraph(false)}
                 campaignId={activeCampaignId}
+                ansicht={graphAnsicht}
+                onAnsicht={setGraphAnsicht}
                 plots={activeCampaign?.plots ?? []}
                 onSavePlots={(next) => {
                   // Sofort zeigen, dann speichern: Tippen im Namen soll nicht haken.

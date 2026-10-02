@@ -24,6 +24,13 @@ import {
   type Wuensche
 } from '../shared/erzeuge';
 import { kurzzeile, preisText, type Gespeichert, type Kachel } from '../shared/ablage';
+import { KI_FELDER, type KiFeld } from '../shared/kiAufgaben';
+
+/** Fehlerschlüssel der KI (aus @suite/ki) → Text. Unbekanntes wird allgemein. */
+function kiFehlerText(grund: string): TextKey {
+  const bekannt: readonly string[] = ['error.aiNoProvider', 'error.aiKeinJson', 'error.aiNoConnection', 'error.aiTimeout', 'error.aiAuth', 'error.aiRateLimit', 'error.aiModelMissing'];
+  return (bekannt.includes(grund) ? grund : 'error.aiOther') as TextKey;
+}
 import {
   GASTHAUS_PREISE,
   GETRAENKE,
@@ -66,6 +73,16 @@ export function App() {
   const darfVerwerfen = () => !veraendert || confirm(t('verwerfen.sicher'));
 
   const ladeListe = useCallback(async () => setKacheln(await api.sammlung.liste()), []);
+
+  // KI: Knöpfe nur, wenn eine eingerichtet ist (Einstellungen der Hülle).
+  const [kiDa, setKiDa] = useState(false);
+  const [kiLaeuft, setKiLaeuft] = useState(false);
+  const [kiWunsch, setKiWunsch] = useState('');
+  useEffect(() => {
+    const pruefe = () => void api.ki.da().then(setKiDa).catch(() => setKiDa(false));
+    pruefe();
+    return api.ki.beiWechsel(pruefe);
+  }, []);
   useEffect(() => {
     void ladeListe();
   }, [ladeListe]);
@@ -186,6 +203,35 @@ export function App() {
     };
     const sperre = (f: Feld) => setGesperrt((alt) => (alt.includes(f) ? alt.filter((x) => x !== f) : [...alt, f]));
     const neuTeil = (f: Feld) => setze(wuerfleNeu(offen, f, s, Math.random) as Partial<Gespeichert>);
+    /** Die KI schreibt die genannten Teile neu; festgehaltene bleiben, wenn es um alles geht. */
+    const frageKi = async (felder: KiFeld[]) => {
+      if (!felder.length) return;
+      setKiLaeuft(true);
+      setFehler('');
+      try {
+        const r = await api.ki.frage(offen, felder, kiWunsch, s);
+        if (r.ok && r.wert) {
+          setOffen((alt) => (alt ? { ...alt, ...r.wert } : alt));
+          setMeldung(t('ki.fertig'));
+        } else setFehler(t(kiFehlerText(r.grund)));
+      } finally {
+        setKiLaeuft(false);
+      }
+    };
+    const kiKnopf = (feld: KiFeld) =>
+      kiDa ? (
+        <button
+          type="button"
+          className="knopf knopf--klein"
+          title={t('ki.feld')}
+          aria-label={t('ki.feld')}
+          data-ki-feld={feld}
+          disabled={kiLaeuft}
+          onClick={() => void frageKi([feld])}
+        >
+          ✦
+        </button>
+      ) : null;
     const allesNeu = () => {
       const o: Ort = erzeugeOrt(wuensche, s, Math.random, gesperrt, offen);
       setze(o as Partial<Gespeichert>);
@@ -227,6 +273,7 @@ export function App() {
         <header className="teil__kopf">
           <h2>{t(titel)}</h2>
           <span className="leiste__luecke" />
+          {(KI_FELDER as readonly string[]).includes(feld) ? kiKnopf(feld as KiFeld) : null}
           <button type="button" className="knopf knopf--klein" title={t('neu.teil')} aria-label={t('neu.teil')} data-neu-teil={feld} onClick={() => neuTeil(feld)}>
             🎲
           </button>
@@ -285,6 +332,18 @@ export function App() {
           <button type="button" className="knopf" data-alles-neu title={t('wuerfeln.hinweis')} onClick={allesNeu}>
             🎲 {t('wuerfeln.neu')}
           </button>
+          {kiDa ? (
+            <button
+              type="button"
+              className="knopf"
+              data-ki
+              title={t('ki.hinweis')}
+              disabled={kiLaeuft}
+              onClick={() => void frageKi(KI_FELDER.filter((f) => !gesperrt.includes(f)))}
+            >
+              {kiLaeuft ? t('ki.laeuft') : `✦ ${t('ki.knopf')}`}
+            </button>
+          ) : null}
           <span className="leiste__luecke" />
           {!istNeu ? (
             <button
@@ -344,6 +403,16 @@ export function App() {
             📜 {t('story.anlegen')}
           </button>
         </div>
+        {kiDa ? (
+          <input
+            className="eingabe ki__wunsch"
+            value={kiWunsch}
+            data-ki-wunsch
+            aria-label={t('ki.wunsch')}
+            placeholder={`${t('ki.wunsch')}: ${t('ki.wunschBeispiel')}`}
+            onChange={(e) => setKiWunsch(e.target.value)}
+          />
+        ) : null}
         {meldung ? (
           <p className="meldung" data-meldung>
             {meldung}
@@ -358,6 +427,7 @@ export function App() {
         <section className="karte kopfkarte" data-teil="name">
           <div className="leiste">
             <input className="titel" value={offen.name} data-feld="name" aria-label={t('name')} onChange={(e) => setze({ name: e.target.value })} />
+            {kiKnopf('name')}
             <button type="button" className="knopf knopf--klein" title={t('neu.teil')} data-neu-teil="name" onClick={() => neuTeil('name')}>
               🎲
             </button>

@@ -2324,3 +2324,27 @@ body {
 .hilfe__allgemein {
   font-size: 0.92em;
 }
+
+/* Geteilte Einträge im Chat: jeder Name öffnet seinen Eintrag (Rückmeldung). */
+.raum__dateien--knoepfe {
+  cursor: default;
+}
+
+.raum__eintrag,
+.raum__mehr {
+  display: inline;
+  margin: 0 4px 0 0;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--betont, inherit);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.raum__mehr {
+  text-decoration: none;
+  opacity: 0.8;
+}

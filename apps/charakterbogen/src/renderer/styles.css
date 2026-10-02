@@ -1961,11 +1961,6 @@ textarea {
   border-radius: 50%;
 }
 
-.portraet__rahmen--oval {
-  width: 100px;
-  height: 128px;
-  border-radius: 50%;
-}
 
 .portraet__rahmen--eckig {
   border-radius: 6px;
@@ -1977,27 +1972,9 @@ textarea {
   border-radius: 52px 52px 6px 6px;
 }
 
-.portraet__rahmen--schild,
-.portraet__rahmen--rauten {
-  border: none !important;
-  box-shadow: none;
-  background: var(--betont) !important;
-}
 
-.portraet__rahmen--schild {
-  clip-path: polygon(50% 0, 100% 10%, 100% 58%, 50% 100%, 0 58%, 0 10%);
-}
 
-.portraet__rahmen--rauten {
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-}
 
-.portraet__rahmen--schild img,
-.portraet__rahmen--rauten img {
-  width: calc(100% - 8px);
-  height: calc(100% - 8px);
-  clip-path: inherit;
-}
 
 .portraet__wahl {
   display: grid;
@@ -2014,11 +1991,8 @@ textarea {
 }
 
 .rahmenprobe--kreis { border-radius: 50%; }
-.rahmenprobe--oval { width: 10px; height: 14px; border-radius: 50%; }
 .rahmenprobe--eckig { border-radius: 2px; }
 .rahmenprobe--bogen { width: 10px; height: 14px; border-radius: 5px 5px 1px 1px; }
-.rahmenprobe--schild { background: currentColor; clip-path: polygon(50% 0, 100% 12%, 100% 58%, 50% 100%, 0 58%, 0 12%); border: none; }
-.rahmenprobe--rauten { background: currentColor; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); border: none; }
 
 /* Name als Knopf: klappt die Iteminfo auf, sieht aber aus wie Text. */
 .gegenstand__titel {
@@ -2178,4 +2152,141 @@ textarea {
 .kachel__gestalt {
   font-size: 12px;
   color: var(--betont);
+}
+
+/* Rahmenwahl im Menü „Aussehen". */
+.rahmenwahl {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rahmenwahl button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rahmenwahl button.ist-an {
+  outline: 2px solid var(--betont);
+}
+
+
+/* Vorschläge beim Tippen (Spezies, Sprachen, Werkzeuge …). */
+.vorschlagfeld {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.vorschlagfeld > input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.vorschlagfeld__liste {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 100%;
+  max-height: 240px;
+  overflow: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
+}
+
+.vorschlagfeld__liste button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.vorschlagfeld__liste button.ist-an {
+  background: var(--betont-leise);
+}
+
+/* Würfeln vom Bogen: Namen und Werte sind Knöpfe, sehen aber aus wie vorher. */
+button.wuerfelbar {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 4px;
+  padding: 0;
+  color: inherit;
+  text-align: inherit;
+}
+
+button.wuerfelbar.wertkasten {
+  border-color: var(--rand);
+  padding: 2px 6px;
+}
+
+button.wuerfelbar.raute__titel {
+  color: var(--betont);
+}
+
+button.wuerfelbar:hover:not(:disabled) {
+  background: var(--betont-leise);
+}
+
+.wurfanzeige {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 10px 12px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--betont);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
+  font-weight: 600;
+}
+
+.wurfanzeige__ziel {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.wurfanzeige__ziel button {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.wurfanzeige__ziel button.ist-an {
+  border-color: var(--betont);
+}
+
+/* Drei fehlgeschlagene Todesrettungswürfe. */
+.totmarke {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--gefahr);
+  border-radius: 10px;
+  color: var(--gefahr);
+  font-weight: 700;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.todesrettung__wurf {
+  margin-left: 8px;
+}
+
+.todesrettung.ist-tot {
+  border-color: var(--gefahr);
 }

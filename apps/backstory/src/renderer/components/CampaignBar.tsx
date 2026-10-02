@@ -86,6 +86,7 @@ export function CampaignBar(props: Props) {
       <button
         type="button"
         className={props.graphOpen ? 'is-active' : undefined}
+        data-graph-knopf
         onClick={props.onToggleGraph}
         disabled={noCampaign}
       >

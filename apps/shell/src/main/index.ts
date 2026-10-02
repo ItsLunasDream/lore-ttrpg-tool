@@ -56,7 +56,7 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { terminAm as kalenderTerminAm } from '../../../kalender/src/main/embed';
 import { Protokollfuehrer } from './protokoll';
-import { alsMarkdown as protokollAlsMarkdown, standardTitel as protokollTitel, wurfAusChat } from '../shared/protokoll';
+import { alsMarkdown as protokollAlsMarkdown, bereinigeZusammenfassung, kiAnfrage as protokollKiAnfrage, standardTitel as protokollTitel, wurfAusChat } from '../shared/protokoll';
 import { nimmRaumNachricht as nimmKalenderNachricht } from '../../../kalender/src/main/embed';
 import { berechneAppFlaeche, GROESSEN, VORGABE_GROESSE } from '../shared/apps';
 import {
@@ -64,7 +64,7 @@ import {
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
-  setzeSuchtaste, setzeFokustaste, setzeHilfetaste,
+  setzeSuchtaste, setzeFokustaste, setzeHilfetaste, setzeHuellenFenster, fokussiereNachDialog,
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
@@ -99,6 +99,8 @@ import {
   type ShellSettings
 } from './settings';
 import { anbieterAus, entschluessle, verschluessle } from './ki';
+import { Raumpasswoerter } from './raumPasswort';
+import { KiFehler } from '@suite/ki';
 import {
   leseSymbole,
   mitgelieferterOrdner,
@@ -310,12 +312,13 @@ let protokoll: Protokollfuehrer | null = null;
 function meldeOrt(appId: string, ort: string | null): void {
   huelle?.webContents.send('verlauf:ort', appId, ort);
   // Sitzungsprotokoll: welche Notizen waehrend der Sitzung offen waren.
-  if (appId === 'backstory' && ort && ort !== 'entwurf' && protokoll?.laeuft()) {
+  if (appId === 'backstory' && ort && ort !== 'entwurf' && !ort.startsWith('#') && protokoll?.laeuft()) {
     void notizTitelVon(ort).then((titel) => {
       if (titel) protokoll?.notiz(titel);
     });
   }
-  if (ort && ort !== 'entwurf') {
+  // „#…" sind Ansichten (Graph, Zeitstrahl im Story Creator), keine Einträge zum Teilen.
+  if (ort && ort !== 'entwurf' && !ort.startsWith('#')) {
     const alt = zuletztGeoeffnet.findIndex((z) => z.werkzeug === appId && z.ort === ort);
     if (alt >= 0) zuletztGeoeffnet.splice(alt, 1);
     zuletztGeoeffnet.unshift({ werkzeug: appId, ort });
@@ -661,6 +664,7 @@ async function erzeugeFenster(): Promise<void> {
     show: false,
     title: 'LORE'
   });
+  setzeHuellenFenster(fenster);
 
   huelle = new WebContentsView({
     webPreferences: {
@@ -700,6 +704,8 @@ async function erzeugeFenster(): Promise<void> {
   // Die Huelle laedt nur ihr eigenes Dokument. Alles andere — ein Link in
   // einem Text, ein umgeleiteter Aufruf — verlaesst die Anwendung und gehoert
   // in den Browser des Systems, nicht in dieses Fenster.
+  // Auch die Hülle selbst fragt mit confirm() (Raum schließen, Protokoll verwerfen).
+  fokussiereNachDialog(huelle);
   huelle.webContents.on('will-navigate', (event, url) => {
     if (devServerUrl && url.startsWith(devServerUrl)) return;
     event.preventDefault();
@@ -1052,6 +1058,26 @@ function registriereKanaele(): void {
     if (ergebnis.ok) await protokoll!.schliesse(true);
     return { ok: ergebnis.ok, text: ergebnis.text };
   });
+  handle('protokoll:kiDa', async () => anbieterAus(await readSettings(einstellungsDatei)) !== null);
+  /** Ein Vorschlag für die Zusammenfassung; landet im Feld, nicht direkt in der Notiz. */
+  handle('protokoll:ki', async () => {
+    const einstellungen = await readSettings(einstellungsDatei);
+    const sprache = einstellungen.language === 'de' ? 'de' : 'en';
+    const s = protokoll?.zustand();
+    if (!s) return { ok: false, text: '' };
+    const anbieter = anbieterAus(einstellungen);
+    if (!anbieter) return { ok: false, text: translate(einstellungen.language, 'session.aiNone') };
+    try {
+      const anfrage = protokollKiAnfrage(s, sprache);
+      const antwort = await anbieter.frage({ system: anfrage.system, nachrichten: [{ rolle: 'user', inhalt: anfrage.nutzer }] }, () => {});
+      const text = bereinigeZusammenfassung(antwort);
+      return text ? { ok: true, text } : { ok: false, text: translate(einstellungen.language, 'error.aiEmpty') };
+    } catch (fehler) {
+      const schluessel = fehler instanceof KiFehler ? fehler.schluessel : 'error.aiOther';
+      const werte = fehler instanceof KiFehler ? fehler.werte : { detail: String(fehler) };
+      return { ok: false, text: translate(einstellungen.language, schluessel, werte) };
+    }
+  });
   handle('protokoll:verwerfen', async () => {
     await protokoll?.schliesse(false);
     return true;
@@ -1160,6 +1186,9 @@ function registriereKanaele(): void {
   let tischschluessel: Tischschluessel | null = null;
   const holeTischschluessel = () => (tischschluessel ??= ladeTischschluessel(join(app.getPath('userData'), 'tischschluessel.json')));
   let offenerRaum: GespeicherterRaum | null = null;
+  // Passwort des offenen eigenen Raums: der Host sieht es im Raum (Rückmeldung).
+  let offenesPasswort = '';
+  const raumPasswoerter = new Raumpasswoerter(join(app.getPath('userData'), 'raeume-passwoerter.json'));
   const meldeRaumliste = () =>
     void raumAblage.liste().then((liste) => huelle?.webContents.send('raum:ereignis', { art: 'gespeichert', raeume: liste }));
   const sichereOffenenRaum = async (aenderung: Partial<GespeicherterRaum>) => {
@@ -1284,6 +1313,8 @@ function registriereKanaele(): void {
         // Fortsetzen: Rollen und Einstellungen aus dem gespeicherten Raum. Neu: ein neuer Eintrag.
         const gespeichert = typeof optionen?.raumId === 'string' ? await raumAblage.lies(optionen.raumId) : null;
         const sl = typeof optionen?.sl === 'boolean' ? optionen.sl : undefined;
+        // Fortsetzen ohne Eingabe: das gemerkte Passwort des eigenen Raums.
+        if (!passwort && gespeichert) passwort = await raumPasswoerter.gib(gespeichert.id);
         const offen = await raum.eroeffne(name, passwort, meinName(), { internet, port, sl, rollen: gespeichert?.rollen ?? {} });
         offenerRaum = await raumAblage.speichere({
           id: gespeichert?.id ?? neueRaumId(),
@@ -1296,6 +1327,8 @@ function registriereKanaele(): void {
           geaendert: ''
         });
         raumZusatz = { einstellungen: offenerRaum.einstellungen, gruppeninventar: offenerRaum.gruppeninventar };
+        offenesPasswort = passwort;
+        await raumPasswoerter.merke(offenerRaum.id, passwort).catch(() => false);
         meldeRaumliste();
         meldeRaumLage();
         return { ok: true, port: offen, raumId: offenerRaum.id };
@@ -1304,11 +1337,16 @@ function registriereKanaele(): void {
       }
     }
   );
+  /** Ob für einen gespeicherten Raum ein Passwort gemerkt ist (das Passwort selbst bleibt hier). */
+  handle('raum:passwortGemerkt', async (_event, id: string) => typeof id === 'string' && (await raumPasswoerter.gib(id)) !== '');
+  /** Das Passwort des offenen Raums, nur für den Host. */
+  handle('raum:passwort', () => (raum.zustand().rolle === 'gastgeber' ? offenesPasswort : ''));
   handle('raum:rolle', (_event, ziel: string, sl: boolean) => typeof ziel === 'string' && raum.slRolle(ziel, sl === true));
   handle('raum:gespeicherte', () => raumAblage.liste());
   handle('raum:gespeichertLoeschen', async (_event, id: string) => {
     if (offenerRaum?.id === id) return false;
     const ok = await raumAblage.loesche(String(id));
+    await raumPasswoerter.merke(String(id), '').catch(() => false);
     meldeRaumliste();
     return ok;
   });
@@ -1378,11 +1416,23 @@ function registriereKanaele(): void {
     return true;
   });
   handle('raum:verlassen', () => {
+    offenesPasswort = '';
     raum.verlasse();
     return raum.zustand();
   });
   handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
   // Angekommene Pakete wegwerfen: eines (nach ID) oder alle (`null`).
+  /** Das angekommene Paket, in dem ein Eintrag steckt (für einen Klick im Chat), oder null. */
+  handle('raum:paketMitEintrag', (_event, werkzeug: string, kennung: string) => {
+    for (let i = raumPakete.length - 1; i >= 0; i -= 1) {
+      try {
+        if (lesePaket(raumPakete[i].paket).sendungen.some((s) => s.werkzeug === werkzeug && s.kennung === kennung)) return raumPakete[i].id;
+      } catch {
+        // kaputtes Paket: weiter
+      }
+    }
+    return null;
+  });
   handle('raum:paketVerwerfen', (_event, id: number | null) => {
     if (id === null) raumPakete.length = 0;
     else {

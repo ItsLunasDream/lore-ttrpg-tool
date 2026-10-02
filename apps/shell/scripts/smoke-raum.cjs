@@ -88,6 +88,10 @@ app.whenReady().then(async () => {
   const { zustand } = await js('window.shell.raum.zustand()');
   pruefe(zustand.rolle === 'gastgeber' && zustand.port > 0, `die App ist Gastgeber (Port ${zustand.port})`);
   pruefe(zustand.ich.name === 'Spielleitung', 'unter dem eigenen Namen');
+  // Der Host sieht sein Passwort, erst verdeckt (Rückmeldung).
+  pruefe(await bis(async () => (await js("document.querySelector('[data-hostpasswort]')?.type ?? ''")) === 'password'), 'der Host sieht das Passwort, verdeckt');
+  await js(`document.querySelector('[data-passwort-zeigen]').click(); true`);
+  pruefe((await js("document.querySelector('[data-hostpasswort]').type")) === 'text' && (await js("document.querySelector('[data-hostpasswort]').value")) === 'pw', 'auf Klick lesbar: „pw"');
   pruefe(zustand.ich.sl === true, 'mit Haken „Ich leite" ist der Gastgeber SL');
   pruefe(
     await bis(async () => /SL|GM/.test(await js("document.querySelector('[data-person=\"Spielleitung\"]')?.textContent ?? ''"))),
@@ -233,10 +237,16 @@ app.whenReady().then(async () => {
   pruefe(await bis(async () => js("Boolean(document.querySelector('[data-chat-dateien=\"7\"]'))")), 'eine Chatzeile fuer sieben Eintraege');
   const zeile7 = await js("document.querySelector('[data-chat-dateien=\"7\"]').textContent");
   pruefe(/Monster 5/.test(zeile7) && !/Monster 6/.test(zeile7) && /2/.test(zeile7), `sie nennt fuenf und zaehlt den Rest (${zeile7.trim()})`);
-  await js(`document.querySelector('[data-chat-dateien="7"]').click(); true`);
+  await js(`document.querySelector('[data-chat-dateien="7"] .raum__mehr').click(); true`);
   pruefe(
-    await bis(async () => (await js("document.querySelectorAll('[data-chat-alle-dateien] li').length")) === 7),
+    await bis(async () => (await js("document.querySelectorAll('[data-chat-dateien=\"7\"] [data-chat-eintrag]').length")) === 7),
     'ein Klick zeigt alle sieben'
+  );
+  // Klick auf einen Namen: noch nicht übernommen, also die Vorschau des Pakets (Rückmeldung).
+  await js(`document.querySelector('[data-chat-eintrag="monster/m3"]').click(); true`);
+  pruefe(
+    await bis(async () => /Monster 3/.test(await js("[...document.querySelectorAll('[data-austausch=\"raum-angekommen\"] [data-ankunft]')].map((e) => e.textContent).join(' ')")), 4000),
+    'ein Eintrag im Chat öffnet die Vorschau seines Pakets unter „Angekommen"'
   );
   await js("document.querySelector('.dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
   await warte(500);
@@ -253,6 +263,25 @@ app.whenReady().then(async () => {
   );
   await warte(300);
   pruefe(!ben.alle.some((n) => n.typ === 'paket'), 'Ben nicht');
+  // Klick auf den eigenen geteilten Eintrag: das Werkzeug öffnet ihn (Rückmeldung).
+  if (!(await js("Boolean(document.querySelector('[data-raum=\"drin\"]'))"))) {
+    await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+    await warte(600);
+    await js(`document.querySelector('[data-richtung="raum"]')?.click(); true`);
+  }
+  pruefe(await bis(async () => js("Boolean(document.querySelector('[data-chat-eintrag=\"monster/ork\"]'))")), 'der eigene Eintrag steht anklickbar im Chat');
+  await js(`document.querySelector('[data-chat-eintrag="monster/ork"]').click(); true`);
+  pruefe(
+    await bis(async () => !(await js("Boolean(document.querySelector('.dialog'))")) && /Monster/.test(await js("document.querySelector('.schiene__eintrag--an')?.getAttribute('title') ?? ''")), 8000),
+    'ein Klick schließt den Dialog und öffnet den Monster Creator'
+  );
+  // Zurück in den Zustand davor: Startseite, Teilen-Dialog im Raum.
+  await js(`document.querySelector('.schiene__heim')?.click(); true`);
+  await warte(500);
+  await js(`document.querySelector('[data-teilen-knopf]').click(); true`);
+  await warte(600);
+  await js(`document.querySelector('[data-richtung="raum"]')?.click(); true`);
+  await warte(300);
 
   // --- Weitere Apps: ein magischer Gegenstand -------------------------------
   const gegenstand = await js(`window.shell.raum.senden([{ werkzeug: 'magicitems', kennung: 'klinge' }], null)`);
@@ -335,9 +364,11 @@ app.whenReady().then(async () => {
   await warte(300);
   if (process.env.BILD_RAEUME) fs.writeFileSync(process.env.BILD_RAEUME, (await huelle.webContents.capturePage()).toPNG());
   pruefe((await js("document.querySelector('[data-raumname]').value")) === 'Freitagsrunde', '„Fortsetzen" traegt den Namen ein');
-  pruefe((await js("document.querySelector('[data-raum-passwort]').value")) === '', 'das Passwort muss neu eingegeben werden');
+  // Das Passwort ist gemerkt, wo das System verschlüsseln kann; dann bleibt das Feld leer.
+  const gemerkt = await bis(async () => /gemerkt|remembered/i.test(await js("document.querySelector('[data-raum-passwort]').placeholder")), 1500);
+  console.log(`  info Passwort gemerkt (Schlüsselbund verfügbar): ${gemerkt ? 'ja' : 'nein'}`);
   pruefe(!(await js("Boolean(document.querySelector('[data-raum-sl]'))")), 'beim Fortsetzen entscheiden die gemerkten Rollen, kein Haken');
-  await setze('[data-raum-passwort]', 'pw2');
+  if (!gemerkt) await setze('[data-raum-passwort]', 'pw');
   await js(`document.querySelector('[data-raum-eroeffnen]').click(); true`);
   pruefe(await bis(async () => js("Boolean(document.querySelector('[data-raum=\"drin\"]'))")), 'der Raum ist wieder offen');
   pruefe(
@@ -345,6 +376,7 @@ app.whenReady().then(async () => {
     'und der Gastgeber ist, wie gemerkt, keine SL mehr'
   );
   pruefe(raumDateien().length === 1, 'es bleibt ein gespeicherter Raum, kein zweiter');
+  pruefe(await bis(async () => (await js("document.querySelector('[data-hostpasswort]')?.value ?? ''")) === 'pw'), 'fortgesetzt mit demselben Passwort');
   await js('window.shell.raum.verlassen()');
   await warte(300);
 

@@ -3,8 +3,9 @@
  * „Rollen und gespeicherte Raeume").
  *
  * Der Gastgeber speichert einen Raum mit Namen, Port, Internet-Schalter und
- * den gemerkten Rollen je Tischschluessel. Das Passwort wird bewusst nicht
- * gespeichert: wer den Raum fortsetzt, gibt es neu ein.
+ * den gemerkten Rollen je Tischschluessel. Das Passwort steht nicht hier
+ * (die Datei laesst sich exportieren), sondern verschluesselt daneben in
+ * `raumPasswort.ts`, damit „Fortsetzen" ohne neues Eintippen geht.
  *
  * Der Tischschluessel ist ein Ed25519-Schluesselpaar je Installation. Mit ihm
  * erkennt der Gastgeber eine Person wieder, auch unter anderem Namen.

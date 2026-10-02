@@ -27,6 +27,11 @@ export function Protokoll({ onClose, t }: Props) {
   const [zusammenfassung, setZusammenfassung] = useState('');
   const [vorschau, setVorschau] = useState('');
   const [meldung, setMeldung] = useState('');
+  const [kiDa, setKiDa] = useState(false);
+  const [kiLaeuft, setKiLaeuft] = useState(false);
+  useEffect(() => {
+    void window.shell.protokoll.kiDa().then(setKiDa).catch(() => setKiDa(false));
+  }, []);
 
   useEffect(() => {
     void window.shell.protokoll.zustand().then(setSitzung);
@@ -107,6 +112,30 @@ export function Protokoll({ onClose, t }: Props) {
             <span>{t('session.summary')}</span>
             <textarea className="feld__eingabe" rows={3} value={zusammenfassung} data-protokoll-zusammenfassung onChange={(e) => setZusammenfassung(e.target.value)} />
           </label>
+          {kiDa ? (
+            <button
+              type="button"
+              className="dialog__knopf"
+              data-protokoll-ki
+              disabled={kiLaeuft}
+              onClick={() =>
+                void (async () => {
+                  if (zusammenfassung.trim() && !confirm(t('session.aiReplace'))) return;
+                  setKiLaeuft(true);
+                  setMeldung('');
+                  try {
+                    const r = await window.shell.protokoll.ki();
+                    if (r.ok) setZusammenfassung(r.text);
+                    else if (r.text) setMeldung(r.text);
+                  } finally {
+                    setKiLaeuft(false);
+                  }
+                })()
+              }
+            >
+              {kiLaeuft ? t('session.aiRunning') : `✦ ${t('session.aiButton')}`}
+            </button>
+          ) : null}
           <p className="feld__hinweis">{t('session.entries')}</p>
           <ul className="protokoll__liste protokoll__liste--wahl" data-protokoll-auswahl>
             {sitzung.eintraege.length === 0 ? <li className="feld__hinweis">{t('session.empty')}</li> : null}

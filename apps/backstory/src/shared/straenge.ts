@@ -84,31 +84,51 @@ export interface Kante {
 }
 
 /**
- * Ordnet die Straenge an: je Strang eine Zeile, die Spalte ist die Stelle in
- * der Folge. Ein abzweigender Strang beginnt eine Spalte hinter seiner
- * Abzweignotiz. Ringe (A zweigt von B, B von A) werden gebrochen: dann
- * beginnt der spaetere bei Spalte 0.
+ * Ordnet die Straenge an: je Strang eine Zeile, jede Notiz eine Spalte.
+ * Regeln wie bei Git:
+ *
+ * - Im Strang folgt jede Notiz rechts von der vorigen.
+ * - Ein abzweigender Strang beginnt rechts von seiner Abzweignotiz.
+ * - Die Mündungsnotiz liegt rechts von der letzten Notiz des mündenden
+ *   Strangs (Rückmeldung: sonst sah eine Mündung wie eine Abzweigung aus).
+ *   Dafür rücken nur die Notizen ab der Mündung nach rechts; davor bleibt
+ *   eine Lücke im Strang, wie in einem Git-Graphen.
+ *
+ * Gelöst durch Nachschieben, bis nichts mehr rückt (längster Weg). Ringe
+ * lassen sich nicht erfüllen; nach begrenzt vielen Runden wird der Stand
+ * genommen.
  */
 export function ordneStraenge(straenge: readonly Strang[]): { knoten: Knoten[]; kanten: Kante[]; spalten: number } {
   const nachId = new Map(straenge.map((s) => [s.id, s]));
   const zeile = new Map(straenge.map((s, i) => [s.id, i]));
-  const start = new Map<string, number>();
-  const inArbeit = new Set<string>();
-
-  const startVon = (s: Strang): number => {
-    const fertig = start.get(s.id);
-    if (fertig !== undefined) return fertig;
-    let wert = 0;
-    if (s.von && !inArbeit.has(s.id)) {
-      inArbeit.add(s.id);
-      const eltern = nachId.get(s.von.strang);
-      const stelle = eltern ? eltern.notizen.indexOf(s.von.notiz) : -1;
-      if (eltern && stelle >= 0 && !inArbeit.has(eltern.id)) wert = startVon(eltern) + stelle + 1;
-      inArbeit.delete(s.id);
+  /** Spalte je Notiz, je Strang. */
+  const spalteVon = new Map(straenge.map((s) => [s.id, s.notizen.map((_, i) => i)]));
+  const gesamt = straenge.reduce((n, s) => n + s.notizen.length, 0);
+  for (let runde = 0; runde <= gesamt + 1; runde += 1) {
+    let geaendert = false;
+    const mindestens = (id: string, i: number, wert: number) => {
+      const liste = spalteVon.get(id)!;
+      if (wert > liste[i]) {
+        liste[i] = wert;
+        geaendert = true;
+      }
+    };
+    for (const s of straenge) {
+      const eigene = spalteVon.get(s.id)!;
+      if (s.von && s.notizen.length) {
+        const eltern = nachId.get(s.von.strang);
+        const stelle = eltern ? eltern.notizen.indexOf(s.von.notiz) : -1;
+        if (eltern && stelle >= 0) mindestens(s.id, 0, spalteVon.get(eltern.id)![stelle] + 1);
+      }
+      for (let i = 1; i < eigene.length; i += 1) mindestens(s.id, i, eigene[i - 1] + 1);
+      if (s.nach && s.notizen.length) {
+        const ziel = nachId.get(s.nach.strang);
+        const stelle = ziel ? ziel.notizen.indexOf(s.nach.notiz) : -1;
+        if (ziel && stelle >= 0) mindestens(ziel.id, stelle, eigene[eigene.length - 1] + 1);
+      }
     }
-    start.set(s.id, wert);
-    return wert;
-  };
+    if (!geaendert) break;
+  }
 
   const knoten: Knoten[] = [];
   const kanten: Kante[] = [];
@@ -116,24 +136,25 @@ export function ordneStraenge(straenge: readonly Strang[]): { knoten: Knoten[]; 
     const s = nachId.get(strang);
     if (!s) return null;
     const i = s.notizen.indexOf(notiz);
-    return i < 0 ? null : { spalte: startVon(s) + i, zeile: zeile.get(strang)! };
+    return i < 0 ? null : { spalte: spalteVon.get(strang)![i], zeile: zeile.get(strang)! };
   };
 
   let spalten = 0;
   for (const s of straenge) {
-    const anfang = startVon(s);
+    const sp = spalteVon.get(s.id)!;
+    const z = zeile.get(s.id)!;
     s.notizen.forEach((notiz, i) => {
-      knoten.push({ strang: s.id, notiz, spalte: anfang + i, zeile: zeile.get(s.id)! });
-      spalten = Math.max(spalten, anfang + i + 1);
-      if (i > 0) kanten.push({ von: { spalte: anfang + i - 1, zeile: zeile.get(s.id)! }, nach: { spalte: anfang + i, zeile: zeile.get(s.id)! }, art: 'folge', strang: s.id });
+      knoten.push({ strang: s.id, notiz, spalte: sp[i], zeile: z });
+      spalten = Math.max(spalten, sp[i] + 1);
+      if (i > 0) kanten.push({ von: { spalte: sp[i - 1], zeile: z }, nach: { spalte: sp[i], zeile: z }, art: 'folge', strang: s.id });
     });
     if (s.von && s.notizen.length) {
       const a = ort(s.von.strang, s.von.notiz);
-      if (a) kanten.push({ von: a, nach: { spalte: anfang, zeile: zeile.get(s.id)! }, art: 'abzweig', strang: s.id });
+      if (a) kanten.push({ von: a, nach: { spalte: sp[0], zeile: z }, art: 'abzweig', strang: s.id });
     }
     if (s.nach && s.notizen.length) {
       const b = ort(s.nach.strang, s.nach.notiz);
-      if (b) kanten.push({ von: { spalte: anfang + s.notizen.length - 1, zeile: zeile.get(s.id)! }, nach: b, art: 'muendung', strang: s.id });
+      if (b) kanten.push({ von: { spalte: sp[sp.length - 1], zeile: z }, nach: b, art: 'muendung', strang: s.id });
     }
   }
   return { knoten, kanten, spalten };

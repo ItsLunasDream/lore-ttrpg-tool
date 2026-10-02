@@ -26,9 +26,11 @@ interface Props {
   readonly raeume: readonly GefundenerRaum[];
   readonly fehler: string;
   readonly t: (key: MessageKey, params?: MessageParams) => string;
+  /** Klick auf einen Eintrag in einer Chatzeile (Rückmeldung: Items direkt öffnen). */
+  readonly oeffneEintrag?: (e: { werkzeug: string; kennung: string; name: string }) => void;
 }
 
-export function Raum({ zustand, raeume, fehler, t }: Props) {
+export function Raum({ zustand, raeume, fehler, t, oeffneEintrag }: Props) {
   const [name, setName] = useState('');
   const [raumName, setRaumName] = useState('');
   const [passwort, setPasswort] = useState('');
@@ -43,6 +45,11 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   const [ichLeite, setIchLeite] = useState(true);
   const [gespeicherte, setGespeicherte] = useState<readonly GespeicherterRaum[]>([]);
   const [fortsetzen, setFortsetzen] = useState<GespeicherterRaum | null>(null);
+  // Für den eigenen Raum ist das Passwort gemerkt: dann muss es nicht neu eingetippt werden.
+  const [pwGemerkt, setPwGemerkt] = useState(false);
+  // Im offenen Raum: der Host sieht sein Passwort (Rückmeldung), standardmäßig verdeckt.
+  const [hostPasswort, setHostPasswort] = useState('');
+  const [pwZeigen, setPwZeigen] = useState(false);
   const [loeschFrage, setLoeschFrage] = useState<string | null>(null);
   const [umbenennenId, setUmbenennenId] = useState<string | null>(null);
   const [umbenennenText, setUmbenennenText] = useState('');
@@ -52,6 +59,9 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
   useEffect(() => {
     if (zustand.rolle === 'gastgeber') void window.shell.raum.einstellungen({}).then(setRaumEinst);
     else setRaumEinst(null);
+    if (zustand.rolle === 'gastgeber') void window.shell.raum.passwort().then(setHostPasswort);
+    else setHostPasswort('');
+    setPwZeigen(false);
   }, [zustand.rolle, zustand.raum]);
   const setzeEinst = (aenderung: { gruppeNehmen?: boolean; slMarkieren?: boolean }) =>
     void window.shell.raum.einstellungen(aenderung).then(setRaumEinst);
@@ -165,6 +175,8 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
     if (r.port) setInternetPort(String(r.port));
     setPasswort('');
     setEigenerFehler('');
+    setPwGemerkt(false);
+    void window.shell.raum.passwortGemerkt(r.id).then(setPwGemerkt);
   };
   const leseRaumEin = () => {
     void window.shell.raum.gespeichertImport().then((a) => {
@@ -326,15 +338,15 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
             type="password"
             data-raum-passwort
             value={passwort}
-            placeholder={internet ? t('room.passwordRequired') : t('room.passwordOptional')}
+            placeholder={fortsetzen && pwGemerkt ? t('room.passwordRemembered') : internet ? t('room.passwordRequired') : t('room.passwordOptional')}
             onChange={(e) => setPasswort(e.target.value)}
           />
           <button
             type="button"
             className="dialog__knopf"
             data-raum-eroeffnen
-            disabled={internet && (!passwort || !portGut)}
-            title={internet && !passwort ? t('room.hint.password') : internet && !portGut ? t('room.hint.port') : undefined}
+            disabled={internet && ((!passwort && !(fortsetzen && pwGemerkt)) || !portGut)}
+            title={internet && !passwort && !(fortsetzen && pwGemerkt) ? t('room.hint.password') : internet && !portGut ? t('room.hint.port') : undefined}
             onClick={eroeffnen}
           >
             {fortsetzen ? t('room.resumeButton') : t('room.openButton')}
@@ -461,7 +473,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
               </button>
             </div>
             <div className="raum__chat">
-              <Chatliste chat={zustand.letzter.chat} aufgeklappt={aufgeklappt} setAufgeklappt={setAufgeklappt} t={t} />
+              <Chatliste chat={zustand.letzter.chat} aufgeklappt={aufgeklappt} setAufgeklappt={setAufgeklappt} t={t} oeffne={oeffneEintrag} />
             </div>
           </section>
         )}
@@ -512,6 +524,18 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
           {zustand.rolle === 'gastgeber' ? t('room.close') : t('room.leave')}
         </button>
       </div>
+      {zustand.rolle === 'gastgeber' && hostPasswort ? (
+        <div className="raum__reihe" data-raum-hostpasswort>
+          <span className="austausch__art">{t('room.password')}</span>
+          <input className="suche__feld raum__eingabe" readOnly type={pwZeigen ? 'text' : 'password'} value={hostPasswort} data-hostpasswort aria-label={t('room.password')} />
+          <button type="button" className="dialog__knopf" data-passwort-zeigen aria-pressed={pwZeigen} onClick={() => setPwZeigen((z) => !z)}>
+            {pwZeigen ? t('room.passwordHide') : t('room.passwordShow')}
+          </button>
+          <button type="button" className="dialog__knopf" onClick={() => kopiere(hostPasswort)}>
+            {kopiert === hostPasswort ? '✓' : t('room.copy')}
+          </button>
+        </div>
+      ) : null}
       {zustand.rolle === 'gastgeber' && zustand.port !== null && (
         <Adressen
           zustand={zustand}
@@ -642,7 +666,7 @@ export function Raum({ zustand, raeume, fehler, t }: Props) {
         {zustand.chat.length === 0 ? (
           <p className="einst__satz">{t('room.emptyChat')}</p>
         ) : (
-          <Chatliste chat={zustand.chat} aufgeklappt={aufgeklappt} setAufgeklappt={setAufgeklappt} t={t} />
+          <Chatliste chat={zustand.chat} aufgeklappt={aufgeklappt} setAufgeklappt={setAufgeklappt} t={t} oeffne={oeffneEintrag} />
         )}
       </div>
       <div className="raum__reihe">
@@ -787,8 +811,10 @@ function Chatliste({
   chat,
   aufgeklappt,
   setAufgeklappt,
-  t
+  t,
+  oeffne
 }: {
+  readonly oeffne?: Props['oeffneEintrag'];
   readonly chat: readonly Chatzeile[];
   readonly aufgeklappt: Set<number>;
   readonly setAufgeklappt: (f: (alt: Set<number>) => Set<number>) => void;
@@ -813,6 +839,8 @@ function Chatliste({
             {z.dateien ? (
               <Dateizeile
                 dateien={z.dateien}
+                eintraege={z.eintraege}
+                oeffne={oeffne}
                 offen={aufgeklappt.has(i)}
                 schalte={() =>
                   setAufgeklappt((alt) => {
@@ -843,16 +871,39 @@ const SICHTBARE_DATEIEN = 5;
  */
 function Dateizeile({
   dateien,
+  eintraege,
+  oeffne,
   offen,
   schalte,
   t
 }: {
   readonly dateien: readonly string[];
+  readonly eintraege?: readonly { werkzeug: string; kennung: string; name: string }[];
+  readonly oeffne?: Props['oeffneEintrag'];
   readonly offen: boolean;
   readonly schalte: () => void;
   readonly t: Props['t'];
 }) {
   const mehr = dateien.length - SICHTBARE_DATEIEN;
+  // Mit Werkzeug und Kennung: jeder Name ist ein Knopf, der den Eintrag öffnet.
+  if (eintraege && eintraege.length && oeffne) {
+    const knopf = (e: { werkzeug: string; kennung: string; name: string }, i: number) => (
+      <button key={i} type="button" className="raum__eintrag" data-chat-eintrag={`${e.werkzeug}/${e.kennung}`} title={t('room.openItem')} onClick={() => oeffne(e)}>
+        {e.name}
+      </button>
+    );
+    return (
+      <span className="raum__dateien raum__dateien--knoepfe" data-chat-dateien={eintraege.length}>
+        📎 {eintraege.length === 1 ? t('room.sharedOne') : t('room.sharedFiles', { anzahl: eintraege.length })}{' '}
+        {(offen ? eintraege : eintraege.slice(0, SICHTBARE_DATEIEN)).map(knopf)}
+        {eintraege.length > SICHTBARE_DATEIEN ? (
+          <button type="button" className="raum__mehr" aria-expanded={offen} onClick={schalte}>
+            {offen ? '−' : t('room.moreFiles', { anzahl: eintraege.length - SICHTBARE_DATEIEN })}
+          </button>
+        ) : null}
+      </span>
+    );
+  }
   return (
     <>
       <button type="button" className="raum__dateien" data-chat-dateien={dateien.length} aria-expanded={offen} title={t('room.showFiles')} onClick={schalte}>

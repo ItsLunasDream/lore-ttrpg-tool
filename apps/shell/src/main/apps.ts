@@ -385,7 +385,46 @@ function setzeCsp(partition: string, richtlinie: string): void {
 }
 
 /** Gemeinsame Absicherung fuer jede eingebettete Ansicht. */
+/** Merkzeichen, mit dem eine Ansicht meldet, dass ein nativer Dialog zu ist. */
+const DIALOG_ZU = '__huelle_dialog_zu__';
+
+/**
+ * Nach `confirm()`/`alert()` lassen sich unter Windows Textfelder oft nicht
+ * mehr anklicken, bis das Fenster neu fokussiert wird (bekannter
+ * Electron-Fehler; Rückmeldung „Name-Feld lässt sich manchmal nicht
+ * anklicken"). Jede Ansicht meldet das Schließen eines solchen Dialogs, die
+ * Hülle holt dann den Fokus einmal weg und zurück. Eine Stelle für alle
+ * Werkzeuge statt 23 Aufrufstellen.
+ */
+export function fokussiereNachDialog(sicht: WebContentsView): void {
+  sicht.webContents.on('dom-ready', () => {
+    void sicht.webContents
+      .executeJavaScript(
+        `(() => { if (window.__huelleDialog) return; window.__huelleDialog = true;
+          for (const n of ['confirm', 'alert', 'prompt']) { const alt = window[n]; if (typeof alt !== 'function') continue;
+            window[n] = function (...a) { try { return alt.apply(window, a); } finally { console.debug('${DIALOG_ZU}'); } }; } })()`
+      )
+      .catch(() => undefined);
+  });
+  sicht.webContents.on('console-message', (_e, _stufe, text) => {
+    if (text !== DIALOG_ZU) return;
+    const fenster = huellenFenster;
+    if (!fenster || fenster.isDestroyed()) return;
+    fenster.blur();
+    fenster.focus();
+    if (!sicht.webContents.isDestroyed()) sicht.webContents.focus();
+  });
+}
+
+let huellenFenster: BaseWindow | null = null;
+
+/** Das Fenster der Hülle, für das Zurückholen des Fokus nach Dialogen. */
+export function setzeHuellenFenster(fenster: BaseWindow): void {
+  huellenFenster = fenster;
+}
+
 function sichereAb(sicht: WebContentsView, devServerUrl: string | null): void {
+  fokussiereNachDialog(sicht);
   // Externe Links gehoeren in den Systembrowser. Ohne das laege auf einer
   // fremden Seite dieselbe Bruecke zum Dateisystem wie auf der eigenen.
   sicht.webContents.setWindowOpenHandler(({ url }) => {
@@ -1726,7 +1765,8 @@ async function montiereOrte(id: string, haken: MontageHaken): Promise<MontierteA
     onLanguageChange: (language) => haken.onLanguageChange(language as Language),
     onEreignis: haken.onEreignis,
     kampagnen: () => zielKampagnen(haken.stelleStoryBereit),
-    anlegen: (notizen, kampagneId, optionen) => legeNotizenAn(notizen, kampagneId, optionen, haken)
+    anlegen: (notizen, kampagneId, optionen) => legeNotizenAn(notizen, kampagneId, optionen, haken),
+    kiQuelle: haken.kiQuelle
   });
 
   setzeCsp(sitzung(id), eingebettet.csp);
@@ -1755,7 +1795,8 @@ async function montiereOrte(id: string, haken: MontageHaken): Promise<MontierteA
     istGeladen: () => geladen,
     flush: () => eingebettet.flush(),
     setLanguage: (language) => eingebettet.setLanguage(sicht.webContents as WebContents, language),
-    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung)
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
+    meldeKiWechsel: () => eingebettet.meldeKiWechsel(sicht.webContents as WebContents)
   };
 }
 

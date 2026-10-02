@@ -57,6 +57,8 @@ export interface Chatzeile {
   readonly eigene: boolean;
   /** Bei einem Paket: die Namen der Eintraege darin (der Text bleibt leer). */
   readonly dateien?: readonly string[];
+  /** Dieselben Eintraege mit Werkzeug und Kennung, damit ein Klick sie oeffnet. */
+  readonly eintraege?: readonly { werkzeug: string; kennung: string; name: string }[];
   /** Eine Zeile der App selbst: `von` ist gekommen oder gegangen. */
   readonly system?: 'kommt' | 'geht';
 }
@@ -95,6 +97,14 @@ export interface Raumzustand {
 }
 
 /** Die Namen der Eintraege eines Pakets; laesst es sich nicht lesen, der Titel. */
+function eintraegeIn(paket: string): { werkzeug: string; kennung: string; name: string }[] {
+  try {
+    return lesePaket(paket).sendungen.map((s) => ({ werkzeug: s.werkzeug, kennung: s.kennung, name: s.name }));
+  } catch {
+    return [];
+  }
+}
+
 function namenIn(paket: string, titel: string): string[] {
   try {
     const namen = lesePaket(paket).sendungen.map((s) => s.name);
@@ -877,7 +887,7 @@ export class Raumdienst {
       this.melde({ art: 'chat', zeile });
     } else {
       // Im Chat steht, wer was geschickt hat, auch beim Absender selbst.
-      const zeile: Chatzeile = { von, an, text: '', zeit: n.zeit, eigene: von.id === this.ich?.id, dateien: namenIn(n.paket, n.titel) };
+      const zeile: Chatzeile = { von, an, text: '', zeit: n.zeit, eigene: von.id === this.ich?.id, dateien: namenIn(n.paket, n.titel), eintraege: eintraegeIn(n.paket) };
       this.chat = [...this.chat, zeile].slice(-500);
       this.melde({ art: 'chat', zeile });
       if (von.id !== this.ich?.id) this.melde({ art: 'paket', von, an, titel: n.titel, paket: n.paket });

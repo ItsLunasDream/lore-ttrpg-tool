@@ -13,7 +13,7 @@ import { canHoldObjects } from '@/model/document';
 import { t } from '@/i18n';
 import { jitterHsl } from '@/model/color';
 import { Rng } from '@/model/rng';
-import { getProp } from '@/assets/library';
+import { getProp, grundSkala } from '@/assets/library';
 import { tileScale, worldAABB } from '@/engine/hitTest';
 import type { MapObject, ObjectId, PropObject } from '@/model/types';
 import { createProp } from './factory';
@@ -204,7 +204,7 @@ export class BrushTool implements Tool {
     const def = getProp(propId);
     if (!def) return null;
 
-    const scale = this.rng.range(s.scaleMin, s.scaleMax);
+    const scale = this.rng.range(s.scaleMin, s.scaleMax) * grundSkala(propId);
     const footprint = (Math.max(def.size.w, def.size.h) / 2) * scale * tileScale(ctx.doc);
     const minDist = footprint * s.spacing;
 

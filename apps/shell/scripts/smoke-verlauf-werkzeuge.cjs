@@ -23,7 +23,7 @@ fs.writeFileSync(
 );
 fs.writeFileSync(
   path.join(userData, 'einstellungen.json'),
-  JSON.stringify({ language: 'en', einfuehrungGesehen: ['suite', 'loot', 'nachschlagewerk', 'magicitems'] })
+  JSON.stringify({ language: 'en', einfuehrungGesehen: ['suite', 'loot', 'nachschlagewerk', 'magicitems', 'backstory'] })
 );
 app.setPath('userData', userData);
 require(path.join(__dirname, '..', 'dist', 'main', 'index.js'));
@@ -119,6 +119,38 @@ app.whenReady().then(async () => {
       zuletzt.indexOf('nachschlagewerk/zustand/prone') < zuletzt.indexOf('nachschlagewerk/zustand/blinded'),
     `mit den zuletzt geoeffneten Eintraegen, neueste zuerst (${zuletzt.join(', ')})`
   );
+
+  await hjs(`document.querySelector('.dialog__fuss .dialog__knopf')?.click(); true`);
+  await warte(400);
+
+  // --- Story Creator: Graph, Zeitstrahl und Handlungsstränge stehen im Verlauf -------
+  const sc = await oeffneApp('backstory');
+  await sc(`(async () => {
+    const aus = (a) => (a && 'value' in a ? a.value : a);
+    let k = (aus(await window.api.campaigns.list()) ?? [])[0];
+    if (!k) k = aus(await window.api.campaigns.create('Testrunde'));
+    await window.api.notes.create(k.id, 'note', 'Erste Notiz');
+    return true; })()`);
+  // Neu laden, damit die Notiz in der Liste steht.
+  sicht('backstory').webContents.reload();
+  await warte(3000);
+  await sc(`document.querySelector('.note-list button, [data-note-id]')?.click(); true`);
+  await warte(600);
+  await sc(`document.querySelector('[data-graph-knopf]').click(); true`);
+  await warte(600);
+  await sc(`document.querySelector('[data-ansicht="zeit"]').click(); true`);
+  await warte(600);
+  await sc(`document.querySelector('[data-ansicht="straenge"]').click(); true`);
+  await warte(600);
+  const reiter = () => sc(`document.querySelector('[data-ansicht][aria-selected="true"]')?.dataset.ansicht ?? 'kein Graph'`);
+  await zurueck();
+  pruefe((await reiter()) === 'zeit', `Story: zurück von den Handlungssträngen zum Zeitstrahl (${await reiter()})`);
+  await zurueck();
+  pruefe((await reiter()) === 'graph', `Story: noch einmal zurück zum Graphen (${await reiter()})`);
+  await zurueck();
+  pruefe((await reiter()) === 'kein Graph', 'Story: und dann zurück zur Notiz');
+  await vor();
+  pruefe((await reiter()) === 'graph', 'Story: vor führt wieder in den Graphen');
 
   console.log(fehler.length === 0 ? '\nVerlauf in den Werkzeugen bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
