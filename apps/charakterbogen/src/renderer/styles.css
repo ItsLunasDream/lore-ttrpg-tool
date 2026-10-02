@@ -209,6 +209,25 @@ textarea {
   font-size: 13px;
 }
 
+/* Tote Figur (Rückmeldung): Kachel gedämpft, „Tot" neben den TP. */
+.kachel--tot {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.kachel__tot {
+  color: var(--gefahr);
+  font-weight: 700;
+}
+
+/* Tote Figur: der Bogen ausgegraut, aber weiter bedienbar (Todesrettung zurücksetzen). */
+.blatt--tot .mit-gestalt__bogen > :not(.totmarke):not(.wurfanzeige),
+.blatt--tot .kompakt > :not(.totmarke) {
+  filter: grayscale(1);
+  opacity: 0.6;
+  transition: filter 0.3s, opacity 0.3s;
+}
+
 /* --- Bogen ---------------------------------------------------------------- */
 
 .feld {
@@ -449,6 +468,12 @@ textarea {
 
 .zaubertreffer li {
   grid-template-columns: 30px 1fr auto auto;
+}
+
+/* Aufgeklappte Beschreibung über die ganze Zeile. */
+.zaubertreffer__detail {
+  grid-column: 1 / -1;
+  margin: 2px 0 8px;
 }
 
 .zauberzeile__grad {
@@ -2237,27 +2262,105 @@ button.wuerfelbar:hover:not(:disabled) {
   background: var(--betont-leise);
 }
 
+/* Würfe vom Bogen: ein Stapel unten rechts, neue unten, ältere rutschen hoch (Rückmeldung). */
 .wurfanzeige {
   position: fixed;
   right: 16px;
   bottom: 16px;
   z-index: 50;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
+  max-width: min(620px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.wurfanzeige > * {
+  pointer-events: auto;
+}
+
+.wurfanzeige__zeile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--grund-hoch);
-  border: 1px solid var(--betont);
-  border-radius: 10px;
+  border: 2px solid var(--betont);
+  border-radius: 12px;
   box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+  overflow: hidden;
+  animation: wurf-rein 0.45s ease-out both, wurf-blitz 1.2s ease-out 0.1s;
+}
+
+.wurfanzeige__zeile.is-geht {
+  animation: wurf-raus 0.6s ease-in forwards;
+}
+
+.wurfanzeige__hinweis {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+@keyframes wurf-rein {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    max-height: 240px;
+    transform: none;
+  }
+}
+
+/* Kurz aufleuchten, damit man die neue Zeile bemerkt. */
+@keyframes wurf-blitz {
+  0%,
+  40% {
+    box-shadow: 0 0 0 4px var(--betont), 0 12px 28px rgb(0 0 0 / 0.35);
+  }
+  100% {
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
+  }
+}
+
+@keyframes wurf-raus {
+  from {
+    opacity: 1;
+    max-height: 240px;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: -8px;
+    transform: translateX(40px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wurfanzeige__zeile,
+  .wurfanzeige__zeile.is-geht {
+    animation-duration: 0.01s;
+  }
 }
 
 .wurfanzeige__ziel {
   display: inline-flex;
   gap: 2px;
+  padding: 4px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 10px;
 }
 
 .wurfanzeige__ziel button {
@@ -2289,4 +2392,41 @@ button.wuerfelbar:hover:not(:disabled) {
 
 .todesrettung.ist-tot {
   border-color: var(--gefahr);
+}
+
+/* Hinweise nach Klasse und Stufe. */
+.klassenhinweise summary {
+  cursor: pointer;
+}
+
+.klassenhinweise ul {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.klassenhinweise li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 8px;
+  border-left: 3px solid transparent;
+}
+
+.klassenhinweise li.is-ab {
+  border-left-color: var(--betont);
+  background: var(--betont-leise);
+}
+
+.klassenhinweise__zahl {
+  color: var(--betont);
+  font-weight: 600;
+}
+
+.klassenhinweise__quelle {
+  margin: 4px 0 0;
+  font-size: 12px;
 }

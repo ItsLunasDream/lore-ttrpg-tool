@@ -5,9 +5,8 @@
  * Kennung; Name und Text holt die Oberflaeche in ihrer Sprache. Eigene
  * Zauber tragen Name, Grad und Text selbst.
  *
- * Nicht gerechnet: wie viele Plaetze eine Klasse auf welcher Stufe hat und
- * wie viele Zauber vorbereitet sein duerfen. Das steht in den
- * Klassentabellen und traegt man selbst ein (docs/charakterbogen.md).
+ * Plaetze und vorbereitete Zauber traegt man selbst ein; die Werte der
+ * Klassentabellen schlaegt `klassenhinweise.ts` vor (docs/charakterbogen.md).
  */
 import { ZAUBER, type Zauber, type Zauberklasse } from '@suite/srd/zauber';
 import { ATTRIBUTE, type Attribut } from './regeln';
@@ -110,6 +109,35 @@ export function verbrauche(z: Zauberei, grad: number): Zauberei {
 
 export function fuellePlaetze(z: Zauberei): Zauberei {
   return { ...z, plaetze: z.plaetze.map((p) => ({ ...p, verbraucht: 0 })) };
+}
+
+const ANGRIFF = /\b(melee|ranged) spell attack/i;
+const ANGRIFF_EIGEN = /spell attack|zauberangriff/i;
+
+/**
+ * Ob der Zauber einen Zauberangriff verlangt (Rückmeldung: beim Wirken
+ * gleich mitwürfeln). SRD: „make a melee/ranged spell attack" im englischen
+ * Text (21 Zauber); eigene Zauber: das Wort im Text.
+ */
+export function istAngriffszauber(e: ZauberEintrag): boolean {
+  if (e.eigen) return ANGRIFF_EIGEN.test(e.eigen.text);
+  const z = e.srd ? NACH_ID.get(e.srd) : undefined;
+  return Boolean(z?.bloecke.en.some((b) => 'text' in b && ANGRIFF.test(b.text)));
+}
+
+/**
+ * Die Zeile zum Wirken für Anzeige und Raum. `platz` ist der verbrauchte
+ * Grad; 0 = Zaubertrick, null = gewirkt ohne freien Platz.
+ */
+export function wirkZeile(name: string, platz: number | null, sprache: 'de' | 'en'): string {
+  const de = sprache === 'de';
+  const wie =
+    platz === 0
+      ? de ? 'Zaubertrick' : 'cantrip'
+      : platz === null
+        ? de ? 'ohne freien Platz' : 'without a free slot'
+        : de ? `Platz des ${platz}. Grades` : `level ${platz} slot`;
+  return `✨ ${de ? `${name} gewirkt` : `${name} cast`} (${wie})`;
 }
 
 /** Nach Grad, dann Name; Zaubertricks zuerst. */

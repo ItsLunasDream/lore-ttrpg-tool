@@ -2,10 +2,11 @@
  * Würfeln vom Bogen (Rückmeldung): ein Klick auf Name oder Bonus einer
  * Fertigkeit, eines Attributs, eines Rettungswurfs oder auf die Initiative.
  *
- * Das Ergebnis steht unten rechts im Bogen. Im Raum geht es, je nach Wahl,
+ * Die Ergebnisse stehen unten rechts im Bogen, gestapelt: neue unten,
+ * ältere rutschen hoch und gehen nach 25 s. Im Raum geht es, je nach Wahl,
  * an alle, nur an die SL oder an niemanden (gemerkt pro Gerät).
  */
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from './api';
 import { t } from './i18n';
 import { probe } from '../shared/proben';
@@ -35,9 +36,37 @@ function leseZiel(): Ziel {
   }
 }
 
+/** Wie lange eine Zeile stehen bleibt (Rückmeldung: 20–30 s) und wie viele höchstens. */
+const STEHT_MS = 25_000;
+const RAUS_MS = 600;
+const HOECHSTENS = 6;
+
+interface Zeile {
+  nr: number;
+  text: string;
+  hinweis: string;
+  /** Läuft gerade aus (Animation), danach weg. */
+  geht: boolean;
+}
+
 export function WurfBuehne({ imRaum, children }: { imRaum: boolean; children: ReactNode }) {
-  const [zeile, setZeile] = useState<{ text: string; hinweis: string; nr: number } | null>(null);
+  const [zeilen, setZeilen] = useState<Zeile[]>([]);
   const [ziel, setZielZustand] = useState<Ziel>(leseZiel);
+  const zaehler = useRef(0);
+  const uhren = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const alle = uhren.current;
+    return () => {
+      for (const u of alle) clearTimeout(u);
+    };
+  }, []);
+  const spaeter = useCallback((ms: number, tu: () => void) => {
+    const u = setTimeout(() => {
+      uhren.current.delete(u);
+      tu();
+    }, ms);
+    uhren.current.add(u);
+  }, []);
   const setZiel = (z: Ziel) => {
     setZielZustand(z);
     try {
@@ -47,28 +76,36 @@ export function WurfBuehne({ imRaum, children }: { imRaum: boolean; children: Re
     }
   };
 
+  const entferne = useCallback(
+    (nr: number) => {
+      setZeilen((alt) => alt.map((z) => (z.nr === nr ? { ...z, geht: true } : z)));
+      spaeter(RAUS_MS, () => setZeilen((alt) => alt.filter((z) => z.nr !== nr)));
+    },
+    [spaeter]
+  );
+
   const zeige = useCallback(
     (text: string) => {
-      const nr = Date.now();
-      setZeile({ text, hinweis: '', nr });
+      const nr = ++zaehler.current;
+      // Neue Zeilen kommen unten dazu, ältere rutschen nach oben; die älteste fällt bei Überlauf weg.
+      setZeilen((alt) => [...alt, { nr, text, hinweis: '', geht: false }].slice(-HOECHSTENS));
+      spaeter(STEHT_MS, () => entferne(nr));
       if (!imRaum || ziel === 'nicht') return;
       void api.wurf(text, ziel).then((antwort) => {
         const hinweis =
           antwort === 'ok' ? t(ziel === 'sl' ? 'wurf.anSl' : 'wurf.anAlle') : antwort === 'selbst' ? t('wurf.selbst') : antwort === 'aus' ? '' : t('wurf.fehler');
-        setZeile((alt) => (alt && alt.nr === nr ? { ...alt, hinweis } : alt));
+        setZeilen((alt) => alt.map((z) => (z.nr === nr ? { ...z, hinweis } : z)));
       });
     },
-    [imRaum, ziel]
+    [imRaum, ziel, spaeter, entferne]
   );
   const wuerfle = useCallback((name: string, bonus: number) => zeige(probe(name, bonus).text), [zeige]);
 
   return (
     <WurfKontext.Provider value={{ wuerfle, zeige }}>
       {children}
-      {zeile ? (
-        <div className="wurfanzeige" role="status" data-wurfanzeige>
-          <span data-wurf-text>{zeile.text.replace(/^🎲\s*/, '')}</span>
-          {zeile.hinweis ? <span className="leise"> · {zeile.hinweis}</span> : null}
+      {zeilen.length ? (
+        <div className="wurfanzeige" role="status" aria-live="polite" data-wurfanzeige>
           {imRaum ? (
             <span className="wurfanzeige__ziel" role="radiogroup" aria-label={t('wurf.ziel')}>
               {(['nicht', 'alle', 'sl'] as const).map((z) => (
@@ -78,9 +115,17 @@ export function WurfBuehne({ imRaum, children }: { imRaum: boolean; children: Re
               ))}
             </span>
           ) : null}
-          <button type="button" className="knopf--klein knopf--leise" aria-label={t('wurf.zu')} onClick={() => setZeile(null)}>
-            ×
-          </button>
+          {zeilen.map((z) => (
+            <div key={z.nr} className={z.geht ? 'wurfanzeige__zeile is-geht' : 'wurfanzeige__zeile'} data-wurf-zeile>
+              <span className="wurfanzeige__text" data-wurf-text>
+                {z.text.replace(/^🎲\s*/, '')}
+              </span>
+              {z.hinweis ? <span className="leise wurfanzeige__hinweis">{z.hinweis}</span> : null}
+              <button type="button" className="knopf--klein knopf--leise" aria-label={t('wurf.zu')} onClick={() => entferne(z.nr)}>
+                ×
+              </button>
+            </div>
+          ))}
         </div>
       ) : null}
     </WurfKontext.Provider>

@@ -4,8 +4,10 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './api';
-import type { Zauberklasse } from '@suite/srd/zauber';
+import type { Zauber, Zauberklasse } from '@suite/srd/zauber';
 import { Segment } from './Bedienung';
+import { useWurf } from './Wurf';
+import { probe } from '../shared/proben';
 import { getLanguage, t } from './i18n';
 import type { Werte } from '../shared/bogen';
 import { ATTRIBUTE, ATTRIBUT_NAMEN, mitVorzeichen, zauberAngriff, zauberSg } from '../shared/regeln';
@@ -14,6 +16,7 @@ import {
   NACH_ID,
   freierPlatz,
   gradVon,
+  istAngriffszauber,
   klassenAusNamen,
   leereZauberei,
   nameVon,
@@ -21,6 +24,7 @@ import {
   sucheZauber,
   verbrauche,
   vorbereiteteAnzahl,
+  wirkZeile,
   type Zauberei,
   type ZauberEintrag
 } from '../shared/zauber';
@@ -29,15 +33,15 @@ interface Props {
   readonly w: Werte;
   readonly pb: number;
   readonly aendere: (wie: (w: Werte) => Werte) => void;
-  readonly setMeldung: (text: string) => void;
 }
 
-export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
+export function ZauberBlock({ w, pb, aendere }: Props) {
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
   const i = sprache === 'de' ? 0 : 1;
   const z = w.zauber;
   const [suchen, setSuchen] = useState(false);
   const [offen, setOffen] = useState<number | null>(null);
+  const { zeige } = useWurf();
 
   if (!z) {
     return (
@@ -65,20 +69,23 @@ export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
   const liste = sortiert(z.liste, sprache);
   const vorbereitet = vorbereiteteAnzahl(z);
 
+  /**
+   * Wirken (Rückmeldung): die Zeile erscheint in der Wurfanzeige unten rechts,
+   * nicht oben im Bogen, wo man sie beim Zauberteil nicht sieht. Ohne freien
+   * Platz wird gefragt; Angriffszauber würfeln den Zauberangriff gleich mit.
+   */
   const wirke = (e: ZauberEintrag) => {
     const grad = gradVon(e);
     const name = nameVon(e, sprache);
-    if (grad === 0) {
-      setMeldung(t('zauber.gewirkt0', { name }));
-      return;
+    let platz: number | null = 0;
+    if (grad > 0) {
+      const frei = freierPlatz(z, grad);
+      if (frei === null && !window.confirm(t('zauber.ohnePlatz', { name, grad }))) return;
+      if (frei !== null) setZ((x) => verbrauche(x, frei));
+      platz = frei;
     }
-    const platz = freierPlatz(z, grad);
-    if (platz === null) {
-      setMeldung(t('zauber.keinPlatz', { name, grad }));
-      return;
-    }
-    setZ((x) => verbrauche(x, platz));
-    setMeldung(t('zauber.gewirkt', { name, grad: platz }));
+    zeige(wirkZeile(name, platz, sprache));
+    if (istAngriffszauber(e)) zeige(probe(`${name} · ${t('zauber.angriff')}`, zauberAngriff(wert, pb)).text);
   };
 
   return (
@@ -208,41 +215,7 @@ export function ZauberBlock({ w, pb, aendere, setMeldung }: Props) {
               {aufgeklappt ? (
                 <div className="zauberdetail">
                   {srd ? (
-                    <>
-                      <p className="leise">
-                        {srd.gradzeile[sprache]} · {srd.eigenschaften[sprache].komponenten} · {srd.eigenschaften[sprache].dauer}
-                      </p>
-                      {srd.bloecke[sprache].map((b, n) =>
-                        b.typ === 'tabelle' ? (
-                          <table key={n}>
-                            <thead>
-                              <tr>
-                                {b.kopf.map((k, m) => (
-                                  <th key={m}>{k}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {b.reihen.map((r, m) => (
-                                <tr key={m}>
-                                  {r.map((c, o) => (
-                                    <td key={o}>{c}</td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : b.typ === 'liste' ? (
-                          <ul key={n}>
-                            {b.eintraege.map((x, m) => (
-                              <li key={m}>{x}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p key={n}>{b.text}</p>
-                        )
-                      )}
-                    </>
+                    <SrdZauberText srd={srd} sprache={sprache} />
                   ) : e.eigen ? (
                     <>
                     <div className="leiste">
@@ -397,6 +370,7 @@ function ZauberSuche({
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
   const i = sprache === 'de' ? 0 : 1;
   const [anfrage, setAnfrage] = useState('');
+  const [auf, setAuf] = useState<string | null>(null);
   const [grad, setGrad] = useState<number | null>(null);
   const [klasse, setKlasse] = useState<Zauberklasse | null>(klassen[0] ?? null);
   const treffer = useMemo(() => sucheZauber(anfrage, { grad, klasse }, sprache).slice(0, 80), [anfrage, grad, klasse, sprache]);
@@ -455,17 +429,34 @@ function ZauberSuche({
         {eigeneTreffer.map((h) => (
           <li key={`hb-${h.id}`} data-homebrew-zauber={h.id}>
             <span className="zauberzeile__grad">{h.grad === 0 ? t('zauber.trickKurz') : h.grad}</span>
-            <span>{h.name}</span>
+            <button type="button" className="zauberzeile__name" aria-expanded={auf === `hb-${h.id}`} title={t('zauber.details')} onClick={() => setAuf(auf === `hb-${h.id}` ? null : `hb-${h.id}`)}>
+              {h.name}
+            </button>
             <span className="leise">Homebrew</span>
             <button type="button" className="knopf--klein" data-zauber-dazu-eigen={h.id} disabled={eigeneDrin.has(h.name)} onClick={() => dazuEigen(h)}>
               {eigeneDrin.has(h.name) ? t('zauber.drin') : '+'}
             </button>
+            {auf === `hb-${h.id}` ? (
+              <div className="zauberdetail zaubertreffer__detail">
+                <p style={{ whiteSpace: 'pre-wrap' }}>{h.text || '—'}</p>
+              </div>
+            ) : null}
           </li>
         ))}
         {treffer.map((s) => (
-          <li key={s.id}>
+          <li key={s.id} className={auf === s.id ? 'is-auf' : undefined}>
             <span className="zauberzeile__grad">{s.grad === 0 ? t('zauber.trickKurz') : s.grad}</span>
-            <span>{s.name[sprache]}</span>
+            {/* Rückmeldung: auch in der Liste der SRD-Zauber die Beschreibung sehen. */}
+            <button
+              type="button"
+              className="zauberzeile__name"
+              data-zauber-info={s.id}
+              aria-expanded={auf === s.id}
+              title={t('zauber.details')}
+              onClick={() => setAuf(auf === s.id ? null : s.id)}
+            >
+              {s.name[sprache]}
+            </button>
             <span className="leise">{s.eigenschaften[sprache].zeit}</span>
             <button
               type="button"
@@ -476,10 +467,57 @@ function ZauberSuche({
             >
               {vorhanden.has(s.id) ? t('zauber.drin') : '+'}
             </button>
+            {auf === s.id ? (
+              <div className="zauberdetail zaubertreffer__detail" data-zauber-detail={s.id}>
+                <p className="leise">{s.eigenschaften[sprache].reichweite}</p>
+                <SrdZauberText srd={s} sprache={sprache} />
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>
       {treffer.length === 0 && eigeneTreffer.length === 0 ? <p className="leise">{t('liste.nichts')}</p> : null}
     </div>
+  );
+}
+
+/** Beschreibung eines SRD-Zaubers: Zeile mit Grad, Komponenten und Dauer, dann der Text. */
+function SrdZauberText({ srd, sprache }: { srd: Zauber; sprache: 'de' | 'en' }) {
+  return (
+    <>
+      <p className="leise">
+        {srd.gradzeile[sprache]} · {srd.eigenschaften[sprache].komponenten} · {srd.eigenschaften[sprache].dauer}
+      </p>
+      {srd.bloecke[sprache].map((b, n) =>
+        b.typ === 'tabelle' ? (
+          <table key={n}>
+            <thead>
+              <tr>
+                {b.kopf.map((k, m) => (
+                  <th key={m}>{k}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.reihen.map((r, m) => (
+                <tr key={m}>
+                  {r.map((c, o) => (
+                    <td key={o}>{c}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : b.typ === 'liste' ? (
+          <ul key={n}>
+            {b.eintraege.map((x, m) => (
+              <li key={m}>{x}</li>
+            ))}
+          </ul>
+        ) : (
+          <p key={n}>{b.text}</p>
+        )
+      )}
+    </>
   );
 }
