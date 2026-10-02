@@ -22,7 +22,9 @@ import {
   uhrzeit,
   type Filter,
   type Stufe,
-  type Umfrage
+  type Umfrage,
+  SCHRITTE,
+  alsSchritt
 } from '../shared/modell';
 import { alleZonen, ansicht, eigeneZone, istZone, zeitraum } from '../shared/zeitzone';
 import type { RaumLage } from '../main/embed';
@@ -624,9 +626,12 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
           </label>
           <label className="wahl">
             <span>{t('feld.schritt')}</span>
-            <select value={u.schritt} data-schritt onChange={(e) => aendere({ ...u, schritt: Number(e.target.value) === 30 ? 30 : 60 })}>
-              <option value={60}>{t('minuten', { n: 60 })}</option>
-              <option value={30}>{t('minuten', { n: 30 })}</option>
+            <select value={u.schritt} data-schritt onChange={(e) => aendere({ ...u, schritt: alsSchritt(e.target.value) })}>
+              {SCHRITTE.map((n) => (
+                <option key={n} value={n}>
+                  {t('minuten', { n })}
+                </option>
+              ))}
             </select>
           </label>
           <label className="wahl">

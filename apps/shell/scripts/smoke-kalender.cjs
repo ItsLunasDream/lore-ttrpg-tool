@@ -81,6 +81,15 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-neu]').click(); true`);
   await warte(500);
   await tippe('[data-titel]', 'Sitzung 13');
+  // Raster: Vorgabe 30 Minuten, 15 steht zur Wahl (Rückmeldung).
+  pruefe((await js(`document.querySelector('[data-schritt]').value`)) === '30', 'Raster ist anfangs 30 Minuten');
+  pruefe((await js(`[...document.querySelectorAll('[data-schritt] option')].map((o) => o.value).join(',')`)) === '15,30,60', 'Raster: 15, 30 oder 60 Minuten');
+  await js(`(() => { const e = document.querySelector('[data-schritt]'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, '15'); e.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await warte(300);
+  pruefe(Boolean(await js(`document.querySelector('[data-raster="meine"] [data-feld$="T1095"]')`)), 'mit 15 Minuten gibt es ein Feld um 18:15');
+  // Der Rest des Ablaufs rechnet in Stunden.
+  await js(`(() => { const e = document.querySelector('[data-schritt]'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(e, '60'); e.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await warte(300);
   const tage = await js(`[...document.querySelectorAll('[data-raster="meine"] .raster__kopf')].length`);
   pruefe(tage === 6, `vorbelegt: Fr, Sa, So über zwei Wochen (${tage} Tage)`);
   const ersterTag = await js(`document.querySelector('[data-raster="meine"] [data-feld]').dataset.feld.split('T')[0]`);
