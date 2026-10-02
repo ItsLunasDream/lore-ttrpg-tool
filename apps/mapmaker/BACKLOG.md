@@ -221,8 +221,19 @@ in den Abschnitten darunter.
 - ~~**Als Desktop-App verpacken** (Tauri, steht unten) — vor allem wegen des
   Dateizugriffs: Firefox und Safari können bis heute nicht überschreiben.~~ —
   **erledigt** (03.09.2026), siehe unten.
-- **Mehrere Karten in einer Datei** (Etagen eines Verlieses), mit Verweisen
-  zwischen ihnen. Notizen wären der natürliche Ort für die Verweise.
+- ~~**Mehrere Karten in einer Datei** (Etagen eines Verlieses), mit Verweisen
+  zwischen ihnen~~ — **erledigt** (02.10.2026). Reiter über der Bühne
+  (`ui/KartenLeiste.tsx`): Klick öffnet, Doppelklick benennt um, „+ Karte"
+  legt eine leere gleicher Größe an. Der Store hält alle Karten (`karten`),
+  `doc` bleibt die offene — Werkzeuge und Renderer merken nichts davon. Jede
+  Karte hat ihren eigenen Rückgängig-Verlauf; Wechseln ist keine Änderung an
+  der Datei. Verweise stehen an der Notiz (`zielKarte` = `meta.id`), im
+  Notiz-Dialog wählbar, mit Knopf „Zur Karte". In der `.ttmap` bleibt die
+  erste Karte in `scene.json`, die übrigen liegen unter `maps/`; eine ältere
+  Fassung des Editors öffnet so wenigstens die erste. Fassungen unter
+  `versions/` enthalten alle Karten.
+  Offen: Bild-, UVTT- und Foundry-Export nehmen nur die offene Karte; der
+  Verweis geht nicht mit nach Foundry und ist am Pin nicht zu sehen.
 - **Import aus Dungeondraft-Projektdateien**, nicht nur aus deren UVTT-Export.
 
 ## Danach denkbar

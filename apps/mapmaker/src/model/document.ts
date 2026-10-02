@@ -98,7 +98,7 @@ export function createDocument(cols = 30, rows = 20, name?: string): MapDocument
 
   return {
     schemaVersion: SCHEMA_VERSION,
-    meta: { name: name ?? t('map.untitled'), created: now, modified: now },
+    meta: { name: name ?? t('map.untitled'), created: now, modified: now, id: makeId('karte') },
     size: { cols, rows },
     grid: defaultGrid(),
     // Warmer Steinton: hell genug, dass ein schwarzes Grid und dunkle Props

@@ -558,6 +558,11 @@ export interface MapNote {
    * hierher.
    */
   playerVisible: boolean;
+  /**
+   * Verweis auf eine andere Karte derselben Datei (`meta.id`), etwa die
+   * Treppe hinunter in die nächste Etage. Leer oder fehlend: kein Verweis.
+   */
+  zielKarte?: string;
 }
 
 export interface VttData {
@@ -600,6 +605,14 @@ export interface MapDocument {
     name: string;
     created: string;
     modified: string;
+    /**
+     * Kennung der Karte innerhalb der Projektdatei. Eine Datei kann mehrere
+     * Karten halten (Etagen eines Verlieses, `model/mappe.ts`), und Notizen
+     * verweisen über diese Kennung aufeinander — über den Namen ginge das
+     * beim Umbenennen kaputt. Optional, damit ältere Dateien unverändert
+     * laden; `mitKartenId` vergibt sie dann.
+     */
+    id?: string;
   };
   /** Kartengröße in Tile-Einheiten. */
   size: { cols: number; rows: number };

@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { PatchVttItems, RemoveVttItems } from '@/model/commands';
 import { useEditor } from '@/model/store';
 import { NOTE_ICONS, type NoteIcon } from '@/model/types';
+import { stelleVon } from '@/model/mappe';
 import { useT } from '@/i18n/useT';
 import { ColorField, Row, Select, Slider, Toggle, useEscapeClose } from './controls';
 import { noteIconKey } from './VttPanel';
@@ -22,6 +23,8 @@ export function NoteDialog() {
   const rev = useEditor((s) => s.rev);
   const exec = useEditor((s) => s.exec);
   const patchDefaults = useEditor((s) => s.patchNote);
+  const karten = useEditor((s) => s.karten);
+  const wechsle = useEditor((s) => s.wechsleKarte);
   const titleRef = useRef<HTMLInputElement>(null);
   void rev;
   // Nur horchen, solange wirklich eine Notiz offen ist: der Dialog hängt immer
@@ -38,6 +41,7 @@ export function NoteDialog() {
   }, [id]);
 
   if (!id || !note) return null;
+  const ziel = stelleVon(karten, note.zielKarte);
 
   /**
    * `mergeKey` je Notiz und Feld: Tippen im Titel verschmilzt mit Tippen im
@@ -120,6 +124,34 @@ export function NoteDialog() {
             checked={note.playerVisible}
             onChange={(v) => patch({ playerVisible: v }, 'visible', false)}
           />
+          {/* Verweis auf eine andere Karte der Datei: die Treppe nach unten. */}
+          {karten.length > 1 ? (
+            <>
+              <Select<string>
+                label={t('note.zielKarte')}
+                value={note.zielKarte ?? ''}
+                options={[
+                  { value: '', label: t('note.keinZiel') },
+                  ...karten
+                    .filter((k) => k !== doc && k.meta.id)
+                    .map((k) => ({ value: k.meta.id!, label: k.meta.name })),
+                ]}
+                onChange={(v) => patch({ zielKarte: v || undefined }, 'ziel', false)}
+              />
+              {ziel >= 0 ? (
+                <button
+                  type="button"
+                  data-note-ziel
+                  onClick={() => {
+                    close(null);
+                    wechsle(ziel);
+                  }}
+                >
+                  {t('note.zumZiel', { name: karten[ziel].meta.name })}
+                </button>
+              ) : null}
+            </>
+          ) : null}
         </div>
 
         <footer>

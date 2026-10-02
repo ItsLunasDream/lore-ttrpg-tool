@@ -13,7 +13,7 @@ import { getRenderer } from '@/engine/instance';
 import {
   documentFromVersion,
   historyFrom,
-  packProject,
+  packMappe,
   readProjectFile,
   TTMAP_EXTENSION,
   type ProjectVersion,
@@ -47,6 +47,7 @@ export function FileMenu() {
   const { t } = useT();
   const doc = useEditor((s) => s.doc);
   const loadDocument = useEditor((s) => s.loadDocument);
+  const ladeMappe = useEditor((s) => s.ladeMappe);
   const [showExport, setShowExport] = useState(false);
   const [showUvtt, setShowUvtt] = useState(false);
   const [showGen, setShowGen] = useState(false);
@@ -301,8 +302,8 @@ export function FileMenu() {
   const onRestore = (version: ProjectVersion) => {
     if (!window.confirm(t('file.confirmRestore', { time: zeitpunkt(version.savedAt) }))) return;
     try {
-      const { doc: alt } = documentFromVersion(version.data);
-      loadDocument(alt);
+      const { karten: alt, aktiv } = documentFromVersion(version.data);
+      ladeMappe(alt, aktiv);
       flash(t('file.restored', { time: zeitpunkt(version.savedAt) }));
     } catch (err) {
       flash(t('file.openFailed', { error: err instanceof Error ? err.message : String(err) }));
@@ -346,7 +347,15 @@ export function FileMenu() {
     }
     // Nur die tatsächlich benutzten Assets: die ganze importierte Bibliothek
     // mitzuschreiben ergäbe unbrauchbar große Dateien.
-    return packProject(doc, usedAssets(doc), thumbnail, usedFonts(doc), history);
+    // Alle Karten der Datei; Bilder und Schriften aus allen zusammen.
+    const { karten, aktiveKarte } = useEditor.getState();
+    const assets = new Map<string, Uint8Array>();
+    const fonts = new Map<string, Uint8Array>();
+    for (const k of karten) {
+      for (const [n, d] of usedAssets(k)) assets.set(n, d);
+      for (const [n, d] of usedFonts(k)) fonts.set(n, d);
+    }
+    return packMappe(karten, aktiveKarte, assets, thumbnail, fonts, history);
   };
 
   /**
@@ -543,7 +552,7 @@ export function FileMenu() {
       if (bundle.fonts.size > 0) {
         await restoreFonts(bundle.fonts);
       }
-      loadDocument(bundle.doc);
+      ladeMappe(bundle.karten, bundle.aktiv);
       flash(
         report.warnings.length > 0
           ? t('file.loadedWithWarnings', { warnings: report.warnings.join(' ') })
