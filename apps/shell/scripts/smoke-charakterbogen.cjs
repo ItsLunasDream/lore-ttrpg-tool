@@ -367,6 +367,20 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe(/Zauberangriff: \d+ \(d20 \d+ \+6\)/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Feuerpfeil würfelt den Zauberangriff (+3 INT +3 Übung)');
 
+  // Zauber mit Rettungswurf: der SG steht in der Zeile (Rückmeldung).
+  if (!(await js(`Boolean(document.querySelector('[data-zauber-anfrage]'))`))) await js(`document.querySelector('[data-zauber-suchen]').click(); true`);
+  await warte(200);
+  await js(tippe('[data-zauber-anfrage]', 'burning hands'));
+  await warte(300);
+  await js(`document.querySelector('[data-zauber-dazu="burning-hands"]').click(); true`);
+  await warte(300);
+  await js(`[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Brennende Hände|Burning Hands/.test(li.innerText)).querySelector('[data-wirken]').click(); true`);
+  await warte(200);
+  pruefe(/Rettungswurf GES, SG 14/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Brennende Hände zeigt Rettungswurf GES, SG 14');
+  // Den verbrauchten Platz zurück, damit die Kompaktansicht unten bei null anfängt.
+  await js(`document.querySelector('[data-rast="lang"]').click(); true`);
+  await warte(300);
+
   // --- Kompaktansicht (docs/charakterbogen-kompakt.md) ---------------------
   await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
   await warte(300);
@@ -487,6 +501,21 @@ app.whenReady().then(async () => {
     await js(tippe('[data-feld="tp-aktuell"]', '0'));
     await warte(300);
     pruefe(!(await js(`Boolean(document.querySelector('.blatt--tot'))`)), 'und die Fehlschläge sind auf null, auch zurück bei 0 TP');
+    // Drei Erfolge: kurz zu sehen, dann stabil mit Hinweis und Knopf „1 TP" (Rückmeldung, SRD).
+    await js(`Math.random = () => 0.6; true`);
+    for (let n = 0; n < 3; n++) {
+      await js(`document.querySelector('[data-todesrettung-wuerfeln]').click(); true`);
+      await warte(120);
+    }
+    pruefe(await js(`Boolean(document.querySelector('.todesrettung.ist-wird-stabil'))`), 'drei Erfolge stehen erst noch da');
+    pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-stabil]'))`), 6000), 'danach ist die Figur stabil, mit Hinweis');
+    pruefe((await js(`document.querySelectorAll('[data-todesrettung-erfolge] .ist-an').length`)) === 0, 'und die Erfolge sind weg');
+    pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '0', 'die TP bleiben bei 0 (SRD)');
+    // Wie beim echten Klick verlässt der Fokus das TP-Feld (dort steht sonst noch der getippte Text).
+    await js(`document.activeElement?.blur?.(); document.querySelector('[data-stabil-1tp]').click(); true`);
+    await warte(300);
+    pruefe(!(await js(`Boolean(document.querySelector('[data-stabil]'))`)), '„1 TP": der Hinweis geht');
+    pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '1', `und die Figur hat 1 TP (${await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)})`);
     await js(`Math.random = window.__zufall; true`);
     await js(tippe('[data-feld="tp-aktuell"]', '30'));
     await warte(200);

@@ -87,7 +87,7 @@ app.whenReady().then(async () => {
   const gruppen = await imWerkzeug(`document.querySelectorAll('[data-pfeile]').length`);
   console.log(`  info Gruppen mit Pfeilen im Wuerfel: ${gruppen}`);
 
-  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   console.log(fehler.length ? `\n${fehler.length} fehlgeschlagen` : '\nTastatur bestanden.');
   app.exit(fehler.length ? 1 : 0);
 });

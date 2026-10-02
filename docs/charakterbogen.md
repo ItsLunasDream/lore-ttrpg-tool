@@ -71,7 +71,9 @@ Zauberliste wie unten beschrieben.
   fragt der Bogen, ob trotzdem gewirkt wird (dann ohne Platz). Zauber mit
   Zauberangriff (SRD: „melee/ranged spell attack“, 21 Zauber; eigene: das
   Wort im Text) würfeln den Angriff gleich mit (`shared/zauber.ts`
-  `istAngriffszauber`). Ein Klick auf den Namen öffnet den Text wie im
+  `istAngriffszauber`). Zauber mit Rettungswurf (131 im SRD, erkannt an
+  „Dexterity saving throw“ usw.) zeigen Attribut und SG in der Zeile
+  (`rettungswuerfeVon`). Ein Klick auf den Namen öffnet den Text wie im
   Nachschlagewerk, in der Liste wie in der Suche.
 - Wie viele Zauber vorbereitet sein dürfen, zählt die App mit. Die Zahl aus
   der Klassentabelle schlagen die Hinweise vor (unten).
@@ -456,6 +458,11 @@ Gebaut auf Wunsch nach Schritt 7:
   Sobald die Figur wieder TP hat, gehen Erfolge und Fehlschläge auf null
   (SRD 5.2.1, Death Saving Throws), egal ob über das Feld, eine Heilung, den
   Initiative Tracker oder beim Laden (`mitTodesrettung` in `shared/bogen.ts`).
+- **Stabil:** Drei Erfolge bleiben 3 s stehen und leuchten, dann blenden sie
+  aus und die Figur ist stabil (`werdeStabil`). Nach SRD bleibt sie bei 0 TP
+  bewusstlos; der Hinweis „nach 1W4 Stunden 1 TP“ hat einen Knopf „1 TP“.
+  Schaden bei 0 TP ist ein Fehlschlag und beendet „stabil“, Schaden ab dem
+  TP-Maximum tötet (SRD, Damage at 0 Hit Points).
 - **Neue Bögen** haben die Gemeinsprache unter Sprachen.
 - **Eigene Zustände:** Die Zustände aus dem Status Effect Creator stehen in
   der Suchwahl unter „Eigene“ und tragen ihren Text als Hinweis; im Bogen

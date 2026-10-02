@@ -9,7 +9,7 @@
  * Klassentabellen schlaegt `klassenhinweise.ts` vor (docs/charakterbogen.md).
  */
 import { ZAUBER, type Zauber, type Zauberklasse } from '@suite/srd/zauber';
-import { ATTRIBUTE, type Attribut } from './regeln';
+import { ATTRIBUTE, ATTRIBUT_NAMEN, type Attribut } from './regeln';
 
 export interface ZauberEintrag {
   /** Kennung eines SRD-Zaubers. */
@@ -125,11 +125,59 @@ export function istAngriffszauber(e: ZauberEintrag): boolean {
   return Boolean(z?.bloecke.en.some((b) => 'text' in b && ANGRIFF.test(b.text)));
 }
 
+const RETTUNG_EN: Record<string, Attribut> = {
+  strength: 'sta',
+  dexterity: 'ges',
+  constitution: 'kon',
+  intelligence: 'int',
+  wisdom: 'wei',
+  charisma: 'cha'
+};
+const RETTUNG_DE: Record<string, Attribut> = {
+  'stärke': 'sta',
+  geschicklichkeit: 'ges',
+  konstitution: 'kon',
+  intelligenz: 'int',
+  weisheit: 'wei',
+  charisma: 'cha'
+};
+// Einzahl: „Dexterity saving throw“; „saving throws“ (Vorteil auf …) zählt nicht.
+const RETTUNG_SRD = /\b(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw\b(?!s)/gi;
+const RETTUNG_EIGEN_DE = /\b(Stärke|Geschicklichkeit|Konstitution|Intelligenz|Weisheit|Charisma)-?[Rr]ettungswurf\b/gi;
+
+/**
+ * Welche Rettungswürfe ein Zauber verlangt, in der Reihenfolge des Textes
+ * (Rückmeldung: beim Wirken den SG zeigen). SRD: der englische Text, 131
+ * Zauber; eigene Zauber: deutsch oder englisch im Text.
+ */
+export function rettungswuerfeVon(e: ZauberEintrag): Attribut[] {
+  const heraus: Attribut[] = [];
+  const nimm = (text: string, muster: RegExp, tabelle: Record<string, Attribut>) => {
+    for (const m of text.matchAll(muster)) {
+      const a = tabelle[m[1].toLowerCase()];
+      if (a && !heraus.includes(a)) heraus.push(a);
+    }
+  };
+  if (e.eigen) {
+    nimm(e.eigen.text, RETTUNG_EIGEN_DE, RETTUNG_DE);
+    nimm(e.eigen.text, RETTUNG_SRD, RETTUNG_EN);
+    return heraus;
+  }
+  const z = e.srd ? NACH_ID.get(e.srd) : undefined;
+  for (const b of z?.bloecke.en ?? []) if ('text' in b) nimm(b.text, RETTUNG_SRD, RETTUNG_EN);
+  return heraus;
+}
+
 /**
  * Die Zeile zum Wirken für Anzeige und Raum. `platz` ist der verbrauchte
  * Grad; 0 = Zaubertrick, null = gewirkt ohne freien Platz.
  */
-export function wirkZeile(name: string, platz: number | null, sprache: 'de' | 'en'): string {
+export function wirkZeile(
+  name: string,
+  platz: number | null,
+  sprache: 'de' | 'en',
+  rettung?: { readonly attribute: readonly Attribut[]; readonly sg: number }
+): string {
   const de = sprache === 'de';
   const wie =
     platz === 0
@@ -137,7 +185,14 @@ export function wirkZeile(name: string, platz: number | null, sprache: 'de' | 'e
       : platz === null
         ? de ? 'ohne freien Platz' : 'without a free slot'
         : de ? `Platz des ${platz}. Grades` : `level ${platz} slot`;
-  return `✨ ${de ? `${name} gewirkt` : `${name} cast`} (${wie})`;
+  const kurz = (a: Attribut) => ATTRIBUT_NAMEN[a].kurz[de ? 0 : 1];
+  const sg =
+    rettung && rettung.attribute.length
+      ? de
+        ? ` · Rettungswurf ${rettung.attribute.map(kurz).join(' oder ')}, SG ${rettung.sg}`
+        : ` · ${rettung.attribute.map(kurz).join(' or ')} save, DC ${rettung.sg}`
+      : '';
+  return `✨ ${de ? `${name} gewirkt` : `${name} cast`} (${wie})${sg}`;
 }
 
 /** Nach Grad, dann Name; Zaubertricks zuerst. */

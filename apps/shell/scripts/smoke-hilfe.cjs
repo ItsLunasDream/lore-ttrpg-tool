@@ -62,7 +62,7 @@ app.whenReady().then(async () => {
   await warte(300);
   pruefe(!(await hjs(`Boolean(document.querySelector('[data-hilfe]'))`)), 'schließt wieder');
 
-  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   console.log(fehler.length === 0 ? '\nHilfe bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

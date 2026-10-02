@@ -81,7 +81,7 @@ modell.listen(0, '127.0.0.1', () => {
     pruefe(/Schmuggler/.test(letzteFrage), 'die Anfrage enthält den Verlauf');
     pruefe(/Ein Pen|Pen-&-Paper|zusammen/.test(letzteFrage), 'mit Anweisung');
     modell.close();
-    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     console.log(fehler.length === 0 ? '\nProtokoll mit KI bestanden.' : `\n${fehler.length} Fehler.`);
     app.exit(fehler.length === 0 ? 0 : 1);
   });

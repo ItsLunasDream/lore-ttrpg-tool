@@ -84,3 +84,18 @@ test('Neuer Bogen: Gemeinsprache vorbelegt; tote Figur in der Kachel', () => {
   b.werte.tp.aktuell = 0;
   assert.equal(B.alsKachel(b).tot, true);
 });
+
+test('Rettungswurf beim Wirken: aus dem SRD-Text, mit SG in der Zeile', () => {
+  const e = (srd) => ({ srd, vorbereitet: false, immer: false, herkunft: '' });
+  assert.deepEqual(B.rettungswuerfeVon(e('fireball')), ['ges']);
+  assert.deepEqual(B.rettungswuerfeVon(e('hold-person')), ['wei']);
+  assert.deepEqual(B.rettungswuerfeVon(e('magic-missile')), []);
+  // „Vorteil auf Geschicklichkeitsrettungswürfe" (Mehrzahl) ist kein Rettungswurf gegen den Zauber.
+  assert.deepEqual(B.rettungswuerfeVon(e('haste')), []);
+  assert.deepEqual(
+    B.rettungswuerfeVon({ eigen: { name: 'X', grad: 1, text: 'Das Ziel macht einen Weisheit-Rettungswurf.' }, vorbereitet: false, immer: false, herkunft: '' }),
+    ['wei']
+  );
+  assert.equal(B.wirkZeile('Feuerball', 3, 'de', { attribute: ['ges'], sg: 15 }), '✨ Feuerball gewirkt (Platz des 3. Grades) · Rettungswurf GES, SG 15');
+  assert.equal(B.wirkZeile('Fireball', 3, 'en', { attribute: ['ges'], sg: 15 }), '✨ Fireball cast (level 3 slot) · DEX save, DC 15');
+});

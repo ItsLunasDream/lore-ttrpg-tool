@@ -229,7 +229,7 @@ app.whenReady().then(async () => {
   pruefe(eintraege.some((e) => e.werkzeug === 'kalender' && e.name === 'Sitzung 13'), 'Strg+K kennt die Umfrage');
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
-  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   console.log(fehler.length === 0 ? '\nCampaign Calendar bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

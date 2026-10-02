@@ -2394,6 +2394,55 @@ button.wuerfelbar:hover:not(:disabled) {
   border-color: var(--gefahr);
 }
 
+/* Drei Erfolge: kurz aufleuchten, dann ausblenden (Rückmeldung); danach „stabil“. */
+.todesrettung.ist-wird-stabil {
+  border-color: var(--betont);
+  animation: stabil-leuchten 1s ease-in-out 2;
+}
+
+.todesrettung.ist-wird-stabil .todesrettung__zeile .pip {
+  animation: stabil-weg 0.6s ease-in 2.4s forwards;
+}
+
+.todesrettung.ist-stabil {
+  border-style: solid;
+  border-color: var(--betont);
+}
+
+.todesrettung__stabil {
+  margin: 4px 0 0;
+  font-size: 13px;
+  animation: stabil-rein 0.5s ease-out;
+}
+
+@keyframes stabil-leuchten {
+  50% {
+    box-shadow: 0 0 0 4px var(--betont-leise);
+  }
+}
+
+@keyframes stabil-weg {
+  to {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes stabil-rein {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .todesrettung.ist-wird-stabil,
+  .todesrettung.ist-wird-stabil .todesrettung__zeile .pip,
+  .todesrettung__stabil {
+    animation: none;
+  }
+}
+
 /* Hinweise nach Klasse und Stufe. */
 .klassenhinweise summary {
   cursor: pointer;

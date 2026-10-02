@@ -32,6 +32,8 @@ import {
   passiverWert,
   uebungIn,
   wendeBetragAn,
+  werdeStabil,
+  STABIL_ZEIGEN_MS,
   type Angriff,
   type Bogen,
   type Ressource,
@@ -661,8 +663,22 @@ function Trefferpunkte({ w, aendere, setMeldung }: TeilProps) {
 function Todesrettung({ w, aendere, name }: { w: Werte; aendere: FigurProps['aendere']; name?: string }) {
   const { zeige } = useWurf();
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
+  const stabil = Boolean(w.todesrettung.stabil) && w.tp.aktuell === 0;
+  // Rückmeldung: die drei Erfolge kurz zeigen, dann verschwinden sie und die Figur ist stabil.
+  const wirdStabil = werdeStabil(w) !== w;
+  // Über einen Ref, damit ein neu gebautes `aendere` die Uhr nicht neu startet.
+  const aendereRef = useRef(aendere);
+  aendereRef.current = aendere;
+  useEffect(() => {
+    if (!wirdStabil) return;
+    const uhr = window.setTimeout(() => aendereRef.current(werdeStabil), STABIL_ZEIGEN_MS);
+    return () => window.clearTimeout(uhr);
+  }, [wirdStabil]);
   return (
-    <div className={`todesrettung${w.tp.aktuell === 0 ? ' ist-akut' : ''}${istTot(w) ? ' ist-tot' : ''}`} data-todesrettung>
+    <div
+      className={`todesrettung${w.tp.aktuell === 0 ? ' ist-akut' : ''}${istTot(w) ? ' ist-tot' : ''}${wirdStabil ? ' ist-wird-stabil' : ''}${stabil ? ' ist-stabil' : ''}`}
+      data-todesrettung
+    >
       <span className="kennbox__titel">
         {t('todesrettung')} <SlMarke feld="todesrettung" />
         <button
@@ -671,7 +687,7 @@ function Todesrettung({ w, aendere, name }: { w: Werte; aendere: FigurProps['aen
           data-todesrettung-wuerfeln
           // Nur bei 0 TP (SRD); mit TP gehen die Würfe ohnehin auf null.
           title={w.tp.aktuell > 0 ? t('todesrettung.erstBei0') : t('todesrettung.titel')}
-          disabled={istTot(w) || w.tp.aktuell > 0}
+          disabled={istTot(w) || w.tp.aktuell > 0 || stabil || wirdStabil}
           onClick={() => {
             // Gewürfelt wird gegen den aktuellen Stand; die Zeile entsteht mit.
             let zeile = '';
@@ -698,6 +714,20 @@ function Todesrettung({ w, aendere, name }: { w: Werte; aendere: FigurProps['aen
           />
         </div>
       ))}
+      {stabil ? (
+        <p className="todesrettung__stabil" data-stabil>
+          {t('todesrettung.stabil')}
+          <button
+            type="button"
+            className="knopf--klein"
+            data-stabil-1tp
+            title={t('todesrettung.einsTpTitel')}
+            onClick={() => aendere((x) => ({ ...x, tp: { ...x.tp, aktuell: Math.max(1, x.tp.aktuell) } }))}
+          >
+            {t('todesrettung.einsTp')}
+          </button>
+        </p>
+      ) : null}
     </div>
   );
 }

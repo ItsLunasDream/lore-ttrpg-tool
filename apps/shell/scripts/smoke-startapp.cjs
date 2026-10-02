@@ -63,7 +63,7 @@ app.whenReady().then(async () => {
     'die Anwendung ist wirklich hochgekommen'
   );
 
-  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   if (fehlschlaege.length > 0) {
     console.error(`\n${fehlschlaege.length} Pruefung(en) fehlgeschlagen.`);
     app.exit(1);

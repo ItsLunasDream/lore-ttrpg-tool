@@ -17,6 +17,7 @@ import {
   freierPlatz,
   gradVon,
   istAngriffszauber,
+  rettungswuerfeVon,
   klassenAusNamen,
   leereZauberei,
   nameVon,
@@ -84,7 +85,8 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
       if (frei !== null) setZ((x) => verbrauche(x, frei));
       platz = frei;
     }
-    zeige(wirkZeile(name, platz, sprache));
+    const rettung = rettungswuerfeVon(e);
+    zeige(wirkZeile(name, platz, sprache, rettung.length ? { attribute: rettung, sg: zauberSg(wert, pb) } : undefined));
     if (istAngriffszauber(e)) zeige(probe(`${name} · ${t('zauber.angriff')}`, zauberAngriff(wert, pb)).text);
   };
 

@@ -149,6 +149,9 @@ const TEXTE = {
   'todesrettung.wuerfeln': ['Würfeln', 'Roll'],
   'todesrettung.titel': ['Todesrettungswurf würfeln und eintragen', 'Roll and record a death save'],
   'todesrettung.erstBei0': ['Todesrettungswürfe gibt es erst bei 0 TP', 'Death saves only happen at 0 HP'],
+  'todesrettung.stabil': ['Stabil: bewusstlos bei 0 TP, nach 1W4 Stunden 1 TP. ', 'Stable: unconscious at 0 HP, regains 1 HP after 1d4 hours. '],
+  'todesrettung.einsTp': ['1 TP', '1 HP'],
+  'todesrettung.einsTpTitel': ['Die 1W4 Stunden sind um: 1 TP eintragen', 'The 1d4 hours have passed: set 1 HP'],
   'tot': ['Tot', 'Dead'],
   'tot.hinweis': ['Drei fehlgeschlagene Todesrettungswürfe.', 'Three failed death saves.'],
 
