@@ -67,3 +67,40 @@ test('Story-Notiz: keine Überschrift „# Name", Zauber ohne verschachtelte Lis
   // Mit Markierungen wird nur der Abschnitt getauscht.
   assert.equal(B.ersetzeStoryBlock(`Vorne\n\n${block}\n\nHinten`, block.replace('Mira', 'Mira')), `Vorne\n\n${block}\n\nHinten`);
 });
+
+test('Geschosse und Strahlen: Anzahl nach Platz bzw. Stufe', () => {
+  const mm = B.zauberWurf(e('magic-missile'), 1, 1, 3, 'de');
+  assert.equal(mm.ausdruck, '1d4+1');
+  assert.deepEqual(mm.mehrfach, { anzahl: 3, angriffJe: false, stueck: 'Geschoss' });
+  assert.equal(B.zauberWurf(e('magic-missile'), 4, 7, 3, 'de').mehrfach.anzahl, 6);
+  const sr = B.zauberWurf(e('scorching-ray'), 3, 5, 3, 'en');
+  assert.equal(sr.ausdruck, '2d6');
+  assert.deepEqual(sr.mehrfach, { anzahl: 4, angriffJe: true, stueck: 'ray' });
+  assert.equal(B.zauberWurf(e('eldritch-blast'), 0, 1, 3, 'de').mehrfach.anzahl, 1);
+  assert.equal(B.zauberWurf(e('eldritch-blast'), 0, 11, 3, 'de').mehrfach.anzahl, 3);
+  assert.equal(B.zauberWurf(e('eldritch-blast'), 0, 17, 3, 'de').ausdruck, '1d10');
+  assert.equal(B.zauberWurf(e('fireball'), 3, 5, 3, 'de').mehrfach, undefined);
+});
+
+test('Geschosse: eine Zeile mit jedem Wurf und der Summe', () => {
+  const mm = B.zauberWurf(e('magic-missile'), 1, 1, 3, 'de');
+  const z = B.mehrfachZeilen('Magisches Geschoss', mm, 5, 'de', fest(0, 0.5, 0.99));
+  assert.equal(z.length, 1);
+  // 1d4+1 je Geschoss: 2, 4, 5
+  assert.match(z[0].text, /Schaden: 11 .*\(3 Geschosse à 1d4\+1: 2 \+ 4 \+ 5\)/);
+});
+
+test('Strahlen: je Strahl ein Angriff, eine 20 verdoppelt, eine 1 verfehlt', () => {
+  const sr = B.zauberWurf(e('scorching-ray'), 2, 5, 3, 'de');
+  // Strahl 1: d20 = 20, dann 4 Würfel; Strahl 2: d20 = 1; Strahl 3: d20 = 11, dann 2 Würfel.
+  const z = B.mehrfachZeilen('Sengender Strahl', sr, 5, 'de', fest(0.99, 0, 0, 0, 0, 0, 0.5, 0.99, 0.99));
+  assert.equal(z.length, 4);
+  assert.equal(z[0].d20, 20);
+  assert.match(z[0].text, /Strahl 1\/3: 25 .*Schaden 4 .*4d6/);
+  assert.equal(z[1].d20, 1);
+  assert.match(z[1].text, /daneben/);
+  assert.doesNotMatch(z[1].text, /Schaden/);
+  assert.match(z[2].text, /Strahl 3\/3: 16 .*Schaden 12 /);
+  assert.match(z[3].text, /Schaden: 16 .*gegen RK/);
+  assert.equal(z[3].d20, undefined);
+});

@@ -466,6 +466,13 @@ Gebaut auf Wunsch nach Schritt 7:
   Rechtsklick auf „Wirken“: „Ohne Platz wirken“. Mehr vorbereitete Zauber als
   eingetragen: rote Zahl mit ⚠. Homebrew-Zauber zeigen „Homebrew“ als Marke,
   daneben Zeitaufwand und Reichweite.
+- **Geschosse und Strahlen** (`MEHRFACH` in `shared/zauber.ts`): Magisches
+  Geschoss würfelt jedes Geschoss einzeln (3, plus eins je Grad über 1) in
+  einer Zeile mit Summe. Sengender Strahl (3, plus einer je Grad über 2) und
+  Schauerlicher Strahl (1/2/3/4 ab Stufe 1/5/11/17): je Strahl ein Angriff,
+  eine 20 verdoppelt die Würfel, eine 1 verfehlt; danach die Summe ohne die
+  Einsen. Ob die übrigen treffen, entscheidet die RK am Tisch. Grenze:
+  Anrufungen wie Qualvoller Strahl (+CHA) rechnet es nicht ein.
 - **Aus Quelle hinzufügen:** ein Klick auf den Namen zeigt die Beschreibung.
 - **Story-Notiz:** immer mit Markierungen angelegt, ohne „# Name“; ältere
   Notizen, die nur aus dem Bogentext bestehen, werden beim ersten Abgleich

@@ -365,7 +365,7 @@ app.whenReady().then(async () => {
     'Wirken verbraucht einen Platz des 1. Grades'
   );
   pruefe(/Magisches Geschoss gewirkt/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].slice(-2).map((e) => e.textContent).join(' | ')`)), 'Wirken meldet sich unten rechts');
-  pruefe(/Magisches Geschoss · Schaden: \d+/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'und würfelt den Schaden gleich mit');
+  pruefe(/Magisches Geschoss · Schaden: \d+ .*\(3 Geschosse à 1d4\+1: \d \+ \d \+ \d\)/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'und würfelt jedes Geschoss einzeln, mit Summe');
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
   pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
