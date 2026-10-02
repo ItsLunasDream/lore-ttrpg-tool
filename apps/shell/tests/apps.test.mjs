@@ -128,3 +128,10 @@ test('bei vergroesserter Oberflaeche rueckt die Anwendung mit Titelleiste und Sc
   assert.equal(flaeche.width, 1280 - flaeche.x);
   assert.equal(flaeche.height, 860 - flaeche.y);
 });
+
+test('jede App steht in der Dateinamen-Tabelle von symbole/LIESMICH.md', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const liesmich = await readFile(new URL('../symbole/LIESMICH.md', import.meta.url), 'utf8');
+  const fehlend = APPS.filter((a) => !liesmich.includes(`\`${a.id}.png\``)).map((a) => a.id);
+  assert.deepEqual(fehlend, [], 'neue Werkzeuge in symbole/LIESMICH.md eintragen');
+});
