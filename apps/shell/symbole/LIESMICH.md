@@ -25,6 +25,10 @@ Der Name ist die Kennung des Werkzeugs:
 | `nachschlagewerk.png` | Nachschlagewerk |
 | `magicitems.png`  | Magic Item Generator |
 | `loot.png`        | Loot Generator     |
+| `homebrew.png`    | Homebrew Creator   |
+| `kalender.png`    | Campaign Calendar  |
+| `orte.png`        | Settlement Generator |
+| `charakterbogen.png` | Charakterbogen  |
 | `austausch.png`   | Teilen (Titelleiste und Dialog) |
 | `banner.png`      | Banner oben im Startmenü, statt des Titels |
 
