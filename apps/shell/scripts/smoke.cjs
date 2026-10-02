@@ -673,7 +673,7 @@ app.whenReady().then(async () => {
 
   pruefe(konsolenfehler.length === 0, `keine Konsolenfehler (${konsolenfehler.join(' | ') || 'keine'})`);
 
-  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   if (fehlschlaege.length > 0) {
     console.error(`\n${fehlschlaege.length} Pruefung(en) fehlgeschlagen.`);
     app.exit(1);

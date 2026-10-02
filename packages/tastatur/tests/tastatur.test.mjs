@@ -60,3 +60,23 @@ test('Strg+S und Cmd+S speichern, Strg+Umschalt+S nicht', () => {
   assert.equal(T.istSpeichertaste(k({ ctrlKey: true, shiftKey: true })), false);
   assert.equal(T.istSpeichertaste(k({})), false);
 });
+
+test('einzeln: ein zweiter Aufruf während des ersten fällt weg', async () => {
+  const sperre = { current: false };
+  let laeufe = 0;
+  let fertig;
+  const aktion = () => {
+    laeufe += 1;
+    return new Promise((r) => (fertig = r));
+  };
+  T.einzeln(sperre, aktion);
+  await Promise.resolve();
+  T.einzeln(sperre, aktion);
+  await Promise.resolve();
+  assert.equal(laeufe, 1);
+  fertig();
+  await new Promise((r) => setTimeout(r, 0));
+  T.einzeln(sperre, aktion);
+  await Promise.resolve();
+  assert.equal(laeufe, 2);
+});

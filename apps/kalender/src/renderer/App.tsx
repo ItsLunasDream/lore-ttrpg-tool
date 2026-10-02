@@ -22,7 +22,9 @@ import {
   uhrzeit,
   type Filter,
   type Stufe,
-  type Umfrage
+  type Umfrage,
+  SCHRITTE,
+  alsSchritt
 } from '../shared/modell';
 import { alleZonen, ansicht, eigeneZone, istZone, zeitraum } from '../shared/zeitzone';
 import type { RaumLage } from '../main/embed';
@@ -267,7 +269,7 @@ export function App() {
           {t('einlesen')}
         </button>
       </div>
-      {meldung ? <p className="meldung">{meldung}</p> : null}
+      {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
       {fehler ? <p className="fehler">{fehler}</p> : null}
       {kommende.length ? (
         <section className="karte" data-naechste>
@@ -554,7 +556,7 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
         </button>
       </div>
       {meldung ? (
-        <p className="meldung" data-meldung>
+        <p key={meldung} className="meldung motion-meldung-ok" data-meldung>
           {meldung}
         </p>
       ) : null}
@@ -624,9 +626,12 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
           </label>
           <label className="wahl">
             <span>{t('feld.schritt')}</span>
-            <select value={u.schritt} data-schritt onChange={(e) => aendere({ ...u, schritt: Number(e.target.value) === 30 ? 30 : 60 })}>
-              <option value={60}>{t('minuten', { n: 60 })}</option>
-              <option value={30}>{t('minuten', { n: 30 })}</option>
+            <select value={u.schritt} data-schritt onChange={(e) => aendere({ ...u, schritt: alsSchritt(e.target.value) })}>
+              {SCHRITTE.map((n) => (
+                <option key={n} value={n}>
+                  {t('minuten', { n })}
+                </option>
+              ))}
             </select>
           </label>
           <label className="wahl">
@@ -759,7 +764,7 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
       <section className="karte" data-beste>
         <h2>{t('beste')}</h2>
         {u.termin ? (
-          <p className="termin" data-termin>
+          <p key={`${u.termin.tag}-${u.termin.von}`} className="termin motion-meldung-ok" data-termin>
             📅 {zeigeZeitraum(u.termin)}{' '}
             <button
               type="button"
@@ -783,7 +788,7 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
         {vorschlaege.length === 0 ? <p className="leise">{u.dauer === null ? t('beste.leer.offen') : t('beste.leer')}</p> : null}
         <ol className="vorschlaege">
           {vorschlaege.map((v) => (
-            <li key={`${v.tag}-${v.von}`} data-vorschlag={`${v.tag}-${v.von}`}>
+            <li key={`${v.tag}-${v.von}`} className="motion-eintritt" data-vorschlag={`${v.tag}-${v.von}`}>
               {zeigeZeitraum(v)}
               <span className="leise">
                 {' · '}

@@ -3,6 +3,8 @@
  * Ausgeruestet, Eingestimmt und Traglast gibt es nur bei Figuren.
  */
 import { useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
+import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { api } from './api';
 import { Segment, Suchwahl } from './Bedienung';
 import { waffenpunkte } from './AngriffeBlock';
@@ -225,7 +227,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
           </div>
         ) : null}
         {bogen.gegenstaende.map((g) => (
-          <div key={g.id} className="gegenstand">
+          <div key={g.id} className="gegenstand" data-ausblenden>
             <div className={`gegenstand__zeile ${figur ? '' : 'gegenstand--gruppe'}`}>
               {umbenennen === g.id ? (
                 <input
@@ -257,11 +259,13 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                   <span aria-hidden="true">{offen === g.id ? '▾' : '▸'}</span> {g.name || t('gegenstand.ohneName')}
                 </button>
               )}
-              <input
+              <ZahlFeld
+                alsText
                 aria-label={t('gegenstand.anzahl')}
-                inputMode="numeric"
-                value={g.anzahl}
-                onChange={(e) => setG(g.id, (x) => ({ ...x, anzahl: Math.max(1, Math.min(999999, Math.floor(Number(e.target.value) || 1))) }))}
+                min={1}
+                max={999999}
+                wert={g.anzahl}
+                aendern={(anzahl) => setG(g.id, (x) => ({ ...x, anzahl }))}
               />
               <Kommazahl
                 label={t('gegenstand.gewicht', { einheit: sprache === 'de' ? 'kg' : 'lb' })}
@@ -398,7 +402,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                   <button
                     type="button"
                     className="knopf--klein knopf--gefahr"
-                    onClick={() => aendere((b) => ({ ...b, gegenstaende: b.gegenstaende.filter((x) => x.id !== g.id) }))}
+                    onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((b) => ({ ...b, gegenstaende: b.gegenstaende.filter((x) => x.id !== g.id) })))}
                   >
                     {t('loeschen')}
                   </button>

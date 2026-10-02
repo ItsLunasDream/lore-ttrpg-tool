@@ -28,7 +28,7 @@ const os = require('node:os');
 const zweiterLauf = process.env.EINFUEHRUNG_LAUF === '2';
 const userData = path.join(os.tmpdir(), 'ttrpg-einfuehrung-smoke');
 // Der erste Lauf faengt bei Null an, auch nach einem abgebrochenen Versuch.
-if (!zweiterLauf) fs.rmSync(userData, { recursive: true, force: true });
+if (!zweiterLauf) fs.rmSync(userData, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 fs.mkdirSync(userData, { recursive: true });
 
 app.setPath('userData', userData);

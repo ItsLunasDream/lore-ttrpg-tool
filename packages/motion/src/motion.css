@@ -145,3 +145,125 @@
  * haelt die GPU wach und macht eine haengende Anwendung so lebendig wie eine
  * arbeitende. Wer Wartezeit zeigen muss, zeigt einen Text.
  */
+
+/* --- Rückmeldungen zu Aktionen (Rückmeldung: „Animationen, wo sinnvoll“) --- */
+
+:root {
+  --motion-neu: #d9a441;
+}
+
+/* Neu gewürfelt: kurz farbig hinterlegt, dann wieder wie vorher. */
+@keyframes motion-neu {
+  0%,
+  30% {
+    background-color: color-mix(in srgb, var(--motion-neu) 35%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--motion-neu) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.motion-neu {
+  animation: motion-neu 0.9s var(--motion-ease-exit);
+}
+
+/* Gelöscht: blendet aus und rückt dabei leicht zur Seite. */
+@keyframes motion-weg {
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+.motion-weg {
+  animation: motion-weg var(--motion-place) var(--motion-ease-exit) forwards;
+  pointer-events: none;
+}
+
+/* Aufgefüllt (Rast): kurzes Aufploppen. */
+@keyframes motion-auffuellen {
+  40% {
+    transform: scale(1.35);
+  }
+}
+
+.motion-auffuellen {
+  animation: motion-auffuellen 0.45s var(--motion-ease-standard);
+}
+
+/* Schaden und Heilung: der Balken blitzt rot oder grün. */
+@keyframes motion-schaden {
+  0%,
+  25% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--motion-fehler) 70%, transparent);
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes motion-heilung {
+  0%,
+  25% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--motion-ok) 70%, transparent);
+    filter: brightness(1.25);
+  }
+}
+
+.motion-schaden {
+  animation: motion-schaden 0.6s var(--motion-ease-exit);
+}
+
+.motion-heilung {
+  animation: motion-heilung 0.6s var(--motion-ease-exit);
+}
+
+/* Meldungen: hinterlegt aufleuchten, ohne Rahmen oder Bewegung. */
+@keyframes motion-meldung-ok {
+  0%,
+  30% {
+    background-color: color-mix(in srgb, var(--motion-ok) 28%, transparent);
+  }
+}
+
+@keyframes motion-meldung-fehler {
+  0%,
+  30% {
+    background-color: color-mix(in srgb, var(--motion-fehler) 28%, transparent);
+  }
+}
+
+.motion-meldung-ok {
+  border-radius: 4px;
+  animation: motion-meldung-ok 1.2s var(--motion-ease-exit);
+}
+
+/*
+ * Fehlermeldungen aller Werkzeuge leuchten beim Erscheinen rot auf. Die
+ * Klassen sind die der Werkzeuge; ein neues Werkzeug nimmt `motion-meldung-fehler`.
+ */
+.motion-meldung-fehler,
+p.fehler,
+p.stoerung,
+.feld--fehler,
+div.fehler,
+.baum__fehler,
+.austausch__fehler,
+.ki-fehler,
+.hausformular__fehler,
+.feld__fehler,
+.fuss__meldung--fehler {
+  border-radius: 4px;
+  animation: motion-meldung-fehler 1.2s var(--motion-ease-exit);
+}
+
+/* Weniger Bewegung: Farbe bleibt (sie ist die Rückmeldung), Bewegung fällt weg. */
+@media (prefers-reduced-motion: reduce) {
+  .motion-weg {
+    animation-name: motion-erscheinen;
+    animation-direction: reverse;
+  }
+
+  .motion-auffuellen {
+    animation: none;
+  }
+}

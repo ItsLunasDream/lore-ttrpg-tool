@@ -118,6 +118,22 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe((await js(`document.querySelector('[data-feld="reichweiteNah"]').value`)) === '10', '„Weitreichend" setzt die Reichweite auf 10 Fuß');
   await js(`document.querySelector('[data-eigenschaft="reichweite"]').click(); true`);
+  // Rückmeldung: „10" tippen, ohne dass die „1" sofort zur 5 wird; begrenzt wird erst beim Verlassen.
+  await js(`document.querySelector('[data-feld="reichweiteNah"]').focus(); true`);
+  await tippe('reichweiteNah', '1');
+  await warte(100);
+  pruefe((await js(`document.querySelector('[data-feld="reichweiteNah"]').value`)) === '1', 'beim Tippen bleibt die 1 stehen');
+  await tippe('reichweiteNah', '10');
+  await js(`document.querySelector('[data-feld="reichweiteNah"]').blur(); true`);
+  await warte(100);
+  pruefe((await js(`document.querySelector('[data-feld="reichweiteNah"]').value`)) === '10', 'und „10" kommt an');
+  await js(`document.querySelector('[data-feld="reichweiteNah"]').focus(); true`);
+  await tippe('reichweiteNah', '2');
+  await js(`document.querySelector('[data-feld="reichweiteNah"]').blur(); true`);
+  await warte(100);
+  pruefe((await js(`document.querySelector('[data-feld="reichweiteNah"]').value`)) === '5', 'erst beim Verlassen wird auf mindestens 5 begrenzt');
+  pruefe((await js(`document.querySelectorAll('[data-abschnitt="grund"] [data-feld="fern"], [data-abschnitt="grund"] [data-feld="fernReichweite"]').length`)) === 0, 'Nah/Fern steht nur noch unter Reichweite');
+  pruefe((await js(`document.querySelectorAll('[data-feld="fernReichweite"]').length`)) >= 1, 'dort ist die Wahl weiter da');
   await js(`document.querySelector('[data-abschnitt="schaden"] summary').click(); true`);
   await warte(150);
   pruefe(!(await js(`document.querySelector('[data-abschnitt="schaden"]').open`)), 'der Abschnitt „Schaden" klappt zu');
@@ -161,6 +177,9 @@ app.whenReady().then(async () => {
   await tippe('preis', '1500');
   await warte(200);
   pruefe((await urteil()) === 'im_rahmen', 'RK 18, Staerke 15, Nachteil, 1500 GM: wie die Ritterruestung');
+  // Strg+S: der Speichern-Knopf pulsiert kurz (Rückmeldung).
+  await js(`document.activeElement?.blur?.(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true })); true`);
+  pruefe(await js(`document.querySelector('[data-speichern]').classList.contains('suite-gespeichert')`), 'Strg+S: der Speichern-Knopf zeigt eine Animation');
   await js(`document.querySelector('[data-speichern]').click(); true`);
   await warte(800);
   await js(`document.querySelector('[data-zurueck]').click(); true`);
@@ -327,7 +346,7 @@ app.whenReady().then(async () => {
   }
 
   pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
-  fs.rmSync(tmp, { recursive: true, force: true });
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   console.log(fehler.length === 0 ? '\nHomebrew Creator bestanden.' : `\n${fehler.length} Fehler.`);
   app.exit(fehler.length === 0 ? 0 : 1);
 });

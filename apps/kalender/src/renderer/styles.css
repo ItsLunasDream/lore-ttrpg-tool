@@ -255,6 +255,11 @@ summary {
   background: var(--grund-tief);
   padding: 0;
   cursor: pointer;
+  /* Beim Ziehen färben sich die Felder weich statt hart um (Rückmeldung). */
+  transition:
+    background-color var(--motion-feedback) var(--motion-ease-standard),
+    border-color var(--motion-feedback) var(--motion-ease-standard),
+    opacity var(--motion-state) var(--motion-ease-standard);
 }
 
 .zelle--kann {

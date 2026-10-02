@@ -87,7 +87,11 @@ export interface Werte {
   zustaende: string[];
   /** 0 bis 6. */
   erschoepfung: number;
-  todesrettung: { erfolge: number; fehlschlaege: number };
+  /**
+   * `stabil`: nach drei Erfolgen (SRD: bei 0 TP bewusstlos, 1 TP nach
+   * 1W4 Stunden); Erfolge und Fehlschläge sind dann wieder null.
+   */
+  todesrettung: { erfolge: number; fehlschlaege: number; stabil?: boolean };
   inspiration: boolean;
   angriffe: Angriff[];
   /** Nur bei Figuren, die zaubern. */
@@ -315,6 +319,12 @@ export function wendeBetragAn(w: Werte, betrag: number): Werte {
     const ausTemp = Math.min(tp.temp, schaden);
     tp.temp -= ausTemp;
     schaden -= ausTemp;
+    // SRD (Damage at 0 Hit Points): Schaden bei 0 TP ist ein Fehlschlag, und
+    // wer stabil war, ist es nicht mehr; ab dem TP-Maximum ist man tot.
+    if (tp.aktuell === 0 && schaden > 0) {
+      const fehlschlaege = schaden >= tp.max ? 3 : Math.min(3, todesrettung.fehlschlaege + 1);
+      todesrettung = { erfolge: todesrettung.erfolge, fehlschlaege };
+    }
     tp.aktuell = Math.max(0, tp.aktuell - schaden);
   } else if (betrag > 0) {
     if (tp.aktuell === 0) todesrettung = { erfolge: 0, fehlschlaege: 0 };
@@ -481,7 +491,11 @@ export function bereinige(roh: unknown, id: string): Bogen {
       : leer.trefferwuerfel,
     zustaende: Array.isArray(w.zustaende) ? w.zustaende.filter((z): z is string => typeof z === 'string').slice(0, 20) : [],
     erschoepfung: zahl(w.erschoepfung, 0, 0, 6),
-    todesrettung: { erfolge: zahl(ts.erfolge, 0, 0, 3), fehlschlaege: zahl(ts.fehlschlaege, 0, 0, 3) },
+    todesrettung: {
+      erfolge: zahl(ts.erfolge, 0, 0, 3),
+      fehlschlaege: zahl(ts.fehlschlaege, 0, 0, 3),
+      ...(ts.stabil === true ? { stabil: true } : {})
+    },
     inspiration: w.inspiration === true,
     angriffe: Array.isArray(w.angriffe)
       ? w.angriffe.slice(0, 30).map((x) => {
@@ -532,5 +546,30 @@ export function bereinige(roh: unknown, id: string): Bogen {
       : []
   };
   if (bogen.werte.klassen.length === 0) bogen.werte.klassen = leer.klassen;
+  bogen.werte = mitTodesrettung(bogen.werte);
   return bogen;
+}
+
+/**
+ * SRD 5.2.1 (Death Saving Throws): Erfolge und Fehlschläge gehen auf null,
+ * sobald man wieder Trefferpunkte hat. Gilt für jeden Weg zu den TP (Feld,
+ * Heilung, Initiative Tracker, Laden), deshalb als feste Regel hier
+ * (Rückmeldung: das Ausgrauen blieb nach dem Heilen stehen).
+ */
+export function mitTodesrettung(w: Werte): Werte {
+  const t = w.todesrettung;
+  if (w.tp.aktuell <= 0 || (t.erfolge === 0 && t.fehlschlaege === 0 && !t.stabil)) return w;
+  return { ...w, todesrettung: { erfolge: 0, fehlschlaege: 0 } };
+}
+
+/** Wie lange die drei Erfolge stehen bleiben, bevor die Figur stabil wird (Rückmeldung). */
+export const STABIL_ZEIGEN_MS = 3000;
+
+/**
+ * Drei Erfolge bei 0 TP: stabil (SRD: Erfolge und Fehlschläge gehen auf
+ * null, die Figur bleibt bei 0 TP bewusstlos). Sonst unverändert.
+ */
+export function werdeStabil(w: Werte): Werte {
+  if (w.tp.aktuell > 0 || w.todesrettung.erfolge < 3 || w.todesrettung.fehlschlaege >= 3) return w;
+  return { ...w, todesrettung: { erfolge: 0, fehlschlaege: 0, stabil: true } };
 }

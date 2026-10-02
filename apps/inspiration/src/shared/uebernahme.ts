@@ -21,6 +21,8 @@ import {
   erzeugeOrt,
   erzeugeVerbindungen,
   erzeugeZeitstrahl,
+  mitFreiemNamen,
+  vergebeneNamen,
   type Baustein,
   type Entwurf,
   type EntwurfsFigur,
@@ -56,6 +58,12 @@ export function baueEntwurf(
 ): Entwurf {
   const behalten = (baustein: Baustein) => festgehalten.includes(baustein) && vorlage !== null;
   const menge = MENGEN[zuschnitt.umfang];
+  // Was aufgefüllt wird, nimmt keinen Namen, den es schon gibt (sonst fiele beim Export eine Notiz weg).
+  const vergeben = vergebeneNamen({
+    fraktionen: behalten('fraktionen') ? vorlage!.fraktionen : roh.fraktionen,
+    figuren: behalten('figuren') ? vorlage!.figuren : roh.figuren,
+    orte: behalten('orte') ? vorlage!.orte : roh.orte
+  });
 
   /*
    * Die Weltbeschreibung haengt an keinem Baustein und hat kein Schloss: sie
@@ -90,7 +98,7 @@ export function baueEntwurf(
           schwaeche: eintrag.schwaeche
         })),
         menge.fraktionen,
-        () => erzeugeFraktion(zuschnitt, sprache, rng)
+        () => mitFreiemNamen(() => erzeugeFraktion(zuschnitt, sprache, rng), vergeben)
       );
 
   const figuren: EntwurfsFigur[] = behalten('figuren')
@@ -104,7 +112,7 @@ export function baueEntwurf(
           makel: eintrag.makel
         })),
         menge.figuren,
-        () => erzeugeFigur(zuschnitt, sprache, rng)
+        () => mitFreiemNamen(() => erzeugeFigur(zuschnitt, sprache, rng), vergeben)
       );
 
   const orte: Ort[] = behalten('orte')
@@ -119,7 +127,7 @@ export function baueEntwurf(
           ausstattung: eintrag.ausstattung ?? ''
         })),
         menge.orte,
-        () => erzeugeOrt(zuschnitt, sprache, rng)
+        () => mitFreiemNamen(() => erzeugeOrt(zuschnitt, sprache, rng), vergeben)
       );
 
   /*

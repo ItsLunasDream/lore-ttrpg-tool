@@ -398,19 +398,6 @@ input[type='number'] {
   opacity: 0.7;
 }
 
-/*
- * Schaden und Heilung leuchten kurz auf. Kein Wackeln: das Feld bleibt, wo es
- * ist, damit der naechste Tastendruck trifft. Die Farbe bleibt auch bei
- * „weniger Bewegung\" — sie ist die Rueckmeldung, nicht die Zierde.
- */
-.koerper--schaden {
-  animation: motion-aufleuchten-fehler var(--motion-attention) var(--motion-ease-exit);
-}
-
-.koerper--heilung {
-  animation: motion-aufleuchten-ok var(--motion-attention) var(--motion-ease-exit);
-}
-
 .koerper__marke {
   font-size: 11px;
   color: var(--text-leise);

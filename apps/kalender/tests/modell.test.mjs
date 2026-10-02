@@ -120,3 +120,23 @@ test('Zeitzonen: Raster und Termin umgerechnet, .ics in UTC', () => {
   assert.equal(new Date(K.zuUtc('2026-10-25', 12 * 60, 'Europe/Berlin')).toISOString(), '2026-10-25T11:00:00.000Z');
   assert.equal(new Date(K.zuUtc('2026-10-24', 12 * 60, 'Europe/Berlin')).toISOString(), '2026-10-24T10:00:00.000Z');
 });
+
+test('Raster: 15, 30, 60 Minuten; neu 30, alte Umfragen ohne Angabe 60', () => {
+  assert.equal(K.leereUmfrage('x', '2026-10-01').schritt, 30);
+  assert.deepEqual(K.zeiten({ von: 18 * 60, bis: 19 * 60, schritt: 15 }), [1080, 1095, 1110, 1125]);
+  const roh = JSON.parse(JSON.stringify(basis()));
+  assert.equal(K.bereinige({ ...roh, schritt: 15 }, 'x').schritt, 15);
+  assert.equal(K.bereinige({ ...roh, schritt: 45 }, 'x').schritt, 30);
+  const { schritt: _weg, ...ohne } = roh;
+  assert.equal(K.bereinige(ohne, 'x').schritt, 60);
+});
+
+test('15-Minuten-Raster: Dauer zählt in Vierteln', () => {
+  const u = { ...basis(), schritt: 15, dauer: 60, tage: ['2026-10-02'] };
+  const f = {};
+  for (let m = 19 * 60; m < 20 * 60 + 15; m += 15) f[K.feld('2026-10-02', m)] = 'kann';
+  const mit = K.mitAntwort(u, { person: 'Mira', felder: f, geaendert: '' });
+  const [erster] = K.besteTermine(mit);
+  assert.equal(erster.bis - erster.von, 60);
+  assert.equal(erster.von, 19 * 60);
+});

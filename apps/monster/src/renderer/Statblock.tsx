@@ -36,15 +36,15 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
   return (
     <section className="statblock">
       <header className="statblock__kopf">
-        <h2 className="statblock__name">{monster.name}</h2>
-        <p className="statblock__art">
+        <h2 className="statblock__name" data-wurf-feld>{monster.name}</h2>
+        <p className="statblock__art" data-wurf-feld>
           {monster.thema} · {monster.rolle} · {t('feld.cr')} {monster.cr}
         </p>
       </header>
 
       <Trennlinie />
 
-      <div className="statblock__grund">
+      <div className="statblock__grund" data-wurf-feld>
         <Zeile name={t('werte.rk')} wert={String(w.rk)} />
         <Zeile name={t('werte.tp')} wert={String(w.tp)} />
         <Zeile name={t('werte.tempo')} wert={alsZeile(monster.bewegung, sprache)} />
@@ -58,7 +58,7 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
       <Trennlinie />
 
       {/* Die sechs Attribute in einer Reihe, wie im Buch. */}
-      <table className="statblock__attribute">
+      <table className="statblock__attribute" data-wurf-feld>
         <thead>
           <tr>
             {ATTRIBUTE.map((id) => (
@@ -86,7 +86,7 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
 
       <Trennlinie />
 
-      <div className="statblock__grund">
+      <div className="statblock__grund" data-wurf-feld>
         {monster.widerstaende.verwundbarkeiten.length > 0 && (
           <Zeile name={t('werte.verwundbar')} wert={arten(monster.widerstaende.verwundbarkeiten)} />
         )}
@@ -110,18 +110,18 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
 
       <Trennlinie />
 
-      <p className="statblock__satz">{monster.satz}</p>
+      <p className="statblock__satz" data-wurf-feld>{monster.satz}</p>
 
       {/* Passives steht ohne Ueberschrift ueber den Aktionen. */}
       {ausListe('passiv').map((f) => (
-        <p className="statblock__eintrag" key={f.name}>
+        <p className="statblock__eintrag" data-wurf-feld key={f.name}>
           <strong>{f.name}.</strong> {f.text}
         </p>
       ))}
 
       <h3 className="statblock__ueberschrift">{t('block.aktionen')}</h3>
       {gesamt > 1 && (
-        <p className="statblock__eintrag">
+        <p className="statblock__eintrag" data-wurf-feld>
           <strong>{t('block.mehrfachangriff')}.</strong>{' '}
           {t('block.mehrfachangriffText', {
             anzahl: gesamt,
@@ -136,7 +136,7 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
         <Angriffszeile key={`flaeche-${angriff.waffeId}-${stelle}`} angriff={angriff} />
       ))}
       {ausListe('aktion').map((f) => (
-        <p className="statblock__eintrag" key={f.name}>
+        <p className="statblock__eintrag" data-wurf-feld key={f.name}>
           <strong>{f.name}.</strong> {f.text}
         </p>
       ))}
@@ -148,7 +148,7 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
        * anfangen konnte. Jetzt steht darueber, woraus sie besteht, und sie
        * selbst ist das, was sie ist: die Zahl, mit der die Pruefung rechnet.
        */}
-      <p className="statblock__summe">
+      <p className="statblock__summe" data-wurf-feld>
         {t(abzweig(monster.faehigkeiten, w.schadenProRunde).schaden > 0 ? 'block.summeMitFaehigkeit' : 'block.summe', {
           gesamt: w.schadenProRunde,
           anzahl: gesamt,
@@ -166,12 +166,12 @@ export function Statblock({ monster }: { readonly monster: Monster }) {
           <h3 className="statblock__ueberschrift">{t('block.legendaer')}</h3>
           <p className="statblock__satz statblock__satz--klein">{t('block.legendaerText')}</p>
           {ausListe('legendaer').map((f) => (
-            <p className="statblock__eintrag" key={f.name}>
+            <p className="statblock__eintrag" data-wurf-feld key={f.name}>
               <strong>{f.name}.</strong> {f.text}
             </p>
           ))}
           {angriffe[0] && (
-            <p className="statblock__eintrag">
+            <p className="statblock__eintrag" data-wurf-feld>
               <strong>{t('block.legendaerAngriff')}.</strong>{' '}
               {t('block.legendaerAngriffText', { waffe: angriffName(angriffe[0].waffeId, sprache) })}
             </p>
@@ -188,7 +188,7 @@ function Trennlinie() {
 
 function Zeile({ name, wert }: { readonly name: string; readonly wert: string }) {
   return (
-    <p className="statblock__zeile">
+    <p className="statblock__zeile" data-wurf-feld>
       <strong>{name}</strong> {wert}
     </p>
   );
@@ -206,7 +206,7 @@ function Abschnitt({
     <>
       <h3 className="statblock__ueberschrift">{titel}</h3>
       {eintraege.map((f) => (
-        <p className="statblock__eintrag" key={f.name}>
+        <p className="statblock__eintrag" data-wurf-feld key={f.name}>
           <strong>{f.name}.</strong> {f.text}
         </p>
       ))}
@@ -229,7 +229,7 @@ function Angriffszeile({ angriff }: { readonly angriff: Angriff }) {
 
   if (angriff.art === 'flaeche' && angriff.rettung) {
     return (
-      <p className="statblock__eintrag">
+      <p className="statblock__eintrag" data-wurf-feld>
         <strong>
           {name}
           {angriff.aufladen ? ` ${t('block.aufladen')}` : ''}.
@@ -245,7 +245,7 @@ function Angriffszeile({ angriff }: { readonly angriff: Angriff }) {
   }
 
   return (
-    <p className="statblock__eintrag">
+    <p className="statblock__eintrag" data-wurf-feld>
       <strong>{name}.</strong>{' '}
       {t(angriff.art === 'nah' ? 'block.nahkampf' : 'block.fernkampf', {
         bonus: angriff.trefferbonus ?? 0,

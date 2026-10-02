@@ -432,6 +432,12 @@ body {
   color: var(--motion-fehler);
 }
 
+/* Gleiche Namen vor dem Export (Rückmeldung). */
+.fuss__meldung--warnung {
+  color: var(--motion-fehler);
+  font-weight: 600;
+}
+
 /* ---------- KI ---------- */
 
 /*

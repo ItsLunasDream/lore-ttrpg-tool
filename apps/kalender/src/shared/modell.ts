@@ -39,8 +39,8 @@ export interface Umfrage {
   /** Zeitfenster in Minuten ab Mitternacht; `bis` ist exklusiv. */
   readonly von: number;
   readonly bis: number;
-  /** 30 oder 60 Minuten je Feld. */
-  readonly schritt: 30 | 60;
+  /** 15, 30 oder 60 Minuten je Feld (Rückmeldung: Vorgabe 30). */
+  readonly schritt: Schritt;
   /** Gewünschte Dauer einer Sitzung in Minuten; null = offen (längste Blöcke). */
   readonly dauer: number | null;
   /** IANA-Zeitzone, in der Tage und Uhrzeiten gelten; leer = ohne Umrechnung (ältere Umfragen). */
@@ -57,6 +57,16 @@ export const HOECHSTENS_TAGE = 31;
 
 export function feld(tag: string, minute: number): string {
   return `${tag}T${minute}`;
+}
+
+export const SCHRITTE = [15, 30, 60] as const;
+export type Schritt = (typeof SCHRITTE)[number];
+export const SCHRITT_VORGABE: Schritt = 30;
+
+/** Ein gültiges Raster; Unbekanntes wird zur Vorgabe. */
+export function alsSchritt(wert: unknown): Schritt {
+  const n = Number(wert);
+  return (SCHRITTE as readonly number[]).includes(n) ? (n as Schritt) : SCHRITT_VORGABE;
 }
 
 export function zeiten(u: Pick<Umfrage, 'von' | 'bis' | 'schritt'>): number[] {
@@ -91,7 +101,7 @@ export function leereUmfrage(id: string, heute: string, zone = ''): Umfrage {
     tage: tageZwischen(heute, in13, [5, 6, 0]),
     von: 17 * 60,
     bis: 23 * 60,
-    schritt: 60,
+    schritt: SCHRITT_VORGABE,
     dauer: 4 * 60,
     zone,
     antworten: [],
@@ -288,7 +298,8 @@ export function bereinige(roh: unknown, id: string): Umfrage {
   const tage = (Array.isArray(r.tage) ? r.tage : []).filter((t): t is string => typeof t === 'string' && TAG.test(t)).slice(0, HOECHSTENS_TAGE);
   const von = minute(r.von, 17 * 60);
   const bis = Math.max(von + 30, minute(r.bis, 23 * 60));
-  const schritt = r.schritt === 30 ? 30 : 60;
+  // Ohne Angabe: 60, so waren ältere Umfragen angelegt.
+  const schritt = r.schritt === undefined ? 60 : alsSchritt(r.schritt);
   const t = obj(r.termin);
   const termin =
     typeof t.tag === 'string' && TAG.test(t.tag) ? { tag: t.tag, von: minute(t.von, von), bis: Math.max(minute(t.von, von) + 30, minute(t.bis, bis)) } : null;

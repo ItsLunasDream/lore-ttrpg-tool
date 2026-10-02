@@ -1,11 +1,12 @@
 /**
  * Vorschläge beim Tippen (Rückmeldung: „Comm" schlägt „Common" vor).
  *
- * Werkzeuge und Waffen kommen aus @suite/srd und sind damit belegt; ebenso
- * die meisten Sprachen und die Gesinnungen (so stehen sie in den
- * SRD-Monstern). Spezies, Hintergründe, Klassen und die übrigen Sprachen
- * stehen hier von Hand, nach SRD 5.2.1 aus dem Gedächtnis; die deutschen
- * Namen dort sind nicht am deutschen SRD nachgeprüft.
+ * Werkzeuge und Waffen kommen aus @suite/srd und sind damit belegt.
+ * Spezies, Hintergründe, Klassen, Sprachen, Gesinnungen und Größen stehen
+ * hier von Hand; die deutschen Namen sind am deutschen SRD 5.2.1
+ * (packages/srd/quelle) nachgeprüft: Inhaltsverzeichnis, Tabellen
+ * „Standardsprachen“/„Seltene Sprachen“, „Kreaturengröße und Bereich“,
+ * Gesinnungen.
  *
  * Es sind nur Vorschläge: jedes Feld nimmt weiter jeden Text.
  */
@@ -50,7 +51,7 @@ export const KLASSEN: readonly Paar[] = [
 
 export const SPRACHEN: readonly Paar[] = [
   ['Gemeinsprache', 'Common'],
-  ['Gebärdensprache der Gemeinsprache', 'Common Sign Language'],
+  ['Gebärden-Gemeinsprache', 'Common Sign Language'],
   ['Drakonisch', 'Draconic'],
   ['Zwergisch', 'Dwarvish'],
   ['Elfisch', 'Elvish'],
@@ -86,7 +87,7 @@ export const GESINNUNGEN: readonly Paar[] = [
 export const GROESSEN: readonly Paar[] = [
   ['Winzig', 'Tiny'],
   ['Klein', 'Small'],
-  ['Mittelgroß', 'Medium'],
+  ['Mittel', 'Medium'],
   ['Groß', 'Large']
 ];
 

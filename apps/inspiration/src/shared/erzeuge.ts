@@ -377,6 +377,32 @@ export const LEERER_ENTWURF: Entwurf = {
  * Figuren: wer die Figuren neu wuerfelt und die Verbindungen festhaelt,
  * bekommt seine Verbindungen zurueck, soweit die Stellen noch besetzt sind.
  */
+/** Namen, die im Entwurf schon vergeben sind, klein geschrieben; `ausser` zählt nicht mit. */
+export function vergebeneNamen(
+  entwurf: { readonly [K in 'fraktionen' | 'figuren' | 'orte']: readonly { readonly name?: string }[] },
+  ausser = ''
+): Set<string> {
+  const namen = [...entwurf.fraktionen, ...entwurf.figuren, ...entwurf.orte].map((x) => (x.name ?? '').trim().toLowerCase());
+  const heraus = new Set(namen);
+  if (ausser && namen.filter((n) => n === ausser.trim().toLowerCase()).length === 1) heraus.delete(ausser.trim().toLowerCase());
+  return heraus;
+}
+
+/**
+ * Würfelt neu, bis der Name noch frei ist, und merkt ihn sich.
+ *
+ * Jeder Name wird im Story Creator zu einer eigenen Notiz; zwei gleiche
+ * Namen hießen zwei gleiche Titel, und der Export übersprang die zweite
+ * („already there, skipped"). Aufgefallen als seltener Fehlschlag im
+ * Smoke-Test. Nach 30 Versuchen bleibt es beim letzten Wurf.
+ */
+export function mitFreiemNamen<T extends { readonly name: string }>(erzeuge: () => T, vergeben: Set<string>): T {
+  let x = erzeuge();
+  for (let versuch = 0; versuch < 30 && vergeben.has(x.name.trim().toLowerCase()); versuch += 1) x = erzeuge();
+  vergeben.add(x.name.trim().toLowerCase());
+  return x;
+}
+
 export function erzeugeEntwurf(
   zuschnitt: Zuschnitt,
   sprache: Sprache,
@@ -392,18 +418,25 @@ export function erzeugeEntwurf(
     ? vorher!.aufhaenger
     : erzeugeAufhaenger(zuschnitt, sprache, rng);
 
+  // Festgehaltene Namen zuerst; neu Gewürfeltes weicht ihnen und einander aus.
+  const vergeben = vergebeneNamen({
+    fraktionen: halte('fraktionen') ? vorher!.fraktionen : [],
+    figuren: halte('figuren') ? vorher!.figuren : [],
+    orte: halte('orte') ? vorher!.orte : []
+  });
+
   const fraktionen = halte('fraktionen')
     ? vorher!.fraktionen
-    : Array.from({ length: menge.fraktionen }, () => erzeugeFraktion(zuschnitt, sprache, rng));
+    : Array.from({ length: menge.fraktionen }, () => mitFreiemNamen(() => erzeugeFraktion(zuschnitt, sprache, rng), vergeben));
 
   const figuren = halte('figuren')
     ? vorher!.figuren
-    : Array.from({ length: menge.figuren }, () => erzeugeFigur(zuschnitt, sprache, rng));
+    : Array.from({ length: menge.figuren }, () => mitFreiemNamen(() => erzeugeFigur(zuschnitt, sprache, rng), vergeben));
 
   const orte = halte('orte')
     ? vorher!.orte
     : waehleMehrere(
-        Array.from({ length: Math.max(menge.orte * 2, 8) }, () => erzeugeOrt(zuschnitt, sprache, rng)),
+        Array.from({ length: Math.max(menge.orte * 2, 8) }, () => mitFreiemNamen(() => erzeugeOrt(zuschnitt, sprache, rng), vergeben)),
         menge.orte,
         rng
       );

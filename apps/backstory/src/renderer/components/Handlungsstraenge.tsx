@@ -5,6 +5,7 @@
  * Leiste zum Bearbeiten. Datenmodell und Anordnung: shared/straenge.ts.
  */
 import { useMemo, useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
 import { ordneStraenge, STRANG_FARBEN, type Anschluss, type Strang } from '../../shared/straenge';
@@ -181,7 +182,7 @@ export function Handlungsstraenge({ index, straenge, speichern, activeNoteId, on
                   <button type="button" aria-label="↓" disabled={i === strang.notizen.length - 1} onClick={() => aendere(strang.id, (s) => ({ ...s, notizen: tausche(s.notizen, i, i + 1) }))}>
                     ↓
                   </button>
-                  <button type="button" aria-label={t('plots.remove')} title={t('plots.remove')} onClick={() => aendere(strang.id, (s) => ({ ...s, notizen: s.notizen.filter((x) => x !== n) }))}>
+                  <button type="button" aria-label={t('plots.remove')} title={t('plots.remove')} onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere(strang.id, (s) => ({ ...s, notizen: s.notizen.filter((x) => x !== n) })))}>
                     ×
                   </button>
                 </li>

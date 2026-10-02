@@ -7,7 +7,9 @@
  * ein Ort als Notizen in den Story Creator oder mit seinen Läden in den Loot
  * Generator.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWurfLeuchten } from '@suite/motion/react';
+import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEIT_NAME } from '@suite/srd';
 import { api } from './api';
@@ -52,11 +54,15 @@ function sprache(): Sprache {
 const GROESSE_ZEICHEN: Record<Groesse, string> = { dorf: '🏡', kleinstadt: '🏘', stadt: '🏰' };
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [, neuZeichnen] = useState(0);
   const [kacheln, setKacheln] = useState<readonly Kachel[]>([]);
   const [suche, setSuche] = useState('');
   const [wuensche, setWuensche] = useState<Wuensche>(STANDARD_WUENSCHE);
   const [offen, setOffen] = useState<Gespeichert | null>(null);
+  // Neu Gewürfeltes leuchtet kurz auf; ein anderer Ort zählt nicht als Wurf (Rückmeldung).
+  useWurfLeuchten(offen, offen?.id ?? '');
   const [istNeu, setIstNeu] = useState(false);
   const [stand, setStand] = useState<string | null>(null);
   const [gesperrt, setGesperrt] = useState<readonly Feld[]>([]);
@@ -295,10 +301,10 @@ export function App() {
       teil(
         feld,
         feld,
-        <textarea className="flaeche" rows={2} value={offen[feld]} data-feld={feld} onChange={(e) => setze({ [feld]: e.target.value })} />
+        <textarea className="flaeche" rows={2} value={offen[feld]} data-feld={feld} data-wurf-feld onChange={(e) => setze({ [feld]: e.target.value })} />
       );
     const personZeile = (p: Person, schluessel?: string) => (
-      <details key={schluessel} className="person" data-person={p.figur.name}>
+      <details key={schluessel} className="person" data-person={p.figur.name} data-wurf-feld>
         <summary>
           <strong>{p.figur.name}</strong> <span className="leise">· {p.rolle} · {p.figur.spezies}</span>
         </summary>
@@ -365,7 +371,7 @@ export function App() {
               {offen.imLoot ? t('loot.drin') : t('loot')}
             </button>
           ) : null}
-          <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
+          <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => einzeln(speichertGerade, speichere)}>
             {t('speichern')}
           </button>
           {!istNeu ? (
@@ -414,7 +420,7 @@ export function App() {
           />
         ) : null}
         {meldung ? (
-          <p className="meldung" data-meldung>
+          <p key={meldung} className="meldung motion-meldung-ok" data-meldung>
             {meldung}
           </p>
         ) : null}
@@ -426,7 +432,7 @@ export function App() {
 
         <section className="karte kopfkarte" data-teil="name">
           <div className="leiste">
-            <input className="titel" value={offen.name} data-feld="name" aria-label={t('name')} onChange={(e) => setze({ name: e.target.value })} />
+            <input className="titel" value={offen.name} data-feld="name" data-wurf-feld aria-label={t('name')} onChange={(e) => setze({ name: e.target.value })} />
             {kiKnopf('name')}
             <button type="button" className="knopf knopf--klein" title={t('neu.teil')} data-neu-teil="name" onClick={() => neuTeil('name')}>
               🎲
@@ -457,7 +463,7 @@ export function App() {
           'gasthaus',
           'gasthaus',
           <>
-          <input className="eingabe" value={offen.gasthaus.name} data-feld="gasthaus" onChange={(e) => setze({ gasthaus: { ...offen.gasthaus, name: e.target.value } })} />
+          <input className="eingabe" value={offen.gasthaus.name} data-feld="gasthaus" data-wurf-feld onChange={(e) => setze({ gasthaus: { ...offen.gasthaus, name: e.target.value } })} />
           <div className="leiste">
             <label className="wahl">
               <span>{t('qualitaet')}</span>
@@ -504,7 +510,7 @@ export function App() {
           'laeden',
           <div className="laeden">
             {offen.laeden.map((l) => (
-              <article key={l.name} className="laden" data-laden={l.art}>
+              <article key={l.name} className="laden" data-laden={l.art} data-wurf-feld>
                 <h3>{l.name}</h3>
                 <p className="leise">{LADEN_NAME[l.art][spr]}</p>
                 <table className="tabelle">
@@ -539,7 +545,7 @@ export function App() {
           'geruechte',
           <ul className="geruechte">
             {offen.geruechte.map((g, i) => (
-              <li key={i} data-geruecht={g.wahr ? 'wahr' : 'falsch'}>
+              <li key={i} data-geruecht={g.wahr ? 'wahr' : 'falsch'} data-wurf-feld>
                 <button
                   type="button"
                   className={g.wahr ? 'marke marke--wahr' : 'marke'}

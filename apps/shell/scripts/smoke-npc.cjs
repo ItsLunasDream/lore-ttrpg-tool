@@ -61,6 +61,10 @@ app.whenReady().then(async () => {
     (await js("document.querySelectorAll('.zeile').length")) === 7,
     'sie hat sieben Felder'
   );
+  // Neu gewürfelt: was sich ändert, leuchtet kurz auf (Rückmeldung).
+  await js(`${wuerfeln}.click(); true`);
+  await warte(150);
+  pruefe((await js("document.querySelectorAll('.zeile__wert.motion-neu').length")) > 0, 'beim Neuwürfeln leuchtet Geändertes auf');
 
   // --- Ein Feld festhalten -------------------------------------------------
   /*

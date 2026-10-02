@@ -305,3 +305,23 @@ test('in einen leeren Entwurf passt auch eine Figur ohne Gegenueber', () => {
   assert.equal(leer.figuren.length, 1);
   assert.equal(leer.verbindungen.length, 0);
 });
+
+test('keine zwei Bausteine mit demselben Namen (sonst fiele beim Export eine Notiz weg)', () => {
+  for (let saat = 1; saat <= 400; saat += 1) {
+    for (const umfang of ['abend', 'bogen', 'kampagne']) {
+      const e = T.erzeugeEntwurf({ ...ZU, umfang }, saat % 2 ? 'de' : 'en', wuerfelgeber(saat));
+      const namen = [...e.fraktionen, ...e.figuren, ...e.orte].map((x) => x.name.toLowerCase());
+      assert.equal(new Set(namen).size, namen.length, `Saat ${saat}, ${umfang}: ${namen.join(', ')}`);
+    }
+  }
+});
+
+test('mitFreiemNamen weicht vergebenen Namen aus; vergebeneNamen lässt den eigenen aus', () => {
+  const vergeben = new Set(['moonshaft']);
+  let n = 0;
+  const x = T.mitFreiemNamen(() => ({ name: ++n < 3 ? 'Moonshaft' : 'Ashford' }), vergeben);
+  assert.equal(x.name, 'Ashford');
+  assert.ok(vergeben.has('ashford'));
+  const e = { fraktionen: [{ name: 'A' }], figuren: [{ name: 'B' }], orte: [{ name: 'C' }] };
+  assert.deepEqual([...T.vergebeneNamen(e, 'B')].sort(), ['a', 'c']);
+});

@@ -53,7 +53,7 @@ export function MagieFelder<T extends Felder>({ g, sprache, setze, nachKopf, wir
       <div className="kopfzeile">
         <label className="feld">
           <span className="feld__name">{t('art')}</span>
-          <select className="feld__wahl" value={g.art} data-feld="gegenstandsart" onChange={(e) => setze({ art: e.target.value as Art })}>
+          <select className="feld__wahl" value={g.art} data-feld="gegenstandsart" data-wurf-feld onChange={(e) => setze({ art: e.target.value as Art })}>
             {ARTEN.map((a) => (
               <option key={a} value={a}>
                 {ART_NAME[a][sprache]}
@@ -63,7 +63,7 @@ export function MagieFelder<T extends Felder>({ g, sprache, setze, nachKopf, wir
         </label>
         <label className="feld">
           <span className="feld__name">{t('seltenheit')}</span>
-          <select className="feld__wahl" value={g.seltenheit} data-feld="seltenheit" onChange={(e) => setze({ seltenheit: e.target.value as Seltenheit })}>
+          <select className="feld__wahl" value={g.seltenheit} data-feld="seltenheit" data-wurf-feld onChange={(e) => setze({ seltenheit: e.target.value as Seltenheit })}>
             {SELTENHEITEN.map((s) => (
               <option key={s} value={s}>
                 {SELTENHEIT_NAME[s][sprache]}
@@ -86,6 +86,7 @@ export function MagieFelder<T extends Felder>({ g, sprache, setze, nachKopf, wir
               rows={2}
               value={w}
               data-wirkung={stelle}
+              data-wurf-feld
               onChange={(e) => setze({ wirkungen: g.wirkungen.map((x, j) => (j === stelle ? e.target.value : x)) })}
             />
             <div className="zeilenknoepfe">
@@ -141,6 +142,7 @@ export function MagieFelder<T extends Felder>({ g, sprache, setze, nachKopf, wir
           value={g.fluch}
           placeholder={t('fluchHinweis')}
           data-fluch
+          data-wurf-feld
           data-feld="fluch"
           onChange={(e) => setze({ fluch: e.target.value })}
         />

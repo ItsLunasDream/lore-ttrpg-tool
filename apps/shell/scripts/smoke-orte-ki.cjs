@@ -116,7 +116,7 @@ modell.listen(0, '127.0.0.1', () => {
 
     pruefe(konsole.length === 0, `keine Konsolenfehler (${konsole.join(' / ') || 'keine'})`);
     modell.close();
-    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     console.log(fehler.length === 0 ? '\nSettlement mit KI bestanden.' : `\n${fehler.length} Fehler.`);
     app.exit(fehler.length === 0 ? 0 : 1);
   });

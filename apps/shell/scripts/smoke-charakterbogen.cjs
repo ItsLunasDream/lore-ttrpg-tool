@@ -298,6 +298,7 @@ app.whenReady().then(async () => {
       (await js(`document.querySelector('[data-feld="tp-temp"]').value`)) === '0',
     '12 Schaden: erst 5 temporaere, dann 7 echte TP'
   );
+  pruefe(await js(`document.querySelector('[data-tp-kasten]').classList.contains('motion-schaden')`), 'Schaden blitzt rot');
   await js(tippe('[data-feld="tp-betrag"]', '+4'));
   await js(enter);
   await warte(300);
@@ -366,6 +367,20 @@ app.whenReady().then(async () => {
   await js(`[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Feuerpfeil|Fire Bolt/.test(li.innerText)).querySelector('[data-wirken]').click(); true`);
   await warte(200);
   pruefe(/Zauberangriff: \d+ \(d20 \d+ \+6\)/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Feuerpfeil würfelt den Zauberangriff (+3 INT +3 Übung)');
+
+  // Zauber mit Rettungswurf: der SG steht in der Zeile (Rückmeldung).
+  if (!(await js(`Boolean(document.querySelector('[data-zauber-anfrage]'))`))) await js(`document.querySelector('[data-zauber-suchen]').click(); true`);
+  await warte(200);
+  await js(tippe('[data-zauber-anfrage]', 'burning hands'));
+  await warte(300);
+  await js(`document.querySelector('[data-zauber-dazu="burning-hands"]').click(); true`);
+  await warte(300);
+  await js(`[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Brennende Hände|Burning Hands/.test(li.innerText)).querySelector('[data-wirken]').click(); true`);
+  await warte(200);
+  pruefe(/Rettungswurf GES, SG 14/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Brennende Hände zeigt Rettungswurf GES, SG 14');
+  // Den verbrauchten Platz zurück, damit die Kompaktansicht unten bei null anfängt.
+  await js(`document.querySelector('[data-rast="lang"]').click(); true`);
+  await warte(300);
 
   // --- Kompaktansicht (docs/charakterbogen-kompakt.md) ---------------------
   await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
@@ -464,6 +479,9 @@ app.whenReady().then(async () => {
 
   // Todesrettung: würfeln und eintragen, bei drei Fehlschlägen „tot".
   if (await js(`Boolean(document.querySelector('[data-todesrettung-wuerfeln]'))`)) {
+    pruefe(await js(`document.querySelector('[data-todesrettung-wuerfeln]').disabled`), 'mit TP gibt es keinen Todesrettungswurf');
+    await js(tippe('[data-feld="tp-aktuell"]', '0'));
+    await warte(300);
     await js(`window.__zufall = Math.random; Math.random = () => 0.2; true`);
     for (let n = 0; n < 3; n++) {
       await js(`document.querySelector('[data-todesrettung-wuerfeln]').click(); true`);
@@ -477,7 +495,30 @@ app.whenReady().then(async () => {
     pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-kachel-tot]'))`), 4000), 'in der Liste steht „Tot" neben den TP');
     await js(`document.querySelector('.kachel[data-bogen]').click(); true`);
     await bis(async () => js(`Boolean(document.querySelector('[data-todesrettung-fehlschlaege]'))`), 4000);
-    await js(`Math.random = window.__zufall; (() => { const p = document.querySelectorAll('[data-todesrettung-fehlschlaege] [data-wert]'); p[0]?.click(); p[0]?.click(); return true; })()`);
+    // SRD: wer wieder TP hat, verliert Erfolge und Fehlschläge; das Grau geht weg.
+    await js(tippe('[data-feld="tp-aktuell"]', '5'));
+    await warte(300);
+    pruefe(!(await js(`Boolean(document.querySelector('.blatt--tot'))`)) && !(await js(`Boolean(document.querySelector('[data-tot]'))`)), 'mit TP ist die Figur nicht mehr tot');
+    await js(tippe('[data-feld="tp-aktuell"]', '0'));
+    await warte(300);
+    pruefe(!(await js(`Boolean(document.querySelector('.blatt--tot'))`)), 'und die Fehlschläge sind auf null, auch zurück bei 0 TP');
+    // Drei Erfolge: kurz zu sehen, dann stabil mit Hinweis und Knopf „1 TP" (Rückmeldung, SRD).
+    await js(`Math.random = () => 0.6; true`);
+    for (let n = 0; n < 3; n++) {
+      await js(`document.querySelector('[data-todesrettung-wuerfeln]').click(); true`);
+      await warte(120);
+    }
+    pruefe(await js(`Boolean(document.querySelector('.todesrettung.ist-wird-stabil'))`), 'drei Erfolge stehen erst noch da');
+    pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-stabil]'))`), 6000), 'danach ist die Figur stabil, mit Hinweis');
+    pruefe((await js(`document.querySelectorAll('[data-todesrettung-erfolge] .ist-an').length`)) === 0, 'und die Erfolge sind weg');
+    pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '0', 'die TP bleiben bei 0 (SRD)');
+    // Wie beim echten Klick verlässt der Fokus das TP-Feld (dort steht sonst noch der getippte Text).
+    await js(`document.activeElement?.blur?.(); document.querySelector('[data-stabil-1tp]').click(); true`);
+    await warte(300);
+    pruefe(!(await js(`Boolean(document.querySelector('[data-stabil]'))`)), '„1 TP": der Hinweis geht');
+    pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '1', `und die Figur hat 1 TP (${await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)})`);
+    await js(`Math.random = window.__zufall; true`);
+    await js(tippe('[data-feld="tp-aktuell"]', '30'));
     await warte(200);
   } else pruefe(false, 'der Knopf für den Todesrettungswurf ist da');
 

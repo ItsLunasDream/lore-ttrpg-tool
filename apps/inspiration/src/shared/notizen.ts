@@ -257,3 +257,20 @@ export function alsNotizen(entwurf: Entwurf, sprache: Sprache, titel: string): N
 
   return notizen;
 }
+
+/**
+ * Titel, die beim Export mehr als einmal vorkämen (Groß-/Kleinschreibung
+ * egal). Der Story Creator legt jeden Titel nur einmal an und überspringt
+ * den zweiten; das passiert, wenn man zwei Bausteinen von Hand denselben
+ * Namen gibt. Die Oberfläche warnt davor (Rückmeldung).
+ */
+export function doppelteTitel(notizen: readonly Pick<Notiz, 'titel'>[]): string[] {
+  const gesehen = new Map<string, { titel: string; anzahl: number }>();
+  for (const n of notizen) {
+    const schluessel = n.titel.trim().toLowerCase();
+    if (!schluessel) continue;
+    const alt = gesehen.get(schluessel);
+    gesehen.set(schluessel, { titel: alt?.titel ?? n.titel.trim(), anzahl: (alt?.anzahl ?? 0) + 1 });
+  }
+  return [...gesehen.values()].filter((x) => x.anzahl > 1).map((x) => x.titel);
+}

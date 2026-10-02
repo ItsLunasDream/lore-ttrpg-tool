@@ -10,6 +10,7 @@
  * Siehe `docs/loot.md`.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { wuerfle, wuerfleReihe, type Ergebnis } from '@suite/tabellen';
 import { api } from './api';
@@ -105,6 +106,8 @@ function befundText(b: Befund): string {
 }
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [, neuZeichnen] = useState(0);
   const [kacheln, setKacheln] = useState<readonly Kachel[]>([]);
   const [eigene, setEigene] = useState<readonly Gespeichert[]>([]);
@@ -394,7 +397,7 @@ export function App() {
                   {t('loeschen')}
                 </button>
               ) : null}
-              <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
+              <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => einzeln(speichertGerade, speichere)}>
                 {t('speichern')}
               </button>
             </>
@@ -611,7 +614,7 @@ export function App() {
           </label>
 
           </fieldset>
-          {meldung ? <p className="meldung">{meldung}</p> : null}
+          {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
         </section>
       </div>
@@ -732,7 +735,7 @@ export function App() {
           ))}
         </ul>
       )}
-      {meldung ? <p className="meldung">{meldung}</p> : null}
+      {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
       {fehler ? <p className="fehler">{fehler}</p> : null}
     </div>
   );

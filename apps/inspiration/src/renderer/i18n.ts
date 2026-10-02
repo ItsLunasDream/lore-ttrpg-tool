@@ -123,6 +123,14 @@ export const texte = {
   ],
   'export.fertig': ['{anzahl} Notizen angelegt: {ziel}', '{anzahl} notes created: {ziel}'],
   'export.aktualisieren': ['Vorhandene aktualisieren ({anzahl})', 'Update existing ({anzahl})'],
+  'export.doppelt': [
+    'Gleiche Namen: {namen}. Im Story Creator wird daraus nur je eine Notiz; benenne einen davon um.',
+    'Duplicate names: {namen}. The Story Creator keeps only one note for each; rename one of them.'
+  ],
+  'export.doppeltFrage': [
+    'Gleiche Namen: {namen}. Je Name entsteht nur eine Notiz, die anderen werden übersprungen. Trotzdem übernehmen?',
+    'Duplicate names: {namen}. Only one note per name will be created, the others are skipped. Export anyway?'
+  ],
   'export.leer': ['Erst würfeln, dann übernehmen.', 'Roll something first, then send it over.'],
   'export.fehler': ['Das hat nicht geklappt: {grund}', 'That did not work: {grund}'],
 

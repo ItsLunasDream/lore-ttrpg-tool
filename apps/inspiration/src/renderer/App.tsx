@@ -14,6 +14,7 @@
  * weg, waehrend man die Fraktionen sucht.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWurfLeuchten } from '@suite/motion/react';
 import {
   BAUSTEINE,
   erzeugeAufhaenger,
@@ -26,12 +27,14 @@ import {
   ersetzeFigur,
   fuegeFigurHinzu,
   benenneFigurUm,
+  mitFreiemNamen,
   moeglichkeiten,
+  vergebeneNamen,
   type Baustein,
   type Entwurf
 } from '../shared/erzeuge';
 import type { EntwurfsFigur, Fraktion, Ort, Verbindung } from '../shared/erzeuge';
-import { alsKartennotizen, alsMarkdown, alsNotizen } from '../shared/notizen';
+import { alsKartennotizen, alsMarkdown, alsNotizen, doppelteTitel } from '../shared/notizen';
 import { ZEITMARKEN } from '../shared/zeitstrahl';
 // `beschriftung` heisst hier schon etwas anderes (der Text eines Paares).
 import { berechneGeflecht } from '../shared/geflecht';
@@ -90,6 +93,7 @@ function Feld({ name, wert, aendere, klasse, onFocus, onBlur }: FeldProps) {
       {name && <span className="feld__name">{name}</span>}
       <textarea
         className="feld__wert"
+        data-wurf-feld
         value={wert}
         rows={1}
         spellCheck
@@ -103,6 +107,8 @@ function Feld({ name, wert, aendere, klasse, onFocus, onBlur }: FeldProps) {
 
 export function App() {
   const [entwurf, setEntwurf] = useState<Entwurf | null>(null);
+  // Neu Gewürfeltes leuchtet kurz auf (Rückmeldung).
+  useWurfLeuchten(entwurf);
   const [festgehalten, setFestgehalten] = useState<readonly Baustein[]>([]);
   const [umfang, setUmfang] = useState<UmfangId>('bogen');
   const [regionText, setRegionText] = useState('');
@@ -586,6 +592,11 @@ export function App() {
     if (!entwurf) return;
     setExportStand('laeuft');
     const notizen = alsNotizen(entwurf, getLanguage(), titel.trim() || t('export.titelVorgabe'));
+    const doppelt = doppelteTitel(notizen);
+    if (doppelt.length && !window.confirm(t('export.doppeltFrage', { namen: doppelt.join(', ') }))) {
+      setExportStand('ruht');
+      return;
+    }
     try {
       const ergebnis = await api.export(notizen, ziel, ersetzen);
       setVorhanden(ergebnis.vorhanden ?? 0);
@@ -600,6 +611,12 @@ export function App() {
       setExportText(t('export.fehler', { grund: String(fehler) }));
     }
   }, [entwurf, titel, ziel]);
+
+  // Gleiche Namen hießen gleiche Notiztitel; der Story Creator übersprange den zweiten.
+  const doppelteNamen = useMemo(
+    () => (entwurf ? doppelteTitel(alsNotizen(entwurf, getLanguage(), titel.trim() || t('export.titelVorgabe'))) : []),
+    [entwurf, titel]
+  );
 
   const kopieren = useCallback(async () => {
     if (!entwurf) return;
@@ -856,6 +873,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={fraktion.name}
                       onChange={(ereignis) =>
                         setzeFraktion(stelle, 'name', ereignis.target.value)
@@ -865,7 +883,9 @@ export function App() {
                       ersetze((alt) => ({
                         ...alt,
                         fraktionen: alt.fraktionen.map((eintrag, i) =>
-                          i === stelle ? erzeugeFraktion(zuschnitt, getLanguage(), wuerfel) : eintrag
+                          i === stelle
+                            ? mitFreiemNamen(() => erzeugeFraktion(zuschnitt, getLanguage(), wuerfel), vergebeneNamen(alt, eintrag.name))
+                            : eintrag
                         )
                       }))
                     )}
@@ -931,6 +951,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={figur.name}
                       onChange={(ereignis) => setzeFigur(stelle, 'name', ereignis.target.value)}
                       // Beim Hineinklicken merken, beim Verlassen nachziehen:
@@ -946,7 +967,7 @@ export function App() {
                         ersetzeFigur(
                           alt,
                           stelle,
-                          erzeugeFigur(zuschnitt, getLanguage(), wuerfel),
+                          mitFreiemNamen(() => erzeugeFigur(zuschnitt, getLanguage(), wuerfel), vergebeneNamen(alt, alt.figuren[stelle]?.name)),
                           zuschnitt,
                           getLanguage(),
                           wuerfel
@@ -988,6 +1009,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={ort.name}
                       onChange={(ereignis) => setzeOrt(stelle, 'name', ereignis.target.value)}
                     />
@@ -995,7 +1017,9 @@ export function App() {
                       ersetze((alt) => ({
                         ...alt,
                         orte: alt.orte.map((eintrag, i) =>
-                          i === stelle ? erzeugeOrt(zuschnitt, getLanguage(), wuerfel) : eintrag
+                          i === stelle
+                            ? mitFreiemNamen(() => erzeugeOrt(zuschnitt, getLanguage(), wuerfel), vergebeneNamen(alt, eintrag.name))
+                            : eintrag
                         )
                       }))
                     )}
@@ -1067,6 +1091,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={verbindung.muster}
                       onChange={(ereignis) =>
                         setzeVerbindung(stelle, 'muster', ereignis.target.value)
@@ -1175,8 +1200,13 @@ export function App() {
             </button>
           </div>
           <p className="fuss__hinweis">{t('export.hinweis')}</p>
+          {doppelteNamen.length > 0 && (
+            <p className="fuss__meldung fuss__meldung--warnung" role="alert" data-doppelt-warnung>
+              {t('export.doppelt', { namen: doppelteNamen.join(', ') })}
+            </p>
+          )}
           {exportStand !== 'ruht' && exportStand !== 'laeuft' && (
-            <p className={exportStand === 'fehler' ? 'fuss__meldung fuss__meldung--fehler' : 'fuss__meldung'}>
+            <p key={exportText} className={exportStand === 'fehler' ? 'fuss__meldung fuss__meldung--fehler' : 'fuss__meldung motion-meldung-ok'}>
               {exportText}
               {vorhanden > 0 ? (
                 <>

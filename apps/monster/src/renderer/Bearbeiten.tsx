@@ -8,6 +8,8 @@
  */
 
 import type { Monster, Faehigkeitseintrag } from '../shared/erzeuge';
+import { ausblendenUnd } from '@suite/motion/dom';
+import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { abzweig } from '../shared/erzeuge';
 import { angriffName, schadenProRunde, type Angriff } from '../shared/angriffe';
 import type { Kategorie } from '../shared/tabellen';
@@ -23,11 +25,6 @@ function mitSumme(monster: Monster, angriffe: readonly Angriff[]): Monster {
     angriffe,
     werte: { ...monster.werte, schadenProRunde: Math.max(1, schadenProRunde(angriffe) + zusatz) }
   };
-}
-
-function zahl(text: string, ersatz: number): number {
-  const wert = Number.parseInt(text, 10);
-  return Number.isFinite(wert) && wert > 0 ? wert : ersatz;
 }
 
 export function Bearbeiten({
@@ -55,20 +52,18 @@ export function Bearbeiten({
         </label>
         <label className="bearbeiten__feld">
           {t('werte.rk')}
-          <input
-            type="number"
+          <ZahlFeld
             min={1}
-            value={monster.werte.rk}
-            onChange={(e) => onAendern({ ...monster, werte: { ...monster.werte, rk: zahl(e.target.value, monster.werte.rk) } })}
+            wert={monster.werte.rk}
+            aendern={(n) => onAendern({ ...monster, werte: { ...monster.werte, rk: n } })}
           />
         </label>
         <label className="bearbeiten__feld">
           {t('werte.tp')}
-          <input
-            type="number"
+          <ZahlFeld
             min={1}
-            value={monster.werte.tp}
-            onChange={(e) => onAendern({ ...monster, werte: { ...monster.werte, tp: zahl(e.target.value, monster.werte.tp) } })}
+            wert={monster.werte.tp}
+            aendern={(n) => onAendern({ ...monster, werte: { ...monster.werte, tp: n } })}
           />
         </label>
       </div>
@@ -85,21 +80,19 @@ export function Bearbeiten({
           {angriff.art !== 'flaeche' && (
             <label className="bearbeiten__feld">
               {t('bearbeiten.anzahl')}
-              <input
-                type="number"
+              <ZahlFeld
                 min={1}
-                value={angriff.anzahl}
-                onChange={(e) => setzeAngriff(stelle, { anzahl: zahl(e.target.value, angriff.anzahl) })}
+                wert={angriff.anzahl}
+                aendern={(n) => setzeAngriff(stelle, { anzahl: n })}
               />
             </label>
           )}
           <label className="bearbeiten__feld">
             {t('bearbeiten.schnitt')}
-            <input
-              type="number"
+            <ZahlFeld
               min={1}
-              value={angriff.schadenJeAngriff}
-              onChange={(e) => setzeAngriff(stelle, { schadenJeAngriff: zahl(e.target.value, angriff.schadenJeAngriff) })}
+              wert={angriff.schadenJeAngriff}
+              aendern={(n) => setzeAngriff(stelle, { schadenJeAngriff: n })}
             />
           </label>
           <label className="bearbeiten__feld">
@@ -111,7 +104,7 @@ export function Bearbeiten({
 
       <h3 className="bearbeiten__titel">{t('bearbeiten.faehigkeiten')}</h3>
       {monster.faehigkeiten.map((f, stelle) => (
-        <div className="bearbeiten__faehigkeit" key={stelle}>
+        <div className="bearbeiten__faehigkeit" key={stelle} data-ausblenden>
           <div className="bearbeiten__reihe">
             <input
               className="bearbeiten__fname"
@@ -133,7 +126,7 @@ export function Bearbeiten({
             <button
               type="button"
               className="knopf knopf--klein"
-              onClick={() => onAendern({ ...monster, faehigkeiten: monster.faehigkeiten.filter((_, i) => i !== stelle) })}
+              onClick={(e) => ausblendenUnd(e.currentTarget, () => onAendern({ ...monster, faehigkeiten: monster.faehigkeiten.filter((_, i) => i !== stelle) }))}
             >
               {t('knopf.loeschen')}
             </button>

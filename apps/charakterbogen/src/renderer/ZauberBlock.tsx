@@ -3,6 +3,7 @@
  * Plaetze je Grad, die Liste und das Hinzufuegen aus dem SRD.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { api } from './api';
 import type { Zauber, Zauberklasse } from '@suite/srd/zauber';
 import { Segment } from './Bedienung';
@@ -17,6 +18,7 @@ import {
   freierPlatz,
   gradVon,
   istAngriffszauber,
+  rettungswuerfeVon,
   klassenAusNamen,
   leereZauberei,
   nameVon,
@@ -84,7 +86,8 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
       if (frei !== null) setZ((x) => verbrauche(x, frei));
       platz = frei;
     }
-    zeige(wirkZeile(name, platz, sprache));
+    const rettung = rettungswuerfeVon(e);
+    zeige(wirkZeile(name, platz, sprache, rettung.length ? { attribute: rettung, sg: zauberSg(wert, pb) } : undefined));
     if (istAngriffszauber(e)) zeige(probe(`${name} · ${t('zauber.angriff')}`, zauberAngriff(wert, pb)).text);
   };
 
@@ -283,10 +286,12 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
                     <button
                       type="button"
                       className="knopf--klein knopf--gefahr"
-                      onClick={() => {
-                        setZ((x) => ({ ...x, liste: x.liste.filter((_, m) => m !== idx) }));
-                        setOffen(null);
-                      }}
+                      onClick={(ev) =>
+                        ausblendenUnd(ev.currentTarget, () => {
+                          setZ((x) => ({ ...x, liste: x.liste.filter((_, m) => m !== idx) }));
+                          setOffen(null);
+                        })
+                      }
                     >
                       {t('zauber.weg')}
                     </button>

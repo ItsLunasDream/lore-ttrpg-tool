@@ -28,7 +28,8 @@ Ein Werkzeug **„Campaign Calendar“** (Name offen) mit zwei Teilen:
 
 ## Bedienung der Umfrage
 
-- Raster: Spalten = Tage, Zeilen = halbe oder ganze Stunden.
+- Raster: Spalten = Tage, Zeilen = 15, 30 oder 60 Minuten (Vorgabe 30;
+  ältere Umfragen ohne Angabe bleiben bei 60).
 - Ziehen mit der Maus markiert, erneutes Ziehen entfernt. Tastatur:
   Pfeiltasten und Leertaste (wie in `docs/tastatur.md`).
 - Zwei Stufen wie bei Doodle: „kann“ und „notfalls“. (Crab.fit hat das,
