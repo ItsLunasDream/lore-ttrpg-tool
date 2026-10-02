@@ -1,0 +1,198 @@
+{
+ "_woher": "Foundry 14.368, dnd5e 6.0.5, Export einer Nutzer:in 02.10.2026: Chromatische Kugel (SRD, Angriff)",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [],
+  "flags": {
+   "dnd5e": {
+    "riders": {
+     "activity": [],
+     "effect": []
+    }
+   }
+  },
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "activation": {
+    "condition": "str",
+    "type": "str",
+    "value": "null"
+   },
+   "activities": {
+    "dnd5eactivity000": {
+     "_id": "str",
+     "activation": {
+      "override": "bool",
+      "type": "str",
+      "value": "null"
+     },
+     "attack": {
+      "ability": "str",
+      "bonus": "str",
+      "critical": {
+       "threshold": "null"
+      },
+      "flat": "bool",
+      "type": {
+       "classification": "str",
+       "value": "str"
+      }
+     },
+     "behaviors": [],
+     "consumption": {
+      "scaling": {
+       "allowed": "bool",
+       "max": "str"
+      },
+      "spellSlot": "bool",
+      "targets": []
+     },
+     "damage": {
+      "critical": {
+       "bonus": "str"
+      },
+      "includeBase": "bool",
+      "parts": [
+       {
+        "bonus": "str",
+        "custom": {
+         "enabled": "bool",
+         "formula": "str"
+        },
+        "denomination": "int",
+        "modifiers": [],
+        "number": "int",
+        "scaling": {
+         "formula": "str",
+         "mode": "str",
+         "number": "int"
+        },
+        "types": [
+         "str"
+        ]
+       }
+      ]
+     },
+     "description": {
+      "chatFlavor": "str",
+      "value": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "expiry": "null",
+      "override": "bool",
+      "units": "str"
+     },
+     "effects": [],
+     "flags": {},
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "units": "str"
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "stationary": "bool",
+       "units": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "level": {},
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    }
+   },
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "duration": {
+    "expiry": "null",
+    "units": "str",
+    "value": "str"
+   },
+   "identifier": "str",
+   "level": "int",
+   "materials": {
+    "consumed": "bool",
+    "cost": "int",
+    "supply": "int",
+    "value": "str"
+   },
+   "method": "str",
+   "prepared": "int",
+   "properties": [
+    "str"
+   ],
+   "range": {
+    "special": "str",
+    "units": "str",
+    "value": "str"
+   },
+   "school": "str",
+   "source": {
+    "book": "str",
+    "custom": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "target": {
+    "affects": {
+     "choice": "bool",
+     "count": "str",
+     "type": "str"
+    },
+    "template": {
+     "contiguous": "bool",
+     "stationary": "bool",
+     "type": "str",
+     "units": "str"
+    }
+   },
+   "uses": {
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   }
+  },
+  "type": "str"
+ }
+}

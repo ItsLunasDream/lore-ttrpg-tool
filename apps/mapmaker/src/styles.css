@@ -1128,3 +1128,40 @@ details[open] > *:not(summary) {
   outline: 2px solid var(--f-betont, #4da3ff);
   outline-offset: 2px;
 }
+
+/* ------------------------------------------------------------ Kartenleiste */
+/* Die Karten der offenen Datei (model/mappe.ts), als Reiter über der Bühne. */
+.karten-leiste {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.karten-reiter {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius);
+}
+.karten-reiter.is-aktiv {
+  background: var(--panel-3);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.karten-reiter__knopf {
+  padding: 3px 8px;
+}
+.karten-reiter__weg {
+  padding: 2px 5px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.karten-reiter__name {
+  width: 14ch;
+}
+.karten-neu {
+  color: var(--text-dim);
+}

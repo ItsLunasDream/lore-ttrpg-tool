@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ausblendenUnd } from '@suite/motion/dom';
+import { useAktuell } from '@suite/motion/react';
 import { einzeln } from '@suite/tastatur';
 import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
@@ -787,6 +788,7 @@ function Gruppenfeld({
   readonly gruppe: Gruppe;
   readonly setze: (neu: Gruppe) => void;
 }) {
+  const aktuell = useAktuell(gruppe);
   return (
     <div className="gruppenfeld">
       {gruppe.length === 0 ? <p className="hinweis">{t('gruppe.leer')}</p> : null}
@@ -816,7 +818,7 @@ function Gruppenfeld({
             className="gegnerzeile__weg"
             aria-label={t('gruppe.weg')}
             title={t('gruppe.weg')}
-            onClick={(e) => ausblendenUnd(e.currentTarget, () => setze(gruppe.filter((_, j) => j !== i)))}
+            onClick={(e) => ausblendenUnd(e.currentTarget, () => setze(aktuell.current.filter((_, j) => j !== i)))}
           >
             ×
           </button>

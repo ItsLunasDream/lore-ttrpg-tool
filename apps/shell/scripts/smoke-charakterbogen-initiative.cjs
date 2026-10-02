@@ -21,7 +21,7 @@ fs.writeFileSync(
 const thorin = {
   id: 'thorin',
   name: 'Thorin',
-  werte: { tp: { max: 30, aktuell: 30, temp: 0 }, rk: 16, attribute: { sta: 16, ges: 14, kon: 14, int: 10, wei: 10, cha: 8 } }
+  werte: { tp: { max: 30, aktuell: 30, temp: 0 }, rk: 16, zustaende: ['poisoned', 'prone'], attribute: { sta: 16, ges: 14, kon: 14, int: 10, wei: 10, cha: 8 } }
 };
 fs.writeFileSync(path.join(boegen, 'thorin.md'), `---\nname: Thorin\n---\n\n\`\`\`json bogen\n${JSON.stringify(thorin)}\n\`\`\`\n`);
 
@@ -110,6 +110,22 @@ app.whenReady().then(async () => {
     await bis(async () => (await tjs(`document.querySelector('.koerper__hp')?.value`)) === '20', 8000),
     '3 Schaden am Bogen: im Tracker stehen 20 TP'
   );
+
+  // Zustände in beide Richtungen.
+  const chips = () => tjs(`[...document.querySelectorAll('.zeile__zustaende .zustand')].map((e) => e.textContent).join(',')`);
+  pruefe(/Vergiftet/.test(await chips()) && /Liegend/.test(await chips()), `die Zustände des Bogens stehen im Tracker (${await chips()})`);
+  await tjs(`[...document.querySelectorAll('.zeile__zustaende .zustand')].find((e) => /Vergiftet/.test(e.textContent)).click(); true`);
+  pruefe(
+    await bis(() => !/"poisoned"/.test(fs.readFileSync(path.join(boegen, 'thorin.md'), 'utf8'))),
+    'im Tracker entfernt: „Vergiftet“ ist auch im Bogen weg'
+  );
+  pruefe(/"prone"/.test(fs.readFileSync(path.join(boegen, 'thorin.md'), 'utf8')), 'und „Liegend“ bleibt dort');
+  pruefe(
+    await bis(async () => !(await bjs(`Boolean(document.querySelector('[data-zustand="poisoned"]'))`))),
+    'der offene Bogen zeigt es'
+  );
+  await bjs(`document.querySelector('[data-zustand="prone"] button').click(); true`);
+  pruefe(await bis(async () => !/Liegend/.test(await chips()), 8000), 'am Bogen entfernt: „Liegend“ ist auch im Tracker weg');
 
   // Zweimal in den Tracker: aufgefrischt, nicht verdoppelt.
   await bjs(`document.querySelector('[data-in-tracker]').click(); true`);

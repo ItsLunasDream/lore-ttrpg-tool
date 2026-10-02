@@ -713,7 +713,11 @@ export function alsFoundryGegenstand(g: GegenstandEingabe): Record<string, unkno
       img: 'icons/svg/shield.svg',
       transfer: true,
       disabled: false,
-      changes: [{ key: 'system.attributes.ac.bonus', mode: 2, value: `+${bonus}`, priority: 20 }],
+      // Wie im Beleg (Schild, Foundry 14): `system.changes[]` mit `type: add`
+      // und der Zahl als Wert. Die alte Form (`changes[]` mit `mode`) kennt
+      // Foundry 14 nicht mehr. `phase` ist im Beleg gesetzt, aber sein Wert
+      // ist nicht festgehalten; es bleibt weg, Foundry setzt die Vorgabe.
+      system: { changes: [{ key: 'system.attributes.ac.bonus', type: 'add', value: bonus, priority: null }] },
       flags: {}
     });
   }
@@ -730,3 +734,5 @@ export function alsFoundryGegenstand(g: GegenstandEingabe): Record<string, unkno
     ownership: { default: 0 }
   };
 }
+
+export * from './homebrew';

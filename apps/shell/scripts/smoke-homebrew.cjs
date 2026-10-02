@@ -276,6 +276,17 @@ app.whenReady().then(async () => {
   await warte(600);
   pruefe((await js(`document.querySelector('[data-feld="name"]')?.value ?? ''`)) === 'Sturmklinge', 'ein Treffer oeffnet den Eintrag');
 
+  // Foundry-Export auch für Waffen (nach echten Exporten aus dnd5e 6.0.5).
+  const zielWaffe = path.join(tmp, 'sturmklinge.json');
+  dialog.showSaveDialog = async () => ({ canceled: false, filePath: zielWaffe });
+  await js(`document.querySelector('[data-foundry]')?.click(); true`);
+  await warte(800);
+  const waffe = fs.existsSync(zielWaffe) ? JSON.parse(fs.readFileSync(zielWaffe, 'utf8')) : null;
+  pruefe(
+    waffe?.type === 'weapon' && waffe?.system?.damage?.base?.denomination === 8 && waffe?.system?.magicalBonus === 2,
+    `Foundry-Export der Waffe: weapon, 1d8, Bonus 2 (${waffe?.type}, ${waffe?.system?.damage?.base?.denomination}, ${waffe?.system?.magicalBonus})`
+  );
+
   // --- Anbindung (docs/homebrew-creator.md, „Wohin die Ergebnisse gehen") ---------
   await js(`document.querySelector('[data-loot]').click(); true`);
   await warte(800);

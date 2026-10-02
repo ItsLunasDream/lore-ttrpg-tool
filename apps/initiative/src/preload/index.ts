@@ -61,6 +61,8 @@ const api = {
   },
   /** Neue TP einer Figur zurueck an ihren Bogen. */
   bogenTp: (kennung: string, hp: number, temp: number) => ipcRenderer.send(kanal('bogen:tp'), kennung, hp, temp),
+  bogenZustaende: (kennung: string, hinzu: readonly string[], weg: readonly string[]) =>
+    ipcRenderer.send(kanal('bogen:zustaende'), kennung, hinzu, weg),
   begegnungen: {
     liste: () => ipcRenderer.invoke(kanal('begegnungen:liste')) as Promise<Begegnung[]>,
     lesen: (id: string) => ipcRenderer.invoke(kanal('begegnungen:lesen'), id) as Promise<Begegnung>,

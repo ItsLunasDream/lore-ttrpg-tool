@@ -10,6 +10,8 @@
  */
 import { ZAUBER, type Zauber, type Zauberklasse } from '@suite/srd/zauber';
 import { ATTRIBUTE, ATTRIBUT_NAMEN, type Attribut } from './regeln';
+import { probe } from './proben';
+import { wuerfleAusdruck } from './waffen';
 
 /**
  * Ein eigener Zauber. Aus dem Homebrew Creator kommen Zeitaufwand,
@@ -191,7 +193,31 @@ export interface ZauberWurf {
   readonly ausdruck: string;
   /** Schadensart in der Sprache der Oberfläche („Feuerschaden“, „Fire“), leer bei Heilung. */
   readonly bezeichnung: string;
+  /** Mehrere Geschosse oder Strahlen: `ausdruck` gilt dann je Stück. */
+  readonly mehrfach?: Mehrfach;
 }
+
+export interface Mehrfach {
+  readonly anzahl: number;
+  /** Je Stück ein eigener Angriffswurf (Strahlen); sonst treffen alle (Geschosse). */
+  readonly angriffJe: boolean;
+  /** Das Wort für ein Stück, in der Sprache der Oberfläche. */
+  readonly stueck: string;
+}
+
+/*
+ * Zauber mit mehreren Geschossen oder Strahlen (Rückmeldung: einzeln würfeln,
+ * mit Summe). Fest nach SRD-Kennung statt aus dem Text gelesen: es sind drei,
+ * und die Mengen stehen in verschiedenen Sätzen.
+ */
+const MEHRFACH: Record<string, { anzahl: (platz: number, stufe: number) => number; angriffJe: boolean; stueck: readonly [string, string] }> = {
+  // „three glowing darts … one more dart for each spell slot level above 1“
+  'magic-missile': { anzahl: (platz) => 3 + Math.max(0, platz - 1), angriffJe: false, stueck: ['Geschoss', 'dart'] },
+  // „three fiery rays … one additional ray for each spell slot level above 2“
+  'scorching-ray': { anzahl: (platz) => 3 + Math.max(0, platz - 2), angriffJe: true, stueck: ['Strahl', 'ray'] },
+  // „two beams at level 5, three beams at level 11, and four beams at level 17“
+  'eldritch-blast': { anzahl: (_, stufe) => (stufe >= 17 ? 4 : stufe >= 11 ? 3 : stufe >= 5 ? 2 : 1), angriffJe: true, stueck: ['Strahl', 'beam'] }
+};
 
 const SCHADEN_EN = /(\d+d\d+(?:\s*\+\s*\d+)?)\s+([A-Z][a-z]+)\s+damage/;
 // „8W6 Feuerschaden“ oder „1W10 nekrotischen Schaden“ (wird zu „nekrotischer Schaden“).
@@ -236,6 +262,21 @@ export function zauberWurf(
     return `${ausdruck}+${Number(h[1]) * (platz - Number(h[3]))}d${h[2]}`;
   };
   const schaden = SCHADEN_EN.exec(en);
+  const viele = MEHRFACH[z.id];
+  if (schaden && viele) {
+    const deutsch = SCHADEN_DE.exec(de);
+    const deName = deutsch ? (deutsch[2] ?? `${deutsch[3]}er Schaden`) : schaden[2];
+    return {
+      art: 'schaden',
+      ausdruck: schaden[1].replace(/\s+/g, ''),
+      bezeichnung: sprache === 'de' ? deName : schaden[2],
+      mehrfach: {
+        anzahl: viele.anzahl(platz ?? z.grad, stufe),
+        angriffJe: viele.angriffJe,
+        stueck: viele.stueck[sprache === 'de' ? 0 : 1]
+      }
+    };
+  }
   if (schaden) {
     let ausdruck = schaden[1].replace(/\s+/g, '');
     const t = z.grad === 0 ? TRICK_EN.exec(en) : null;
@@ -357,4 +398,45 @@ export function bereinigeZauberei(roh: unknown): Zauberei | undefined {
       return [];
     })
   };
+}
+
+/**
+ * Die Wurfzeilen für Geschosse und Strahlen. Geschosse treffen alle: eine Zeile
+ * mit jedem Wurf und der Summe. Strahlen: je Strahl Angriff und Schaden (eine 20
+ * verdoppelt die Würfel dieses Strahls), danach die Summe der Treffer.
+ */
+export function mehrfachZeilen(
+  name: string,
+  zw: ZauberWurf & { readonly mehrfach: Mehrfach },
+  angriffsbonus: number,
+  sprache: 'de' | 'en',
+  rng: () => number = Math.random
+): { text: string; d20?: number }[] {
+  const de = sprache === 'de';
+  const { anzahl, angriffJe, stueck } = zw.mehrfach;
+  const schadenWort = de ? 'Schaden' : 'Damage';
+  const art = zw.bezeichnung ? ` ${zw.bezeichnung}` : '';
+  if (!angriffJe) {
+    const wuerfe = Array.from({ length: anzahl }, () => wuerfleAusdruck(zw.ausdruck, rng)?.summe ?? 0);
+    const summe = wuerfe.reduce((a, b) => a + b, 0);
+    const mehrzahl = de ? (anzahl === 1 ? stueck : `${stueck}e`) : anzahl === 1 ? stueck : `${stueck}s`;
+    return [{ text: `🎲 ${name} · ${schadenWort}: ${summe}${art} (${anzahl} ${mehrzahl} à ${zw.ausdruck}: ${wuerfe.join(' + ')})` }];
+  }
+  const zeilen: { text: string; d20?: number }[] = [];
+  let summe = 0;
+  for (let i = 1; i <= anzahl; i += 1) {
+    const p = probe(`${name} · ${stueck} ${i}/${anzahl}`, angriffsbonus, rng);
+    if (p.d20 === 1) {
+      zeilen.push({ text: `${p.text} · ${de ? 'daneben' : 'miss'}`, d20: p.d20 });
+      continue;
+    }
+    const w = wuerfleAusdruck(zw.ausdruck, rng, p.d20 === 20);
+    const n = w?.summe ?? 0;
+    summe += n;
+    zeilen.push({ text: `${p.text} · ${schadenWort} ${n}${art} (${w?.text ?? zw.ausdruck})`, d20: p.d20 });
+  }
+  // Ob ein Strahl trifft, weiß nur, wer die RK kennt; eine 1 verfehlt immer.
+  const hinweis = de ? 'Summe ohne die Einsen, gegen RK prüfen' : 'total without the 1s, check against AC';
+  zeilen.push({ text: `🎲 ${name} · ${schadenWort}: ${summe}${art} (${hinweis})` });
+  return zeilen;
 }

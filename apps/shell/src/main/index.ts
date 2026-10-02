@@ -600,6 +600,10 @@ function montageHaken(herkunft: string, sprache: Language): MontageHaken {
     bogenTp: (kennung, hp, temp) =>
       void montiereImHintergrund('charakterbogen')
         .then(() => offen.get('charakterbogen')?.setzeTp?.(kennung, hp, temp))
+        .catch(() => undefined),
+    bogenZustaende: (kennung, hinzu, weg) =>
+      void montiereImHintergrund('charakterbogen')
+        .then(() => offen.get('charakterbogen')?.setzeZustaende?.(kennung, hinzu, weg))
         .catch(() => undefined)
   };
 }

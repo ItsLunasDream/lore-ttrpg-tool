@@ -9,6 +9,7 @@ import { LayerTemplates } from './LayerTemplates';
 import { Toolbar } from './Toolbar';
 import { FilterPanel } from './FilterPanel';
 import { NoteDialog } from './NoteDialog';
+import { KartenLeiste } from './KartenLeiste';
 import {
   BrushSettingsPanel,
   DrawSettingsPanel,
@@ -67,6 +68,7 @@ export function App() {
   return (
     <div className="app">
       <Toolbar />
+      <KartenLeiste />
 
       <div className="main">
         <aside className="side left">

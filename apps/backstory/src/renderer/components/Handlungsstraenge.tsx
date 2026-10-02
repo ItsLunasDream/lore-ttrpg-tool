@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from 'react';
 import { ausblendenUnd } from '@suite/motion/dom';
+import { useAktuell } from '@suite/motion/react';
 import type { NoteIndex } from '../noteIndex';
 import type { Note } from '../../shared/types';
 import { ordneStraenge, STRANG_FARBEN, type Anschluss, type Strang } from '../../shared/straenge';
@@ -30,6 +31,7 @@ const neueId = () => `s${Date.now().toString(36)}${Math.random().toString(36).sl
 
 export function Handlungsstraenge({ index, straenge, speichern, activeNoteId, onOpenNote, onHover }: Props) {
   const t = useT();
+  const aktuell = useAktuell(straenge);
   const [gewaehlt, setGewaehlt] = useState<string | null>(straenge[0]?.id ?? null);
   const nachId = useMemo(() => new Map(index.notes.map((n) => [n.id, n])), [index.notes]);
   // Geloeschte Notizen nicht als leere Knoten zeigen; gespeichert wird bereinigt (vault.savePlots).
@@ -46,7 +48,8 @@ export function Handlungsstraenge({ index, straenge, speichern, activeNoteId, on
   const { knoten, kanten, spalten } = useMemo(() => ordneStraenge(sichtbar), [sichtbar]);
   const strang = straenge.find((s) => s.id === gewaehlt) ?? null;
 
-  const aendere = (id: string, wie: (s: Strang) => Strang) => speichern(straenge.map((s) => (s.id === id ? wie(s) : s)));
+  // Vom aktuellen Stand aus: das Entfernen läuft erst nach dem Ausblenden.
+  const aendere = (id: string, wie: (s: Strang) => Strang) => speichern(aktuell.current.map((s) => (s.id === id ? wie(s) : s)));
   const breite = RAND_X + Math.max(1, spalten) * SPALTE + 40;
   const hoehe = RAND_Y * 2 + Math.max(1, straenge.length) * ZEILE - 40;
   const x = (spalte: number) => RAND_X + spalte * SPALTE + SPALTE / 2;

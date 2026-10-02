@@ -388,9 +388,16 @@ Gebaut:
   merkt sich, was der Bogen schon weiß: nichts läuft im Kreis.
 - Tippt man am Bogen gerade, wenn neue TP aus dem Tracker kommen, werden
   nur die TP übernommen.
-- Grenzen: Zustände, Todesrettungswürfe und Initiative gehen nicht zurück
-  an den Bogen. Im geteilten Kampf schreibt jede Person nur in Bögen, die
-  sie ändern darf.
+- **Zustände in beide Richtungen** (`shared/boegen.ts` im Tracker,
+  `mitZustandsDelta` hier): als Schlüssel, die SRD-Kennung oder der Name
+  eines eigenen Zustands. Jede Seite schickt nur, was seit dem zuletzt
+  bekannten Stand dazukam oder wegfiel; ein Zustand mit Dauer im Tracker
+  bleibt so stehen, wenn am Bogen etwas anderes geändert wird. Vom Bogen
+  kommen Zustände im Tracker als „offen“ an.
+- Grenzen: Erschöpfung bleibt außen vor (der Bogen führt sie als Stufe).
+  Todesrettungswürfe kennt der Tracker nicht. Die gewürfelte Initiative geht
+  nicht zurück: der Bogen führt nur den Bonus, keinen Wert für den Kampf.
+  Im geteilten Kampf schreibt jede Person nur in Bögen, die sie ändern darf.
 
 ## Hinweise nach Klasse und Stufe
 
@@ -466,6 +473,13 @@ Gebaut auf Wunsch nach Schritt 7:
   Rechtsklick auf „Wirken“: „Ohne Platz wirken“. Mehr vorbereitete Zauber als
   eingetragen: rote Zahl mit ⚠. Homebrew-Zauber zeigen „Homebrew“ als Marke,
   daneben Zeitaufwand und Reichweite.
+- **Geschosse und Strahlen** (`MEHRFACH` in `shared/zauber.ts`): Magisches
+  Geschoss würfelt jedes Geschoss einzeln (3, plus eins je Grad über 1) in
+  einer Zeile mit Summe. Sengender Strahl (3, plus einer je Grad über 2) und
+  Schauerlicher Strahl (1/2/3/4 ab Stufe 1/5/11/17): je Strahl ein Angriff,
+  eine 20 verdoppelt die Würfel, eine 1 verfehlt; danach die Summe ohne die
+  Einsen. Ob die übrigen treffen, entscheidet die RK am Tisch. Grenze:
+  Anrufungen wie Qualvoller Strahl (+CHA) rechnet es nicht ein.
 - **Aus Quelle hinzufügen:** ein Klick auf den Namen zeigt die Beschreibung.
 - **Story-Notiz:** immer mit Markierungen angelegt, ohne „# Name“; ältere
   Notizen, die nur aus dem Bogentext bestehen, werden beim ersten Abgleich

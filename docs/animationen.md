@@ -40,3 +40,5 @@ Verblassen, Aufploppen entfällt.
 - Gewürfelte Felder: `data-wurf-feld` an das Feld, `useWurfLeuchten(daten, kennung)` in die Komponente.
 - Löschen in einer Liste: `data-ausblenden` an die Zeile, `onClick={(e) => ausblendenUnd(e.currentTarget, () => …)}`.
   Bei Listen mit der Stelle als Schlüssel räumt `ausblendenUnd` die Klasse danach wieder ab.
+  Das Löschen läuft erst nach dem Ausblenden (220 ms). Im Rückruf deshalb nie den Stand vom Klick
+  nehmen, sondern den aktuellen: `setX((alt) => …)` oder `useAktuell(wert).current`.

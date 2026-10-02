@@ -135,7 +135,7 @@ Alle sechs Schritte sind umgesetzt (Rauchtest `apps/shell/scripts/smoke-homebrew
    übernommen.
 6. Gegenstand und magischer Gegenstand von Hand. Der magische Gegenstand
    nutzt die Grenzen des Generators (`@suite/magie/pruefung`) und meldet
-   nur, statt zu ändern. Foundry-Export für magische Gegenstände.
+   nur, statt zu ändern. Foundry-Export für alle fünf Arten (siehe unten).
 
 Bild je Eintrag: auf der Kachel, in der aufgeklappten Iteminfo des Bogens
 und im Nachschlagewerk.
@@ -173,12 +173,25 @@ und im Nachschlagewerk.
 
 ### Was fehlt oder unsicher ist
 
-- **Foundry-Export nur für magische Gegenstände.** Für Waffen, Rüstungen,
-  einfache Gegenstände und Zauber liegt kein echter Foundry-Export vor, an dem
-  sich die Felder prüfen ließen; geraten wird nicht.
-- **Bild im Foundry-Export ungeprüft.** Es steht als `data:`-Adresse im Feld
-  `img` (auf Wunsch aufgenommen). Ob Foundry das beim Import annimmt, ist an
-  keinem echten Import getestet.
+- **Foundry-Export** für Waffe, Rüstung, Gegenstand und Zauber
+  (`packages/foundry/src/homebrew.ts`), gebaut nach echten Exporten aus
+  Foundry 14.368 / dnd5e 6.0.5 (Langschwert, Kettenhemd, Feuerball,
+  Chromatische Kugel, Diebeswerkzeug, selbst angelegter Schlüssel; Gerüste
+  in `packages/foundry/tests/belege/*-6.json`). Ein Test prüft, dass kein
+  Feld erfunden ist. Ungeprüft sind einzelne WERTE, die nur aus den
+  Typlisten von dnd5e stammen (im Code mit „UNGEPRÜFT“ markiert), etwa
+  Fernkampfweiten, leichte/schwere Rüstung, andere Schulen und Schablonen.
+  Ein einfacher Gegenstand wird `loot` wie der Schlüssel. Heilung steht bei
+  Zaubern im Text (keine Heil-Tätigkeit: dafür liegt kein Beleg aus 6.0.5
+  vor), ebenso Zauber ohne Angriff und Rettungswurf.
+- **RK-Bonus als Effekt** in der Form von Foundry 14 (`system.changes[]` mit
+  `type: add`). Vorher stand er in der alten Form (`changes[]` mit `mode`);
+  das betraf auch magische Rüstungen und Schilde aus dem Magic Item
+  Generator.
+- **Bild im Foundry-Export ungeprüft.** Foundry selbst legt im Feld `img`
+  einen Pfad auf dem Server ab (Beleg: `assets/…png`). Wir schreiben die
+  `data:`-Adresse hinein. Ob Foundry das beim Import annimmt, ist an keinem
+  echten Import getestet.
 - **Magischer Gegenstand:** gelesen werden nur Zahlen in festen Mustern
   („+2 Bonus", „2W6 … Schaden", „SG 15", „(Grad 3)"). Frei Formuliertes
   sieht die Eichung nicht; die Oberfläche sagt das.
@@ -202,4 +215,4 @@ und im Nachschlagewerk.
   Umsetzung wie das Porträt im Charakterbogen: verkleinert und als Daten
   im Eintrag gespeichert, mit Größengrenze.
 
-Offen: echte Foundry-Exporte (Waffe, Rüstung, Gegenstand, Zauber, Gegenstand mit Bild) als Vorlage, um den Export zu erweitern und das Bildfeld zu prüfen.
+Offen: ein Import unseres Exports mit Bild in Foundry, um das Bildfeld zu prüfen.

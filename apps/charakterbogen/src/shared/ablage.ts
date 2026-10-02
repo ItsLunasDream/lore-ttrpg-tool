@@ -13,6 +13,7 @@
  *
  * Plattformfrei: nur Text bauen und lesen.
  */
+import { ZUSTAENDE } from '@suite/srd/zustaende';
 import { bereinige, gesamtstufe, initiativeBonus, passiverWert, uebungIn, type Bogen } from './bogen';
 import { gradVon, nameVon, sortiert } from './zauber';
 import { MUENZARTEN, MUENZ_NAMEN, gewichtAnzeige, inGold, summen } from './inventar';
@@ -291,10 +292,44 @@ export interface Figur {
   readonly tempTp: number;
   readonly rk: number;
   readonly iniMod: number;
+  /** Zustände als Schlüssel für den Tracker: SRD-Kennung oder Name eines eigenen. */
+  readonly zustaende: readonly string[];
+}
+
+/** Eigene Zustände (Status Effect Creator) stehen im Bogen mit diesem Vorsatz. */
+export const EIGENER_ZUSTAND = 'eigen:';
+
+/** Bogen → Tracker: `eigen:Name` wird zu `Name`, SRD-Kennungen bleiben. */
+export function zustandsSchluessel(id: string): string {
+  return id.startsWith(EIGENER_ZUSTAND) ? id.slice(EIGENER_ZUSTAND.length) : id;
+}
+
+/**
+ * Tracker → Bogen: was dazukam und was wegfiel. Unbekannte Schlüssel werden
+ * eigene Zustände. Erschöpfung führt der Bogen als Stufe, nicht hier.
+ */
+export function mitZustandsDelta(liste: readonly string[], hinzu: readonly string[], weg: readonly string[]): string[] {
+  const alsId = (k: string) => (ZUSTAENDE.some((z) => z.id === k) ? k : EIGENER_ZUSTAND + k);
+  const raus = new Set(weg.map(alsId));
+  const neu = liste.filter((id) => !raus.has(id));
+  for (const k of hinzu) {
+    const id = alsId(k);
+    if (k !== 'exhaustion' && !neu.includes(id)) neu.push(id);
+  }
+  return neu.slice(0, 20);
 }
 
 export function figurAus(b: Bogen, kennung: string): Figur | null {
   const w = b.werte;
   if (b.art !== 'figur' || !w) return null;
-  return { kennung, name: b.name, tp: w.tp.aktuell, tpMax: w.tp.max, tempTp: w.tp.temp, rk: w.rk, iniMod: initiativeBonus(w) };
+  return {
+    kennung,
+    name: b.name,
+    tp: w.tp.aktuell,
+    tpMax: w.tp.max,
+    tempTp: w.tp.temp,
+    rk: w.rk,
+    iniMod: initiativeBonus(w),
+    zustaende: w.zustaende.map(zustandsSchluessel).filter((k) => k !== 'exhaustion')
+  };
 }

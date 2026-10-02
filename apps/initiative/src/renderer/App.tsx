@@ -10,7 +10,7 @@
  * Die Regeln stehen nicht hier, sondern in shared/kampf.ts. Diese Datei
  * zeichnet und leitet Tastendruecke weiter.
  */
-import { leseFiguren, tpAenderungen, uebernimmFiguren } from '../shared/boegen';
+import { leseFiguren, tpAenderungen, uebernimmFiguren, zustandAenderungen, zustandsDelta, type ZustandsDelta } from '../shared/boegen';
 import { ausblendenUnd } from '@suite/motion/dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
@@ -450,11 +450,20 @@ export function App() {
    * Kreis laeuft.
    */
   const bekanntTp = useRef(new Map<string, { hp: number; temp: number }>());
+  // Dasselbe für Zustände. Das Delta entsteht hier und nicht im Setzer: der
+  // darf mehrfach laufen und hätte beim zweiten Mal kein Delta mehr.
+  const bekanntZustaende = useRef(new Map<string, readonly string[]>());
   const nimmFiguren = useCallback(
     (roh: unknown, hinzufuegen: boolean) => {
       const figuren = leseFiguren(roh as never);
-      for (const f of figuren) bekanntTp.current.set(f.kennung, { hp: f.tp, temp: f.tempTp });
-      setzeUndSichere((k) => uebernimmFiguren(k, figuren, hinzufuegen));
+      const deltas = new Map<string, ZustandsDelta>();
+      for (const f of figuren) {
+        bekanntTp.current.set(f.kennung, { hp: f.tp, temp: f.tempTp });
+        const d = zustandsDelta(f, bekanntZustaende.current);
+        if (d) deltas.set(f.kennung, d);
+      }
+      const sprache = getLanguage() === 'en' ? 'en' : 'de';
+      setzeUndSichere((k) => uebernimmFiguren(k, figuren, hinzufuegen, deltas, sprache));
       if (hinzufuegen && figuren.length) melde(t('msg.figuren', { n: figuren.length }));
     },
     [setzeUndSichere, melde]
@@ -479,6 +488,7 @@ export function App() {
   }, [geladen, vorLaden, nimmFiguren, nimmUebergabe]);
   useEffect(() => {
     for (const a of tpAenderungen(kampf, bekanntTp.current)) api.bogenTp(a.kennung, a.hp, a.temp);
+    for (const a of zustandAenderungen(kampf, bekanntZustaende.current)) api.bogenZustaende(a.kennung, a.hinzu, a.weg);
   }, [kampf]);
 
   const speichereBegegnung = useCallback(async (name: string, ersetzen = false) => {

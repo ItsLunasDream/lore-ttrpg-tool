@@ -208,6 +208,8 @@ frei positionierbar, lassen sich aber nicht löschen.
   `io/uvtt.ts` hat auch einen **Reader**: jeder Export wird sofort gegengelesen,
   und fremde `.dd2vtt`-Dateien lassen sich öffnen.
 - **Projekt**: `.ttmap` = ZIP mit `scene.json`, benutzten Assets und Vorschaubild.
+  Weitere Karten derselben Datei liegen unter `maps/`, Reihenfolge im Manifest
+  (`model/mappe.ts`, `io/project.ts`).
 
 ## Sprache
 

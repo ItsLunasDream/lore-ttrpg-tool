@@ -36,8 +36,7 @@ test('Trank mit Einstimmung: ein Hinweis', () => {
   assert.ok(e.befunde.some((b) => b.stufe === 'hinweis'));
 });
 
-test('Foundry: nur magische Gegenstaende, mit Seltenheit, Einstimmung und SRD-Wert', () => {
-  assert.equal(H.alsFoundryDatei(H.leererEintrag('waffe')), null);
+test('Foundry: magische Gegenstaende mit Seltenheit, Einstimmung und SRD-Wert', () => {
   const d = H.alsFoundryDatei(mit({ seltenheit: 'rare', einstimmung: true, wirkungen: ['Leuchtet im Dunkeln.'] }), () => 0.5);
   const item = JSON.parse(d.inhalt);
   assert.equal(item.name, 'Amulett');
@@ -46,6 +45,13 @@ test('Foundry: nur magische Gegenstaende, mit Seltenheit, Einstimmung und SRD-We
   assert.equal(item.system.price.value, 4000);
   assert.match(item.system.description.value, /Leuchtet im Dunkeln/);
   assert.match(d.name, /\.json$/);
+});
+
+test('Foundry: alle fünf Arten, jede mit ihrem Foundry-Typ', () => {
+  const typ = (art) => JSON.parse(H.alsFoundryDatei({ ...H.leererEintrag(art), name: 'Probe' }, () => 0.5).inhalt).type;
+  assert.deepEqual(['waffe', 'ruestung', 'gegenstand', 'zauber', 'magisch'].map(typ), ['weapon', 'equipment', 'loot', 'spell', 'equipment']);
+  const bild = 'data:image/png;base64,AAAA';
+  assert.equal(JSON.parse(H.alsFoundryDatei({ ...H.leererEintrag('gegenstand'), name: 'Schlüssel', bild }).inhalt).img, bild);
 });
 
 test('Foundry: das Bild steht in img (ungeprueft), ohne Bild bleibt das Standardsymbol', () => {

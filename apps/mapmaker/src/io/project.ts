@@ -12,6 +12,14 @@
  *   fonts/…          nur die tatsächlich benutzten importierten Schriften
  *   thumbnail.webp   Vorschaubild
  *   versions/…       die letzten Fassungen von scene.json
+ *   maps/…           weitere Karten derselben Datei (Etagen, `model/mappe.ts`)
+ *
+ * **Mehrere Karten.** Die erste steht weiter in `scene.json`, die übrigen
+ * unter `maps/`; Reihenfolge und welche zuletzt offen war, nennt das
+ * Manifest (`karten`, `aktiv`). Eine ältere Fassung des Editors öffnet so
+ * wenigstens die erste Karte, statt die Datei abzuweisen. Eine Fassung unter
+ * `versions/` enthält bei mehreren Karten alle (`{ mappe: […] }`), sonst
+ * nur das Dokument wie bisher.
  *
  * **Warum die alten Fassungen mit ins Archiv gehören.** Eine Projektdatei ist
  * die Arbeit von Stunden, und Speichern überschreibt sie ohne Rückfrage — ein
@@ -50,6 +58,10 @@ export interface ProjectManifest {
   fonts?: string[];
   /** Frühere Fassungen, neueste zuerst. Optional aus demselben Grund. */
   versions?: ProjectVersionInfo[];
+  /** Alle Karten der Datei in ihrer Reihenfolge; fehlt bei nur einer. */
+  karten?: { file: string; name: string }[];
+  /** Welche Karte zuletzt offen war (Stelle in `karten`). */
+  aktiv?: number;
 }
 
 /** Eine frühere Fassung im Archiv. */
@@ -66,7 +78,12 @@ export interface ProjectVersion extends ProjectVersionInfo {
 }
 
 export interface ProjectBundle {
+  /** Die erste Karte; bei nur einer die einzige. */
   doc: MapDocument;
+  /** Alle Karten der Datei, die erste vorn. */
+  karten: MapDocument[];
+  /** Die zuletzt offene Karte. */
+  aktiv: number;
   manifest: ProjectManifest;
   /** Rohdaten der eingebetteten Assets, Schlüssel ohne "assets/"-Präfix. */
   assets: Map<string, Uint8Array>;
@@ -93,6 +110,24 @@ export function packProject(
   /** Frühere Fassungen, neueste zuerst — aus `historyFrom` der alten Datei. */
   versions: ProjectVersion[] = [],
 ): Uint8Array {
+  return packMappe([doc], 0, assets, thumbnail, fonts, versions);
+}
+
+/** Wo die Karte an Stelle `i` im Archiv liegt. */
+function kartenDatei(i: number): string {
+  return i === 0 ? 'scene.json' : `maps/karte-${i}.json`;
+}
+
+/** Wie `packProject`, für mehrere Karten. Bilder und Schriften gelten für alle. */
+export function packMappe(
+  karten: readonly MapDocument[],
+  aktiv: number,
+  assets: Map<string, Uint8Array> = new Map(),
+  thumbnail?: Uint8Array,
+  fonts: Map<string, Uint8Array> = new Map(),
+  versions: ProjectVersion[] = [],
+): Uint8Array {
+  if (karten.length === 0) throw new Error('Keine Karte zum Speichern.');
   const behalten = versions.slice(0, MAX_VERSIONS);
   const manifest: ProjectManifest = {
     schemaVersion: SCHEMA_VERSION,
@@ -101,12 +136,17 @@ export function packProject(
     assets: [...assets.keys()],
     fonts: [...fonts.keys()],
     versions: behalten.map(({ file, savedAt }) => ({ file, savedAt })),
+    ...(karten.length > 1
+      ? { karten: karten.map((k, i) => ({ file: kartenDatei(i), name: k.meta.name })), aktiv }
+      : {}),
   };
 
   const files: Record<string, Uint8Array> = {
     'manifest.json': strToU8(JSON.stringify(manifest, null, 2)),
-    'scene.json': strToU8(JSON.stringify(doc)),
   };
+  karten.forEach((k, i) => {
+    files[kartenDatei(i)] = strToU8(JSON.stringify(k));
+  });
   for (const [name, data] of assets) files[`assets/${name}`] = data;
   for (const [name, data] of fonts) files[`fonts/${name}`] = data;
   for (const version of behalten) files[`versions/${version.file}`] = version.data;
@@ -139,6 +179,7 @@ export function historyFrom(existing: Uint8Array): ProjectVersion[] {
       filter: (file) =>
         file.name === 'scene.json' ||
         file.name === 'manifest.json' ||
+        file.name.startsWith('maps/') ||
         file.name.startsWith('versions/'),
     });
   } catch {
@@ -151,8 +192,9 @@ export function historyFrom(existing: Uint8Array): ProjectVersion[] {
   if (!scene) return [];
 
   let savedAt = '';
+  let manifest: ProjectManifest | null = null;
   try {
-    const manifest = files['manifest.json']
+    manifest = files['manifest.json']
       ? (JSON.parse(strFromU8(files['manifest.json'])) as ProjectManifest)
       : null;
     savedAt = manifest?.savedAt ?? '';
@@ -161,8 +203,16 @@ export function historyFrom(existing: Uint8Array): ProjectVersion[] {
   }
   if (!savedAt) savedAt = new Date().toISOString();
 
+  // Bei mehreren Karten wandern alle in die Fassung, nicht nur die erste.
+  let daten = scene;
+  const liste = manifest?.karten ?? [];
+  if (liste.length > 1) {
+    const teile = liste.map((k) => files[k.file]).filter((x): x is Uint8Array => !!x).map((x) => strFromU8(x));
+    daten = strToU8(`{"mappe":[${teile.join(',')}],"aktiv":${Number(manifest?.aktiv) || 0}}`);
+  }
+
   const alte = versionsFromFiles(files);
-  const neueste: ProjectVersion = { file: versionFilename(savedAt), savedAt, data: scene };
+  const neueste: ProjectVersion = { file: versionFilename(savedAt), savedAt, data: daten };
   // Gleiche Zeitstempel könnten sich sonst gegenseitig überschreiben.
   const ohneDoppel = alte.filter((v) => v.file !== neueste.file);
   return [neueste, ...ohneDoppel].slice(0, MAX_VERSIONS);
@@ -181,8 +231,13 @@ function versionsFromFiles(files: Record<string, Uint8Array>): ProjectVersion[] 
   return out.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
 
-/** Liest ein Dokument aus einer früheren Fassung. */
-export function documentFromVersion(data: Uint8Array): { doc: MapDocument; report: LoadReport } {
+/** Liest ein Dokument aus einer früheren Fassung — bei mehreren Karten alle. */
+export function documentFromVersion(data: Uint8Array): {
+  doc: MapDocument;
+  karten: MapDocument[];
+  aktiv: number;
+  report: LoadReport;
+} {
   const report: LoadReport = { warnings: [] };
   let parsed: unknown;
   try {
@@ -190,7 +245,14 @@ export function documentFromVersion(data: Uint8Array): { doc: MapDocument; repor
   } catch {
     throw new Error('Die gespeicherte Fassung ist beschädigt.');
   }
-  return { doc: migrate(parsed, report), report };
+  const mappe = (parsed as { mappe?: unknown; aktiv?: unknown })?.mappe;
+  if (Array.isArray(mappe) && mappe.length > 0) {
+    const karten = mappe.map((k) => migrate(k, report));
+    const aktiv = Math.max(0, Math.min(Number((parsed as { aktiv?: unknown }).aktiv) || 0, karten.length - 1));
+    return { doc: karten[0], karten, aktiv, report };
+  }
+  const doc = migrate(parsed, report);
+  return { doc, karten: [doc], aktiv: 0, report };
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +291,20 @@ export function unpackProject(data: Uint8Array): { bundle: ProjectBundle; report
 
   const doc = migrate(parsed, report);
 
+  // Weitere Karten derselben Datei. Eine fehlende oder kaputte wird
+  // übersprungen, mit Warnung — die übrigen sollen trotzdem aufgehen.
+  const karten: MapDocument[] = [doc];
+  for (const eintrag of (manifest.karten ?? []).slice(1)) {
+    const roh = files[eintrag.file];
+    try {
+      if (!roh) throw new Error('fehlt');
+      karten.push(migrate(JSON.parse(strFromU8(roh)), report));
+    } catch {
+      report.warnings.push(`Die Karte „${eintrag.name}" war nicht lesbar und wurde ausgelassen.`);
+    }
+  }
+  const aktiv = Math.max(0, Math.min(Number(manifest.aktiv) || 0, karten.length - 1));
+
   const assets = new Map<string, Uint8Array>();
   const fonts = new Map<string, Uint8Array>();
   for (const [path, content] of Object.entries(files)) {
@@ -247,7 +323,7 @@ export function unpackProject(data: Uint8Array): { bundle: ProjectBundle; report
     savedAt: ausManifest.get(v.file) ?? v.savedAt,
   }));
 
-  return { bundle: { doc, manifest, assets, fonts, versions }, report };
+  return { bundle: { doc, karten, aktiv, manifest, assets, fonts, versions }, report };
 }
 
 /**

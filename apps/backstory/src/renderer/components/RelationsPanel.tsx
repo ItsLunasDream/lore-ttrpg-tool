@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ausblendenUnd } from '@suite/motion/dom';
+import { useAktuell } from '@suite/motion/react';
 import { RELATION_SUGGESTIONS, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import type { NoteIndex } from '../noteIndex';
@@ -21,6 +22,7 @@ interface Props {
  */
 export function RelationsPanel({ note, index, onChange, onOpenNote, onAddReverse }: Props) {
   const t = useT();
+  const aktuell = useAktuell(note);
   const [targetId, setTargetId] = useState('');
 
   const others = index.notes.filter((candidate) => candidate.id !== note.id);
@@ -63,7 +65,7 @@ export function RelationsPanel({ note, index, onChange, onOpenNote, onAddReverse
                   type="button"
                   className="icon-button"
                   aria-label={t('relations.remove')}
-                  onClick={(e) => ausblendenUnd(e.currentTarget, () => onChange(note.relations.filter((entry) => entry.id !== relation.id)))}
+                  onClick={(e) => ausblendenUnd(e.currentTarget, () => onChange(aktuell.current.relations.filter((entry) => entry.id !== relation.id)))}
                 >
                   ×
                 </button>

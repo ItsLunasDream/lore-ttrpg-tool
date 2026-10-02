@@ -11,6 +11,7 @@ import { create } from 'zustand';
 import { DEFAULT_AUTOSAVE_MINUTES, clampInterval } from '@/io/autoSave';
 import { History, type Command, type DocChange, type VttKind } from './commands';
 import { createDocument, defaultTargetLayer, uebersetzeStandardnamen } from './document';
+import { MAX_KARTEN, eindeutigeIds, entferneVerweiseAuf, mitKartenId, neueKarteWie } from './mappe';
 import { onLanguageChange } from '@/i18n';
 import { braucheAbgleich, syncVttVisuals, verknuepfeAltesMauerwerk } from './vttVisuals';
 import { lichtKandidaten, syncPropLights } from './propLights';
@@ -304,12 +305,38 @@ export interface EditorState {
 
   /** Ersetzt das gesamte Dokument, etwa nach dem Laden einer Projektdatei. */
   loadDocument(doc: MapDocument): void;
+
+  /**
+   * Alle Karten der Datei (`model/mappe.ts`); `doc` ist immer
+   * `karten[aktiveKarte]`, dasselbe Objekt. Werkzeuge und Renderer sehen nur
+   * `doc`.
+   */
+  karten: MapDocument[];
+  aktiveKarte: number;
+  /** Lädt eine ganze Mappe, etwa aus einer Projektdatei. */
+  ladeMappe(karten: MapDocument[], aktiv?: number): void;
+  /** Eine andere Karte der Datei öffnen. Ist keine Änderung an der Datei. */
+  wechsleKarte(stelle: number): void;
+  /** Eine leere Karte gleicher Größe anhängen und öffnen. */
+  neueKarte(name: string): void;
+  /** Eine Karte aus der Datei nehmen; Verweise auf sie verschwinden mit. */
+  entferneKarte(stelle: number): void;
+  benenneKarte(stelle: number, name: string): void;
 }
 
-const initialDoc = createDocument();
+const initialDoc = mitKartenId(createDocument());
+
+/*
+ * Jede Karte behält ihren eigenen Rückgängig-Verlauf. Wer in der Etage
+ * darunter etwas ändert und zurückkommt, soll hier nicht die Schritte von
+ * dort rückgängig machen.
+ */
+const verlaeufe = new WeakMap<MapDocument, History>();
 
 export const useEditor = create<EditorState>((set, get) => ({
   doc: initialDoc,
+  karten: [initialDoc],
+  aktiveKarte: 0,
   rev: 0,
   history: new History(),
 
@@ -605,19 +632,105 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   loadDocument(doc) {
+    get().ladeMappe([doc], 0);
+  },
+
+  ladeMappe(karten, aktiv = 0) {
     get().history.clear();
-    // Alte Karten: loses Mauerwerk an seine Wand haengen, dann ableiten.
-    verknuepfeAltesMauerwerk(doc);
-    syncVttVisuals(doc);
-    syncPropLights(doc);
+    const liste = karten.length ? karten.slice(0, MAX_KARTEN) : [createDocument()];
+    eindeutigeIds(liste);
+    for (const doc of liste) {
+      // Alte Karten: loses Mauerwerk an seine Wand haengen, dann ableiten.
+      verknuepfeAltesMauerwerk(doc);
+      syncVttVisuals(doc);
+      syncPropLights(doc);
+    }
+    const stelle = Math.max(0, Math.min(aktiv, liste.length - 1));
+    const doc = liste[stelle];
+    const history = new History();
+    verlaeufe.set(doc, history);
     set({
       doc,
+      karten: liste,
+      aktiveKarte: stelle,
+      history,
       rev: get().rev + 1,
       selection: [],
       vttSelection: emptyVttSelection(),
+      editingNoteId: null,
       activeLayerId: defaultTargetLayer(doc) ?? doc.rootLayers[0],
     });
     emit([{ type: 'all' }]);
+  },
+
+  wechsleKarte(stelle) {
+    const s = get();
+    const doc = s.karten[stelle];
+    if (!doc || stelle === s.aktiveKarte) return;
+    verlaeufe.set(s.doc, s.history);
+    const history = verlaeufe.get(doc) ?? new History();
+    verlaeufe.set(doc, history);
+    // Wechseln ist keine Bearbeitung: war die Datei gespeichert, bleibt sie es.
+    const sauber = s.rev === s.lastSavedRev;
+    set({
+      doc,
+      aktiveKarte: stelle,
+      history,
+      rev: s.rev + 1,
+      ...(sauber ? { lastSavedRev: s.rev + 1 } : {}),
+      selection: [],
+      vttSelection: emptyVttSelection(),
+      editingNoteId: null,
+      soloLayerId: null,
+      activeLayerId: defaultTargetLayer(doc) ?? doc.rootLayers[0],
+    });
+    emit([{ type: 'all' }]);
+  },
+
+  neueKarte(name) {
+    const s = get();
+    if (s.karten.length >= MAX_KARTEN) return;
+    const neu = neueKarteWie(s.doc, name);
+    set({ karten: [...s.karten, neu], rev: s.rev + 1 });
+    // Das Anlegen hat `rev` schon erhöht, die Datei gilt also als geändert.
+    get().wechsleKarte(s.karten.length);
+  },
+
+  entferneKarte(stelle) {
+    const s = get();
+    const weg = s.karten[stelle];
+    if (!weg || s.karten.length <= 1) return;
+    const karten = s.karten.filter((_, i) => i !== stelle);
+    entferneVerweiseAuf(karten, weg.meta.id ?? '');
+    if (stelle !== s.aktiveKarte) {
+      set({ karten, aktiveKarte: s.aktiveKarte > stelle ? s.aktiveKarte - 1 : s.aktiveKarte, rev: s.rev + 1 });
+      return;
+    }
+    // Die offene Karte geht: die Nachbarin übernimmt.
+    const naechste = Math.min(stelle, karten.length - 1);
+    const doc = karten[naechste];
+    const history = verlaeufe.get(doc) ?? new History();
+    set({
+      karten,
+      doc,
+      aktiveKarte: naechste,
+      history,
+      rev: s.rev + 1,
+      selection: [],
+      vttSelection: emptyVttSelection(),
+      editingNoteId: null,
+      soloLayerId: null,
+      activeLayerId: defaultTargetLayer(doc) ?? doc.rootLayers[0],
+    });
+    emit([{ type: 'all' }]);
+  },
+
+  benenneKarte(stelle, name) {
+    const s = get();
+    const k = s.karten[stelle];
+    if (!k || !name.trim() || k.meta.name === name) return;
+    k.meta.name = name;
+    set({ karten: [...s.karten], rev: s.rev + 1 });
   },
 }));
 
@@ -641,6 +754,9 @@ onLanguageChange(() => {
     const doc = uebersetzeStandardnamen(s.doc);
     if (doc === s.doc) return {};
     const sauber = s.rev === s.lastSavedRev;
-    return { doc, rev: s.rev + 1, ...(sauber ? { lastSavedRev: s.rev + 1 } : {}) };
+    // `doc` ist ein neues Objekt: in der Mappe und beim Verlauf mitziehen.
+    verlaeufe.set(doc, s.history);
+    const karten = s.karten.map((k, i) => (i === s.aktiveKarte ? doc : k));
+    return { doc, karten, rev: s.rev + 1, ...(sauber ? { lastSavedRev: s.rev + 1 } : {}) };
   });
 });

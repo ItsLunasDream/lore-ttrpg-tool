@@ -22,6 +22,7 @@ import {
   rettungswuerfeVon,
   klassenAusNamen,
   leereZauberei,
+  mehrfachZeilen,
   nameVon,
   sortiert,
   sucheZauber,
@@ -108,12 +109,18 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
     }
     const rettung = rettungswuerfeVon(e);
     zeige(wirkZeile(name, platz, sprache, rettung.length ? { attribute: rettung, sg: zauberSg(wert, pb) } : undefined));
+    // Schaden oder Heilung gleich mitwürfeln (Rückmeldung: Feuerball zeigte nur den SG).
+    const zw = zauberWurf(e, platz === null ? grad : platz, gesamtstufe(w), modifikator(wert), sprache);
+    // Geschosse und Strahlen einzeln (Rückmeldung), Strahlen mit eigenem Angriff.
+    if (zw?.mehrfach) {
+      const viele = { ...zw, mehrfach: zw.mehrfach };
+      for (const zeile of mehrfachZeilen(name, viele, zauberAngriff(wert, pb), sprache)) zeige(zeile.text, { d20: zeile.d20 });
+      return;
+    }
     if (istAngriffszauber(e)) {
       const p = probe(`${name} · ${t('zauber.angriff')}`, zauberAngriff(wert, pb));
       zeige(p.text, { d20: p.d20 });
     }
-    // Schaden oder Heilung gleich mitwürfeln (Rückmeldung: Feuerball zeigte nur den SG).
-    const zw = zauberWurf(e, platz === null ? grad : platz, gesamtstufe(w), modifikator(wert), sprache);
     const gewuerfelt = zw ? wuerfleAusdruck(zw.ausdruck) : null;
     if (zw && gewuerfelt) {
       const was = t(zw.art === 'schaden' ? 'tp.wurfSchaden' : 'tp.wurfHeilung');

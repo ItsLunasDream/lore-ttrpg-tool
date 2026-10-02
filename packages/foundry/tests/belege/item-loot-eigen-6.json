@@ -1,0 +1,62 @@
+{
+ "_woher": "Foundry 14.368, dnd5e 6.0.5, Export einer Nutzer:in 02.10.2026: Schlüssel, selbst angelegt, eigenes Bild",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [],
+  "flags": {},
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "container": "null",
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "identified": "bool",
+   "identifier": "str",
+   "price": {
+    "denomination": "str",
+    "value": "int"
+   },
+   "properties": [],
+   "quantity": "int",
+   "rarities": [],
+   "source": {
+    "revision": "int",
+    "rules": "str"
+   },
+   "type": {
+    "subtype": "str",
+    "value": "str"
+   },
+   "unidentified": {
+    "description": "str"
+   },
+   "weight": {
+    "units": "str",
+    "value": "int"
+   }
+  },
+  "type": "str"
+ }
+}

@@ -175,10 +175,24 @@ app.whenReady().then(async () => {
     'der geaenderte Name steht im Statblock'
   );
   // Zurueck zum alten Namen, damit die Schritte danach wie vorher laufen.
+  // Dabei eine Fähigkeit dazu und wieder weg, und noch während sie ausblendet
+  // den Namen tippen: das Löschen darf die Eingabe nicht überschreiben.
   await klickeKnopf('/^(Edit|Bearbeiten)$/');
   await warte(200);
-  await setzeName(alterName);
+  const faehigkeiten = () => js("document.querySelectorAll('.bearbeiten__faehigkeit').length");
+  const vorherFaehig = await faehigkeiten();
+  await js("[...document.querySelectorAll('[data-bearbeiten] .knopf')].find((k) => /^(Add feature|Fähigkeit hinzufügen)$/.test(k.textContent.trim()))?.click(); true");
   await warte(200);
+  pruefe((await faehigkeiten()) === vorherFaehig + 1, 'eine Fähigkeit kommt dazu');
+  await js("[...document.querySelectorAll('.bearbeiten__faehigkeit')].at(-1).querySelector('.bearbeiten__reihe .knopf').click(); true");
+  await warte(30);
+  await setzeName(alterName);
+  await warte(600);
+  pruefe((await faehigkeiten()) === vorherFaehig, 'und ist nach dem Ausblenden wieder weg');
+  pruefe(
+    (await js("document.querySelector('[data-bearbeiten] input').value")) === alterName,
+    'der Name, getippt während des Ausblendens, bleibt stehen'
+  );
   await klickeKnopf('/^(Done|Fertig)$/');
   await warte(300);
 

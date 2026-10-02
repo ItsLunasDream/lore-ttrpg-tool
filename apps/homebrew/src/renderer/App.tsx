@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ausblendenUnd } from '@suite/motion/dom';
+import { useAktuell } from '@suite/motion/react';
 import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEIT_NAME } from '@suite/srd';
@@ -477,6 +478,7 @@ function SchadenWahl({ wuerfel, plus, feld, aendern }: { wuerfel: string; plus: 
 }
 
 function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) => void }) {
+  const aktuell = useAktuell(w);
   const s = sprache();
   const e = new Set(w.eigenschaften);
   const schalte = (x: (typeof WAFFEN_EIGENSCHAFTEN)[number]) => {
@@ -538,7 +540,7 @@ function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) =>
               optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
               aendern={(art: Schadensart) => setzeZusatz(i, { art })}
             />
-            <button type="button" className="knopf zusatz__weg" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={(e) => ausblendenUnd(e.currentTarget, () => setze({ zusatz: w.zusatz.filter((_, j) => j !== i) }))}>
+            <button type="button" className="knopf zusatz__weg" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={(e) => ausblendenUnd(e.currentTarget, () => setze({ zusatz: aktuell.current.zusatz.filter((_, j) => j !== i) }))}>
               ✕
             </button>
           </div>

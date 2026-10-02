@@ -273,8 +273,8 @@ test('Gegenstand: Bonus als Mechanik, Notiz in der Beschreibung', () => {
   assert.match(waffe.system.description.value, /Gehoerte dem Baron/);
   const ruestung = alsFoundryGegenstand({ ...basis, name: 'Platte', art: 'ruestung', wirkungen: ['You have a +1 bonus to AC while wearing this armor.'] });
   assert.equal(ruestung.effects.length, 1);
-  assert.equal(ruestung.effects[0].changes[0].key, 'system.attributes.ac.bonus');
-  assert.equal(ruestung.effects[0].changes[0].value, '+1');
+  assert.equal(ruestung.effects[0].system.changes[0].key, 'system.attributes.ac.bonus');
+  assert.deepEqual([ruestung.effects[0].system.changes[0].type, ruestung.effects[0].system.changes[0].value], ['add', 1]);
   // Ohne Angriff/RK im Satz ist „+1" kein Bonus.
   assert.equal(zahlenbonus(['Ladungen: +1 pro Tag']), null);
   const ring = alsFoundryGegenstand({ ...basis, name: 'Ring', art: 'ring', wirkungen: ['+1 to AC'] });

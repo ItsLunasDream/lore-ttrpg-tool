@@ -135,3 +135,13 @@ test('jede App steht in der Dateinamen-Tabelle von symbole/LIESMICH.md', async (
   const fehlend = APPS.filter((a) => !liesmich.includes(`\`${a.id}.png\``)).map((a) => a.id);
   assert.deepEqual(fehlend, [], 'neue Werkzeuge in symbole/LIESMICH.md eintragen');
 });
+
+test('jedes mitgelieferte Symbol gehört zu einem Werkzeug (Tippfehler im Dateinamen)', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const bekannt = new Set([...APPS.map((a) => a.id), 'austausch', 'banner']);
+  const dateien = await readdir(new URL('../symbole/', import.meta.url));
+  const fremd = dateien
+    .filter((d) => /\.(png|jpe?g|webp|gif)$/i.test(d))
+    .filter((d) => !bekannt.has(d.replace(/\.[^.]+$/, '')));
+  assert.deepEqual(fremd, [], 'Dateiname muss die Kennung des Werkzeugs sein, siehe symbole/LIESMICH.md');
+});

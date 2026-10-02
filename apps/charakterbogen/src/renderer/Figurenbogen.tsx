@@ -41,6 +41,7 @@ import {
   type Ressource,
   type Werte
 } from '../shared/bogen';
+import { EIGENER_ZUSTAND } from '../shared/ablage';
 import {
   ATTRIBUTE,
   ATTRIBUT_NAMEN,
@@ -893,7 +894,7 @@ function Rasten({ w, aendere, setMeldung, name }: TeilProps & { readonly name?: 
 // --- Zustaende -------------------------------------------------------------------
 
 /** Eigene Zustaende stehen als `eigen:<Name>` im Bogen. */
-const EIGEN = 'eigen:';
+const EIGEN = EIGENER_ZUSTAND;
 
 function Zustaende({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }) {
   const sprache = getLanguage() === 'de' ? 'de' : 'en';
