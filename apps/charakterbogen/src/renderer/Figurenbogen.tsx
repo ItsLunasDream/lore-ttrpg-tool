@@ -12,6 +12,7 @@ import { ZUSTAENDE } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, t } from './i18n';
 import { ZauberBlock } from './ZauberBlock';
+import { Klassenhinweise } from './Klassenhinweise';
 import { AngriffeBlock } from './AngriffeBlock';
 import { GestaltKasten, TiergestaltBlock } from './TiergestaltBlock';
 import { druidenstufe } from '../shared/tiergestalt';
@@ -76,6 +77,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
     <WurfBuehne imRaum={Boolean(imRaum)}>
       {istTot(w) ? <TotMarke /> : null}
       <Kopf w={w} aendere={aendere} bild={bild} setzeBild={setzeBild} />
+      <Klassenhinweise w={w} aendere={aendere} />
 
       <section className="blatt__leiste">
         <div className="attribute">
@@ -201,7 +203,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
         <h2>
           {t('zauber')} <SlMarke feld="zauber" />
         </h2>
-        <ZauberBlock w={w} pb={pb} aendere={aendere} setMeldung={setMeldung} />
+        <ZauberBlock w={w} pb={pb} aendere={aendere} />
       </section>
 
       {druidenstufe(w) > 0 || w.tiergestalt ? (

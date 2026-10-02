@@ -12,3 +12,4 @@ export * from '../src/shared/design';
 export * from '../src/shared/tiergestalt';
 export * from '../src/shared/vorschlaege';
 export * from '../src/shared/proben';
+export * from '../src/shared/klassenhinweise';

@@ -213,13 +213,17 @@ export function leereWerte(): Werte {
   };
 }
 
-export function neuerBogen(id: string, name: string, art: Bogen['art'] = 'figur'): Bogen {
+/**
+ * Ein neuer Bogen. Mit `sprache` steht die Gemeinsprache schon unter
+ * Sprachen (Rückmeldung: jede Figur spricht sie nach SRD).
+ */
+export function neuerBogen(id: string, name: string, art: Bogen['art'] = 'figur', sprache?: 'de' | 'en'): Bogen {
   return {
     id,
     schema: SCHEMA,
     art,
     name,
-    ...(art === 'figur' ? { werte: leereWerte() } : {}),
+    ...(art === 'figur' ? { werte: { ...leereWerte(), sprachen: sprache ? (sprache === 'de' ? 'Gemeinsprache' : 'Common') : '' } } : {}),
     muenzen: { ...LEERE_MUENZEN },
     gegenstaende: [],
     muenzgewicht: false,

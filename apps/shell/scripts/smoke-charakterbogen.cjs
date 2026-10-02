@@ -114,6 +114,20 @@ app.whenReady().then(async () => {
   await warte(200);
   pruefe((await js(`document.querySelector('[data-mod="ges"]').textContent`)) === '+3', 'GES 16 ergibt +3');
   pruefe((await js(`document.querySelector('[data-pb]').dataset.pb`)) === '3', 'Stufe 5 ergibt Uebungsbonus +3');
+  pruefe((await js(`document.querySelector('[data-feld="sprachen"]').value`)) === 'Gemeinsprache', 'ein neuer Bogen spricht schon die Gemeinsprache');
+
+  // Hinweise nach Klasse und Stufe (Rückmeldung).
+  pruefe(
+    /Geschicklichkeit und Intelligenz/.test(await js(`document.querySelector('[data-hinweis="rettung"]')?.textContent ?? ''`)),
+    'Hinweis: Schurkin hat Rettungswürfe auf GES und INT'
+  );
+  pruefe(/5W8/.test(await js(`document.querySelector('[data-hinweis="trefferwuerfel"]')?.textContent ?? ''`)), 'Hinweis: Stufe 5 hat 5W8');
+  await js(`document.querySelector('[data-hinweis-uebernehmen="werkzeug"]').click(); true`);
+  await warte(200);
+  pruefe(
+    (await js(`document.querySelector('[data-hinweis="werkzeug"]').dataset.abweichung`)) === '0' && /Diebeswerkzeug/.test(await js(`document.querySelector('[data-feld="werkzeuguebung"]')?.value ?? ''`)),
+    'Übernehmen schreibt das Diebeswerkzeug in den Bogen'
+  );
 
   // Rueckfragen (lange Rast) im Test immer bejahen.
   await js(`window.confirm = () => true; true`);
@@ -306,6 +320,9 @@ app.whenReady().then(async () => {
   await js(tippe('[data-zauber-anfrage]', 'magic missile'));
   await warte(300);
   pruefe(await js(`Boolean(document.querySelector('[data-zauber-dazu="magic-missile"]'))`), 'die Suche findet den Zauber auf Englisch');
+  await js(`document.querySelector('[data-zauber-info="magic-missile"]').click(); true`);
+  await warte(200);
+  pruefe(/Grades|Hervorrufung/.test(await js(`document.querySelector('[data-zauber-detail="magic-missile"]')?.innerText ?? ''`)), 'ein Klick auf den Namen zeigt die Beschreibung');
   await js(`document.querySelector('[data-zauber-dazu="magic-missile"]').click(); true`);
   await warte(300);
   pruefe(
@@ -318,9 +335,37 @@ app.whenReady().then(async () => {
     (await js(`document.querySelectorAll('.punkt--weg').length`)) === 1,
     'Wirken verbraucht einen Platz des 1. Grades'
   );
+  pruefe(/Magisches Geschoss gewirkt/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Wirken meldet sich unten rechts');
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
   pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
+
+  // Ohne freien Platz wird gefragt (Rückmeldung); Nein wirkt nicht, Ja wirkt ohne Platz.
+  await js(tippe('[data-platz-max="1"]', '0'));
+  await warte(200);
+  const anzahlZeilen = () => js(`document.querySelectorAll('[data-wurf-zeile]').length`);
+  const zeilenVorher = await anzahlZeilen();
+  await js(`window.__frage = ''; window.confirm = (t) => { window.__frage = t; return false; }; true`);
+  await js(`document.querySelector('[data-zauberliste] [data-wirken]').click(); true`);
+  await warte(200);
+  pruefe(/Kein freier Platz/.test(await js('window.__frage')) && (await anzahlZeilen()) === zeilenVorher, 'ohne Platz: Rückfrage, bei Nein passiert nichts');
+  await js(`window.confirm = () => true; true`);
+  await js(`document.querySelector('[data-zauberliste] [data-wirken]').click(); true`);
+  await warte(200);
+  pruefe(/ohne freien Platz/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'bei Ja: gewirkt ohne Platz');
+  pruefe((await anzahlZeilen()) === zeilenVorher + 1, 'die neue Zeile kommt dazu, die alte bleibt stehen');
+  await js(tippe('[data-platz-max="1"]', '2'));
+
+  // Angriffszauber würfeln den Zauberangriff mit. Die Suche ist vom Hinzufügen noch offen.
+  if (!(await js(`Boolean(document.querySelector('[data-zauber-anfrage]'))`))) await js(`document.querySelector('[data-zauber-suchen]').click(); true`);
+  await warte(300);
+  await js(tippe('[data-zauber-anfrage]', 'fire bolt'));
+  await warte(300);
+  await js(`document.querySelector('[data-zauber-dazu="fire-bolt"]').click(); true`);
+  await warte(300);
+  await js(`[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Feuerpfeil|Fire Bolt/.test(li.innerText)).querySelector('[data-wirken]').click(); true`);
+  await warte(200);
+  pruefe(/Zauberangriff: \d+ \(d20 \d+ \+6\)/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Feuerpfeil würfelt den Zauberangriff (+3 INT +3 Übung)');
 
   // --- Kompaktansicht (docs/charakterbogen-kompakt.md) ---------------------
   await js(`document.querySelector('[data-ansicht-kompakt]').click(); true`);
@@ -412,10 +457,10 @@ app.whenReady().then(async () => {
   // Würfeln vom Bogen: Klick auf den Namen einer Fertigkeit.
   await js(`document.querySelector('[data-wurf-fertigkeit="acrobatics"], [data-wurf-fertigkeit]').click(); true`);
   await warte(200);
-  pruefe(/\(d20 \d+/.test(await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)), `Klick auf eine Fertigkeit würfelt (${await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)})`);
+  pruefe(/\(d20 \d+/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), `Klick auf eine Fertigkeit würfelt (${await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)})`);
   await js(`document.querySelector('[data-wurf-attribut="cha"], [data-wurf-attribut]').click(); true`);
   await warte(200);
-  pruefe(/Charisma|\(d20/.test(await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)), 'Klick auf ein Attribut würfelt');
+  pruefe(/Charisma|\(d20/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Klick auf ein Attribut würfelt');
 
   // Todesrettung: würfeln und eintragen, bei drei Fehlschlägen „tot".
   if (await js(`Boolean(document.querySelector('[data-todesrettung-wuerfeln]'))`)) {
@@ -424,9 +469,14 @@ app.whenReady().then(async () => {
       await js(`document.querySelector('[data-todesrettung-wuerfeln]').click(); true`);
       await warte(120);
     }
-    pruefe(/Todesrettungswurf: 5/.test(await js(`document.querySelector('[data-wurf-text]')?.textContent ?? ''`)), 'der Todesrettungswurf steht in der Anzeige');
+    pruefe(/Todesrettungswurf: 5/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'der Todesrettungswurf steht in der Anzeige');
     pruefe(await js(`Boolean(document.querySelector('[data-tot]'))`), 'drei Fehlschläge: der Bogen zeigt „Tot"');
     pruefe(await js(`document.querySelector('[data-todesrettung-wuerfeln]').disabled`), 'und es wird nicht weiter gewürfelt');
+    pruefe(await js(`Boolean(document.querySelector('.blatt--tot'))`), 'der tote Bogen ist ausgegraut');
+    await js(`[...document.querySelectorAll('button')].find((b) => /Zurück zur Liste/.test(b.textContent)).click(); true`);
+    pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-kachel-tot]'))`), 4000), 'in der Liste steht „Tot" neben den TP');
+    await js(`document.querySelector('.kachel[data-bogen]').click(); true`);
+    await bis(async () => js(`Boolean(document.querySelector('[data-todesrettung-fehlschlaege]'))`), 4000);
     await js(`Math.random = window.__zufall; (() => { const p = document.querySelectorAll('[data-todesrettung-fehlschlaege] [data-wert]'); p[0]?.click(); p[0]?.click(); return true; })()`);
     await warte(200);
   } else pruefe(false, 'der Knopf für den Todesrettungswurf ist da');

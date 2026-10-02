@@ -37,6 +37,8 @@ export interface Kachel {
   /** „Waldläuferin 5 · Elf" oder leer. */
   readonly kurz: string;
   readonly tp: string;
+  /** Drei fehlgeschlagene Todesrettungswürfe (Rückmeldung: in der Liste neben den TP). */
+  readonly tot?: boolean;
   readonly geaendert: string;
 }
 
@@ -82,6 +84,7 @@ export function alsKachel(b: Bogen): Kachel {
     art: b.art,
     kurz: [klassenText(b), w?.spezies.trim() ?? ''].filter(Boolean).join(' · '),
     tp: w ? `${w.tp.aktuell}/${w.tp.max}${w.tp.temp ? ` (+${w.tp.temp})` : ''}` : '',
+    ...(w && w.todesrettung.fehlschlaege >= 3 ? { tot: true } : {}),
     geaendert: b.geaendert
   };
 }

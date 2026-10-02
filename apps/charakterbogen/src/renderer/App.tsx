@@ -11,7 +11,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { api } from './api';
-import { setLanguage, t } from './i18n';
+import { getLanguage, setLanguage, t } from './i18n';
+import { istTot } from '../shared/proben';
 import { InventarBlock } from './InventarBlock';
 import { Figurenbogen, Kompaktbogen } from './Figurenbogen';
 import { GestaltKasten } from './TiergestaltBlock';
@@ -341,7 +342,7 @@ export function App() {
   );
 
   const anlegen = useCallback(async (art: Bogen['art'] = 'figur') => {
-    const vorlage = neuerBogen('neu', art === 'gruppe' ? t('neu.gruppeName') : t('neu.name'), art);
+    const vorlage = neuerBogen('neu', art === 'gruppe' ? t('neu.gruppeName') : t('neu.name'), art, getLanguage() === 'de' ? 'de' : 'en');
     const antwort = await api.sammlung.speichern(vorlage, true);
     if (!antwort.ok || !antwort.bogen) {
       setFehler(t('fehler.speichern', { detail: antwort.text }));
@@ -433,10 +434,20 @@ export function App() {
           <ul className="kacheln" data-pfeile="raster">
             {gefunden.map((k) => (
               <li data-pfeil key={k.id}>
-                <button type="button" className="kachel" data-bogen={k.id} onClick={() => void oeffne(k.id)}>
+                <button type="button" className={k.tot ? 'kachel kachel--tot' : 'kachel'} data-bogen={k.id} onClick={() => void oeffne(k.id)}>
                   <span className="kachel__name">{k.name}</span>
                   <span className="kachel__kurz">{k.art === 'gruppe' ? t('gruppe') : k.kurz || '—'}</span>
-                  {k.tp ? <span className="kachel__tp">{k.tp}</span> : null}
+                  {k.tp || k.tot ? (
+                    <span className="kachel__tp">
+                      {k.tp}
+                      {k.tot ? (
+                        <span className="kachel__tot" data-kachel-tot>
+                          {' '}
+                          ☠ {t('tot')}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))}
@@ -632,7 +643,7 @@ export function App() {
 
       <SlMarkenKontext.Provider value={marken}>
         <div
-          className={`blatt${designVon(offen.design).papier.dunkel ? ' blatt--dunkel' : ''}`}
+          className={`blatt${designVon(offen.design).papier.dunkel ? ' blatt--dunkel' : ''}${offen.werte && istTot(offen.werte) ? ' blatt--tot' : ''}`}
           style={designVariablen(offen.design) as CSSProperties}
           data-papier={designVon(offen.design).papier.id}
           data-schrift={designVon(offen.design).schrift.id}

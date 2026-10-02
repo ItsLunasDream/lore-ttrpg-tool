@@ -66,11 +66,15 @@ Zauberliste wie unten beschrieben.
   Subklasse), Herkunft als freier Text („Magic Initiate“).
 - Die Liste gruppiert nach Grad, Zaubertricks oben. Konzentration und
   Ritual stehen als Marke dran, dazu Zeitaufwand und Reichweite.
-- **Zaubern** verbraucht auf Knopfdruck einen Platz; bei Zaubern höheren
-  Grades fragt der Knopf nach dem Platz. Ein Klick auf den Namen öffnet den
-  Text wie im Nachschlagewerk.
-- Wie viele Zauber vorbereitet sein dürfen, zählt die App mit, prüft es aber
-  nicht gegen die Klassentabelle: die Zahl trägt man selbst ein.
+- **Wirken** verbraucht den niedrigsten freien Platz ab dem Grad des
+  Zaubers und meldet sich in der Wurfanzeige unten rechts. Ist keiner frei,
+  fragt der Bogen, ob trotzdem gewirkt wird (dann ohne Platz). Zauber mit
+  Zauberangriff (SRD: „melee/ranged spell attack“, 21 Zauber; eigene: das
+  Wort im Text) würfeln den Angriff gleich mit (`shared/zauber.ts`
+  `istAngriffszauber`). Ein Klick auf den Namen öffnet den Text wie im
+  Nachschlagewerk, in der Liste wie in der Suche.
+- Wie viele Zauber vorbereitet sein dürfen, zählt die App mit. Die Zahl aus
+  der Klassentabelle schlagen die Hinweise vor (unten).
 - Gespeichert wird die SRD-Kennung, nicht der Text. Aus dem Nachschlagewerk
   kommt er in der Sprache der Oberfläche. Eigene Zauber tragen ihren Text
   selbst.
@@ -386,6 +390,24 @@ Gebaut:
   an den Bogen. Im geteilten Kampf schreibt jede Person nur in Bögen, die
   sie ändern darf.
 
+## Hinweise nach Klasse und Stufe
+
+Unter dem Kopf (`shared/klassenhinweise.ts`, `renderer/Klassenhinweise.tsx`):
+Trefferwürfel, Rettungswürfe, Rüstung, Waffen, Werkzeug, Fertigkeiten zur
+Wahl, Zauberattribut, Zaubertricks, vorbereitete Zauber und Zauberplätze
+für die eingetragenen Klassen. Die Zahlen sind aus den Klassentabellen des
+SRD 5.2.1 („Core … Traits“, „… Features“, „Multiclass Spellcaster“) und an
+beiden PDFs in `packages/srd/quelle` geprüft.
+
+- Weicht der Bogen ab, ist die Zeile markiert und hat „Übernehmen“. Rüstung
+  wird nur ergänzt, Waffen und Werkzeug nur in leere Felder geschrieben.
+- Mehrere Klassen: Trefferwürfel aller Klassen, Plätze nach der
+  Mehrklassenregel (volle Stufen + halbe Stufen von Paladin und Waldläufer,
+  aufgerundet); Rettungswürfe, Rüstung, Waffen und Werkzeug der ersten
+  Klasse. Paktmagie hat eigene Plätze; allein übernimmt sie Plätze und
+  „kurze Rast“, zusammen mit anderen Zauberklassen bleibt sie ein Hinweis.
+- Zugeklappt wird pro Gerät gemerkt.
+
 ## Aussehen und Bedienung
 
 Gebaut auf Wunsch nach Schritt 7:
@@ -426,6 +448,12 @@ Gebaut auf Wunsch nach Schritt 7:
   `<!-- charakterbogen:anfang -->` und `<!-- charakterbogen:ende -->` neu;
   was davor oder danach in der Notiz steht, bleibt. Änderungen innerhalb des
   Abschnitts überschreibt der Bogen.
+- **Wurfanzeige:** Würfe und gewirkte Zauber stapeln sich unten rechts, neue
+  unten (sie leuchten kurz auf), ältere rutschen hoch und gehen nach 25 s;
+  höchstens sechs.
+- **Tote Figur** (drei fehlgeschlagene Todesrettungswürfe): Der Bogen ist
+  ausgegraut, bleibt aber bedienbar; in der Liste steht „☠ Tot“ neben den TP.
+- **Neue Bögen** haben die Gemeinsprache unter Sprachen.
 - **Eigene Zustände:** Die Zustände aus dem Status Effect Creator stehen in
   der Suchwahl unter „Eigene“ und tragen ihren Text als Hinweis; im Bogen
   als `eigen:<Name>`.
