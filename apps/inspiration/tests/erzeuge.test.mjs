@@ -254,6 +254,22 @@ test('eine umbenannte Figur heisst auch in ihren Verbindungen neu', () => {
   assert.ok(betroffen.some((v) => `${v.hin} ${v.zurueck}`.includes('Edda Wolfsfurt')));
 });
 
+test('kurz doppelter Name: zurückbenennen nimmt der Gegenseite ihren Namen nicht', () => {
+  // So im Smoke-Test aufgefallen: Figur 2 heißt kurz wie Figur 1 und dann
+  // wieder wie vorher. Vorher tauschte das zweite Umbenennen beide Namen.
+  const entwurf = T.erzeugeEntwurf(ZU, 'de', wuerfelgeber(18));
+  const v = entwurf.verbindungen[0];
+  const [eins, zwei] = [v.a, v.b];
+  const nameEins = entwurf.figuren[eins].name;
+  const nameZwei = entwurf.figuren[zwei].name;
+  const doppelt = T.benenneFigurUm(entwurf, zwei, nameEins, nameZwei);
+  const zurueck = T.benenneFigurUm(doppelt, zwei, nameZwei, nameEins);
+  const text = `${zurueck.verbindungen[0].hin} ${zurueck.verbindungen[0].zurueck}`;
+  assert.ok(text.includes(nameEins), text);
+  assert.ok(text.includes(nameZwei), text);
+  assert.deepEqual(zurueck.verbindungen[0], v);
+});
+
 test('ein leerer Name laesst die Verbindungen in Ruhe', () => {
   // Wer das Feld leert und wieder zumacht, soll nicht die halben Saetze
   // verlieren. Der alte Name bleibt dann in den Verbindungen stehen und ist

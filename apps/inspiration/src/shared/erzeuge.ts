@@ -538,6 +538,12 @@ export function ersetzeFigur(
  *
  * Ist einer der beiden Namen leer oder sind sie gleich, bleiben die
  * Verbindungen unangetastet.
+ *
+ * Heißt die Gegenseite einer Verbindung genauso wie der alte oder der neue
+ * Name, bleibt diese Verbindung ebenfalls stehen: dann ist im Satz nicht zu
+ * erkennen, welcher Name wer ist. Vorher wurden beide getauscht, und beim
+ * Zurückbenennen nach einem kurzzeitig doppelten Namen verlor die andere
+ * Figur ihren Namen im Satz (Smoke: eine Figurennotiz ohne Verweis).
  */
 export function benenneFigurUm(
   entwurf: Entwurf,
@@ -549,11 +555,15 @@ export function benenneFigurUm(
   if (!alterName || !name || alterName === name) return { ...entwurf, figuren };
 
   const tausche = (text: string) => text.split(alterName).join(name);
+  const mehrdeutig = (verbindung: Verbindung) => {
+    const gegenueber = entwurf.figuren[verbindung.a === stelle ? verbindung.b : verbindung.a]?.name ?? '';
+    return gegenueber === alterName || gegenueber === name;
+  };
   return {
     ...entwurf,
     figuren,
     verbindungen: entwurf.verbindungen.map((verbindung) =>
-      verbindung.a === stelle || verbindung.b === stelle
+      (verbindung.a === stelle || verbindung.b === stelle) && !mehrdeutig(verbindung)
         ? { ...verbindung, hin: tausche(verbindung.hin), zurueck: tausche(verbindung.zurueck) }
         : verbindung
     )
