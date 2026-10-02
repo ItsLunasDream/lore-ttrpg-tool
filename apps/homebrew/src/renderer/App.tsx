@@ -185,8 +185,9 @@ export function App() {
 
   // --- Ein Eintrag -----------------------------------------------------------
   if (offen) {
+    // Vom aktuellen Stand aus: ein verzögertes Löschen (Ausblenden) darf eine Eingabe dazwischen nicht überschreiben.
     const setze = (teil: Partial<Eintrag>) => {
-      setOffen({ ...offen, ...teil } as Eintrag);
+      setOffen((alt) => (alt ? ({ ...alt, ...teil } as Eintrag) : alt));
       setMeldung('');
     };
     return (
