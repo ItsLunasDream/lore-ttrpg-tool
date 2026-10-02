@@ -9,6 +9,7 @@
  * Siehe `docs/magicitems.md`.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useWurfLeuchten } from '@suite/motion/react';
 import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
@@ -61,6 +62,8 @@ export function App() {
   const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
   const [suche, setSuche] = useState('');
   const [offen, setOffen] = useState<Gegenstand | null>(null);
+  // Neu Gewürfeltes leuchtet kurz auf; ein anderer Gegenstand zählt nicht als Wurf (Rückmeldung).
+  useWurfLeuchten(offen, offen?.id ?? '');
   const [istNeu, setIstNeu] = useState(false);
   const [art, setArt] = useState<Art | ''>('');
   const [seltenheit, setSeltenheit] = useState<Seltenheit | ''>('');
@@ -460,6 +463,7 @@ export function App() {
               className="feld__eingabe"
               value={offen.name}
               data-feld="name"
+              data-wurf-feld
               onChange={(e) => setze({ name: e.target.value })}
             />
           </label>
@@ -478,6 +482,7 @@ export function App() {
                 min={0}
                 className="feld__eingabe feld__eingabe--kurz"
                 data-feld="wert"
+                data-wurf-feld
                 value={offen.wert}
                 onChange={(e) => {
                   const n = Math.max(0, Math.round(Number(e.target.value) || 0));
@@ -566,7 +571,7 @@ export function App() {
               </ul>
             </section>
           ) : null}
-          {meldung ? <p className="meldung">{meldung}</p> : null}
+          {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
         </section>
       </div>

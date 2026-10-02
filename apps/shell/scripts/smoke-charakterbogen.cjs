@@ -298,6 +298,7 @@ app.whenReady().then(async () => {
       (await js(`document.querySelector('[data-feld="tp-temp"]').value`)) === '0',
     '12 Schaden: erst 5 temporaere, dann 7 echte TP'
   );
+  pruefe(await js(`document.querySelector('[data-tp-kasten]').classList.contains('motion-schaden')`), 'Schaden blitzt rot');
   await js(tippe('[data-feld="tp-betrag"]', '+4'));
   await js(enter);
   await warte(300);

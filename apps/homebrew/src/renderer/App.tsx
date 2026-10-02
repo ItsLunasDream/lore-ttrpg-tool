@@ -6,6 +6,7 @@
  * steht die Eichung am SRD; sie warnt, sie verbietet nichts.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEIT_NAME } from '@suite/srd';
@@ -291,7 +292,7 @@ export function App() {
                 onChange={(e) => setze({ beschreibung: e.target.value })}
               />
             </label>
-            {meldung ? <p className="meldung" data-meldung>{meldung}</p> : null}
+            {meldung ? <p key={meldung} className="meldung motion-meldung-ok" data-meldung>{meldung}</p> : null}
             {fehler ? <p className="fehler">{fehler}</p> : null}
           </section>
 
@@ -524,7 +525,7 @@ function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) =>
           />
         </div>
         {w.zusatz.map((z, i) => (
-          <div className="zeile" key={i} data-zusatz={i}>
+          <div className="zeile" key={i} data-zusatz={i} data-ausblenden>
             <label className="feld">
               <span className="feld__name">+ {t('feld.wuerfel')}</span>
               <SchadenWahl wuerfel={z.wuerfel} plus={z.plus} feld={`zusatz${i}`} aendern={(wuerfel, plus) => setzeZusatz(i, { wuerfel, plus })} />
@@ -536,7 +537,7 @@ function WaffenFelder({ w, setze }: { w: Waffe; setze: (teil: Partial<Waffe>) =>
               optionen={SCHADENSARTEN.map((x) => ({ wert: x, text: SCHADENSART_NAME[x][s] }))}
               aendern={(art: Schadensart) => setzeZusatz(i, { art })}
             />
-            <button type="button" className="knopf zusatz__weg" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={() => setze({ zusatz: w.zusatz.filter((_, j) => j !== i) })}>
+            <button type="button" className="knopf zusatz__weg" aria-label={t('schaden.weg')} title={t('schaden.weg')} onClick={(e) => ausblendenUnd(e.currentTarget, () => setze({ zusatz: w.zusatz.filter((_, j) => j !== i) }))}>
               ✕
             </button>
           </div>

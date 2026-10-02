@@ -7,7 +7,8 @@
  * Bearbeitungsmodus — beides ist jederzeit erreichbar, weil am Tisch beides
  * jederzeit vorkommt.
  */
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
+import { useWertBlitz } from '@suite/motion/react';
 import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { Kontextmenue, type MenueEintrag } from './Kontextmenue';
 import { t } from './i18n';
@@ -77,6 +78,7 @@ export function Zeile(props: Props) {
       style={{ animationDelay: `${Math.min(props.nummer, 8) * 25}ms` }}
       aria-current={amZug ? 'true' : undefined}
       data-zeile={teilnehmer.id}
+      data-ausblenden
     >
       <div className="zeile__kopf">
         <span className="zeile__ini" title={t('feld.initiative')}>
@@ -238,7 +240,10 @@ function KoerperFeld({
   // Das HP-Feld haelt beim Tippen seinen eigenen Text: sofortiges Klemmen
   // machte aus „7" plus „5" wieder 7 (Testbericht).
   const [hpText, setHpText] = useState<string | null>(null);
-  const [blitzt, setBlitzt] = useState<'schaden' | 'heilung' | null>(null);
+  // Schaden und Heilung leuchten kurz auf, auch wenn die TP von woanders kommen
+  // (Charakterbogen, Raum); vorher nur nach einer Eingabe hier.
+  const kasten = useRef<HTMLSpanElement>(null);
+  useWertBlitz(kasten, koerper.hp + koerper.tempHp, koerper.id);
   const liegt = koerper.hp <= 0 || koerper.raus;
 
   function anwenden() {
@@ -247,14 +252,10 @@ function KoerperFeld({
     if (betrag === null) return;
     onSchaden(betrag);
     setEingabe('');
-    // Ein kurzes Aufleuchten statt einer Meldung: es sagt „angekommen\", ohne
-    // dass jemand hinsehen muss.
-    setBlitzt(betrag > 0 ? 'schaden' : 'heilung');
-    window.setTimeout(() => setBlitzt(null), 500);
   }
 
   return (
-    <span className={`koerper ${liegt ? 'koerper--liegt' : ''} ${blitzt ? `koerper--${blitzt}` : ''}`}>
+    <span ref={kasten} className={`koerper ${liegt ? 'koerper--liegt' : ''}`}>
       {zeigeMarke && koerper.marke ? <span className="koerper__marke">{koerper.marke}</span> : null}
       <input
         className="koerper__hp"

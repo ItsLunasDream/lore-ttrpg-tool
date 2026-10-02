@@ -11,6 +11,7 @@
  * zeichnet und leitet Tastendruecke weiter.
  */
 import { leseFiguren, tpAenderungen, uebernimmFiguren } from '../shared/boegen';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { rollD20 } from '@suite/dice';
 import { api } from './api';
@@ -842,7 +843,12 @@ export function App() {
               }
               onUmbenennen={() => setUmbenennen({ id: teilnehmer.id, name: teilnehmer.name })}
               onDuplizieren={() => setzeUndSichere((vorher) => dupliziere(vorher, teilnehmer.id))}
-              onEntfernen={() => setzeUndSichere((vorher) => entferneTeilnehmer(vorher, teilnehmer.id))}
+              onEntfernen={() =>
+                // Die Zeile blendet aus, dann ist sie weg (Rückmeldung).
+                ausblendenUnd(document.querySelector(`[data-zeile="${CSS.escape(teilnehmer.id)}"]`), () =>
+                  setzeUndSichere((vorher) => entferneTeilnehmer(vorher, teilnehmer.id))
+                )
+              }
               onZustand={(name, dauer, runden) =>
                 setzeUndSichere((vorher) =>
                   setzeZustand(vorher, teilnehmer.id, {

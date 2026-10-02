@@ -614,7 +614,7 @@ export function App() {
           </label>
 
           </fieldset>
-          {meldung ? <p className="meldung">{meldung}</p> : null}
+          {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
         </section>
       </div>
@@ -735,7 +735,7 @@ export function App() {
           ))}
         </ul>
       )}
-      {meldung ? <p className="meldung">{meldung}</p> : null}
+      {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
       {fehler ? <p className="fehler">{fehler}</p> : null}
     </div>
   );

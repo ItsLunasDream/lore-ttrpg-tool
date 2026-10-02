@@ -161,7 +161,7 @@ export function Protokoll({ onClose, t }: Props) {
             </pre>
           </details>
           {meldung ? (
-            <p className="einst__satz" data-protokoll-meldung>
+            <p key={meldung} className="einst__satz motion-meldung-ok" data-protokoll-meldung>
               {meldung}
             </p>
           ) : null}

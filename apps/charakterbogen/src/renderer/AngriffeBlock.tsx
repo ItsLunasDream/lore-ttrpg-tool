@@ -4,6 +4,7 @@
  * wuerfeln; im Raum geht der Wurf auf Wunsch an alle oder nur an die SL.
  */
 import { useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { api } from './api';
 import { getLanguage, t } from './i18n';
 import type { Angriff, Werte } from '../shared/bogen';
@@ -61,7 +62,7 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
     const waffe = werte.waffe;
     const fest = n === null;
     return (
-      <div className="angriff" key={schluessel} data-angriff={schluessel}>
+      <div className="angriff" key={schluessel} data-angriff={schluessel} data-ausblenden>
         <div className="angriff__zeile">
           <input
             aria-label={t('angriff.name')}
@@ -129,7 +130,7 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
               className="knopf--klein"
               aria-label={t('angriff.weg')}
               title={t('angriff.weg')}
-              onClick={() => aendere((x) => ({ ...x, angriffe: x.angriffe.filter((_, m) => m !== n) }))}
+              onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((x) => ({ ...x, angriffe: x.angriffe.filter((_, m) => m !== n) })))}
             >
               ×
             </button>

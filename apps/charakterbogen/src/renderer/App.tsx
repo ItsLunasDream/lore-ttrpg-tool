@@ -409,7 +409,7 @@ export function App() {
             {t('einlesen')}
           </button>
         </div>
-        {meldung ? <p className="meldung">{meldung}</p> : null}
+        {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
         {fehler ? <p className="stoerung">{fehler}</p> : null}
         {live.rolle !== 'aus' ? (
           <LiveListe
@@ -638,7 +638,7 @@ export function App() {
       </div>
       {liveEintrag ? <LiveLeiste e={liveEintrag} live={live} still={still} setStill={setStill} anfrage={anfrage} /> : null}
       {liveEintrag ? <SlHinweis e={liveEintrag} meiner={meiner} bestaetige={() => anfrage({ art: 'bestaetige', id: liveEintrag.id })} /> : null}
-      {meldung ? <p className="meldung">{meldung}</p> : null}
+      {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
       {fehler ? <p className="stoerung">{fehler}</p> : null}
 
       <SlMarkenKontext.Provider value={marken}>

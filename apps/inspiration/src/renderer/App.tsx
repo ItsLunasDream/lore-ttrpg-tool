@@ -14,6 +14,7 @@
  * weg, waehrend man die Fraktionen sucht.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWurfLeuchten } from '@suite/motion/react';
 import {
   BAUSTEINE,
   erzeugeAufhaenger,
@@ -92,6 +93,7 @@ function Feld({ name, wert, aendere, klasse, onFocus, onBlur }: FeldProps) {
       {name && <span className="feld__name">{name}</span>}
       <textarea
         className="feld__wert"
+        data-wurf-feld
         value={wert}
         rows={1}
         spellCheck
@@ -105,6 +107,8 @@ function Feld({ name, wert, aendere, klasse, onFocus, onBlur }: FeldProps) {
 
 export function App() {
   const [entwurf, setEntwurf] = useState<Entwurf | null>(null);
+  // Neu Gewürfeltes leuchtet kurz auf (Rückmeldung).
+  useWurfLeuchten(entwurf);
   const [festgehalten, setFestgehalten] = useState<readonly Baustein[]>([]);
   const [umfang, setUmfang] = useState<UmfangId>('bogen');
   const [regionText, setRegionText] = useState('');
@@ -869,6 +873,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={fraktion.name}
                       onChange={(ereignis) =>
                         setzeFraktion(stelle, 'name', ereignis.target.value)
@@ -946,6 +951,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={figur.name}
                       onChange={(ereignis) => setzeFigur(stelle, 'name', ereignis.target.value)}
                       // Beim Hineinklicken merken, beim Verlassen nachziehen:
@@ -1003,6 +1009,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={ort.name}
                       onChange={(ereignis) => setzeOrt(stelle, 'name', ereignis.target.value)}
                     />
@@ -1084,6 +1091,7 @@ export function App() {
                   <div className="block__kopf">
                     <input
                       className="block__titel"
+                      data-wurf-feld
                       value={verbindung.muster}
                       onChange={(ereignis) =>
                         setzeVerbindung(stelle, 'muster', ereignis.target.value)
@@ -1198,7 +1206,7 @@ export function App() {
             </p>
           )}
           {exportStand !== 'ruht' && exportStand !== 'laeuft' && (
-            <p className={exportStand === 'fehler' ? 'fuss__meldung fuss__meldung--fehler' : 'fuss__meldung'}>
+            <p key={exportText} className={exportStand === 'fehler' ? 'fuss__meldung fuss__meldung--fehler' : 'fuss__meldung motion-meldung-ok'}>
               {exportText}
               {vorhanden > 0 ? (
                 <>

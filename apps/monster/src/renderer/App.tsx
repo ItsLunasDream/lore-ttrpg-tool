@@ -8,6 +8,7 @@
  * nicht wie ein Anhaengsel wirken, das man im Bauen-Reiter uebersieht.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWurfLeuchten } from '@suite/motion/react';
 import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
@@ -54,6 +55,8 @@ export function App() {
   /** Was der KI thematisch gesagt wird. Leer heisst: nur die Regler zaehlen. */
   const [kiWunsch, setKiWunsch] = useState('');
   const [monster, setMonster] = useState<Monster | null>(null);
+  // Neu Gewürfeltes leuchtet kurz auf; ein anderes Monster zählt nicht als Wurf (Rückmeldung).
+  useWurfLeuchten(monster, offenId ?? '');
   const [bearbeiten, setBearbeiten] = useState(false);
   const [eintraege, setEintraege] = useState<Eintrag[]>([]);
   const [kiDa, setKiDa] = useState(false);
@@ -335,7 +338,7 @@ export function App() {
         </nav>
       </header>
 
-      {meldung && <p className="meldung">{meldung}</p>}
+      {meldung && <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p>}
 
       {reiter === 'bauen' && (
         <main className="bauen">

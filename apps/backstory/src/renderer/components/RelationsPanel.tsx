@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { RELATION_SUGGESTIONS, findNoteType } from '../../shared/noteTypes';
 import type { Note, Relation } from '../../shared/types';
 import type { NoteIndex } from '../noteIndex';
@@ -62,7 +63,7 @@ export function RelationsPanel({ note, index, onChange, onOpenNote, onAddReverse
                   type="button"
                   className="icon-button"
                   aria-label={t('relations.remove')}
-                  onClick={() => onChange(note.relations.filter((entry) => entry.id !== relation.id))}
+                  onClick={(e) => ausblendenUnd(e.currentTarget, () => onChange(note.relations.filter((entry) => entry.id !== relation.id)))}
                 >
                   ×
                 </button>

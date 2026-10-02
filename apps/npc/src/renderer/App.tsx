@@ -10,6 +10,7 @@
  * sucht.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useWurfLeuchten } from '@suite/motion/react';
 import {
   alsMarkdown,
   erzeugeFeld,
@@ -90,6 +91,9 @@ export function App() {
     // die Knoepfe erst nach einem Neustart, wenn man die KI einschaltet.
     return api.ki.beiWechsel(frage);
   }, []);
+
+  // Neu Gewürfeltes leuchtet kurz auf (Rückmeldung).
+  useWurfLeuchten(figur);
 
   const wuerfle = useCallback(() => {
     setFigur((vorher) => erzeugeFigur(wuensche, getLanguage(), Math.random, festgehalten, vorher));
@@ -347,7 +351,7 @@ export function App() {
               ) : null}
               <button
                 type="button"
-                className="knopf--haupt"
+                className={exportStand === 'fertig' ? 'knopf--haupt motion-ok' : 'knopf--haupt'}
                 onClick={() => void exportiere()}
                 disabled={exportStand === 'laeuft'}
               >
@@ -464,6 +468,7 @@ function Zeile({
       <input
         id={`feld-${feld}`}
         className="zeile__wert"
+        data-wurf-feld
         value={wert}
         placeholder={feld === 'eigenheit' ? t('feld.eigenheitLeer') : ''}
         onChange={(ereignis) => onAendern(ereignis.target.value)}

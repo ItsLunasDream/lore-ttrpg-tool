@@ -8,6 +8,7 @@
  */
 
 import type { Monster, Faehigkeitseintrag } from '../shared/erzeuge';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { abzweig } from '../shared/erzeuge';
 import { angriffName, schadenProRunde, type Angriff } from '../shared/angriffe';
@@ -103,7 +104,7 @@ export function Bearbeiten({
 
       <h3 className="bearbeiten__titel">{t('bearbeiten.faehigkeiten')}</h3>
       {monster.faehigkeiten.map((f, stelle) => (
-        <div className="bearbeiten__faehigkeit" key={stelle}>
+        <div className="bearbeiten__faehigkeit" key={stelle} data-ausblenden>
           <div className="bearbeiten__reihe">
             <input
               className="bearbeiten__fname"
@@ -125,7 +126,7 @@ export function Bearbeiten({
             <button
               type="button"
               className="knopf knopf--klein"
-              onClick={() => onAendern({ ...monster, faehigkeiten: monster.faehigkeiten.filter((_, i) => i !== stelle) })}
+              onClick={(e) => ausblendenUnd(e.currentTarget, () => onAendern({ ...monster, faehigkeiten: monster.faehigkeiten.filter((_, i) => i !== stelle) }))}
             >
               {t('knopf.loeschen')}
             </button>

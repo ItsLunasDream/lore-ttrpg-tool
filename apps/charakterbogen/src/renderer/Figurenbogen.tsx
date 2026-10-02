@@ -8,6 +8,8 @@
  * mit einer Suchwahl. Auswahllisten gibt es hier keine mehr.
  */
 import { useEffect, useRef, useState } from 'react';
+import { ausblendenUnd, vorDemAuffuellen } from '@suite/motion/dom';
+import { useWertBlitz } from '@suite/motion/react';
 import { ZUSTAENDE } from '@suite/srd';
 import { api } from './api';
 import { getLanguage, t } from './i18n';
@@ -170,7 +172,7 @@ export function Figurenbogen({ werte: w, aendere, setMeldung, ausInventar, imRau
                 <SlMarke feld="rk" />
               </label>
             </div>
-            <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
+            <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} kennung={name} />
             <Todesrettung w={w} aendere={aendere} name={name} />
             <Trefferwuerfel w={w} aendere={aendere} />
             <Rasten w={w} aendere={aendere} setMeldung={setMeldung} name={name} />
@@ -258,7 +260,7 @@ export function Kompaktbogen({ werte: w, aendere, setMeldung, name, imRaum }: Pi
             <SlMarke feld="rk" />
           </label>
         </div>
-        <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} />
+        <Trefferpunkte w={w} aendere={aendere} setMeldung={setMeldung} kennung={name} />
         {w.tp.aktuell === 0 ? <Todesrettung w={w} aendere={aendere} name={name} /> : null}
         <Trefferwuerfel w={w} aendere={aendere} />
         <Rasten w={w} aendere={aendere} setMeldung={setMeldung} name={name} />
@@ -333,7 +335,7 @@ function Kopf({ w, aendere, bild, setzeBild }: { w: Werte; aendere: FigurProps['
       {setzeBild ? <Portraet bild={bild} setze={setzeBild} /> : null}
       <div className="klassen">
         {w.klassen.map((k, n) => (
-          <div className="klassen__zeile" key={n}>
+          <div className="klassen__zeile" key={n} data-ausblenden>
             <label className="linie linie--breit">
               <VorschlagFeld
                 placeholder={t('klasse')}
@@ -361,7 +363,7 @@ function Kopf({ w, aendere, bild, setzeBild }: { w: Werte; aendere: FigurProps['
                 className="knopf--klein knopf--leise"
                 aria-label={t('klasse.weg')}
                 title={t('klasse.weg')}
-                onClick={() => aendere((x) => ({ ...x, klassen: x.klassen.filter((_, m) => m !== n) }))}
+                onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((x) => ({ ...x, klassen: x.klassen.filter((_, m) => m !== n) })))}
               >
                 ×
               </button>
@@ -584,8 +586,11 @@ interface TeilProps {
   readonly setMeldung: (text: string) => void;
 }
 
-function Trefferpunkte({ w, aendere, setMeldung }: TeilProps) {
+function Trefferpunkte({ w, aendere, setMeldung, kennung }: TeilProps & { readonly kennung?: string }) {
   const [eingabe, setEingabe] = useState('');
+  // Schaden blitzt rot, Heilung grün (Rückmeldung); temporäre TP zählen mit.
+  const kasten = useRef<HTMLDivElement>(null);
+  useWertBlitz(kasten, w.tp.aktuell + w.tp.temp, kennung);
   const [hinweis, setHinweis] = useState('');
   const anteil = w.tp.max > 0 ? w.tp.aktuell / w.tp.max : 0;
   const uebernimm = () => {
@@ -601,7 +606,7 @@ function Trefferpunkte({ w, aendere, setMeldung }: TeilProps) {
     setMeldung(betrag < 0 ? t('tp.schaden', { n: -betrag }) : t('tp.heilung', { n: betrag }));
   };
   return (
-    <div className="tp">
+    <div className="tp" ref={kasten} data-tp-kasten>
       <div className="tp__kopf">
         <span className="kennbox__titel">
           {t('tp.lang')} <SlMarke feld="tp" />
@@ -740,7 +745,7 @@ function Trefferwuerfel({ w, aendere }: { w: Werte; aendere: FigurProps['aendere
         {t('trefferwuerfel')} <SlMarke feld="trefferwuerfel" />
       </span>
       {w.trefferwuerfel.map((tw, n) => (
-        <div className="tw__zeile" key={n}>
+        <div className="tw__zeile" key={n} data-ausblenden>
           <Segment
             klein
             label={t('trefferwuerfel')}
@@ -776,7 +781,7 @@ function Trefferwuerfel({ w, aendere }: { w: Werte; aendere: FigurProps['aendere
               type="button"
               className="knopf--klein knopf--leise"
               aria-label="×"
-              onClick={() => aendere((x) => ({ ...x, trefferwuerfel: x.trefferwuerfel.filter((_, m) => m !== n) }))}
+              onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((x) => ({ ...x, trefferwuerfel: x.trefferwuerfel.filter((_, m) => m !== n) })))}
             >
               ×
             </button>
@@ -796,6 +801,9 @@ function Trefferwuerfel({ w, aendere }: { w: Werte; aendere: FigurProps['aendere
   );
 }
 
+/** Was eine Rast auffüllt und dabei kurz aufploppt (Rückmeldung): Zauberplätze und Punkte (Trefferwürfel, Ressourcen). */
+const AUFFUELLBAR = '.punkt:not(.punkt--weg), .pip.ist-an';
+
 function Rasten({ w, aendere, setMeldung, name }: TeilProps & { readonly name?: string }) {
   const de = getLanguage() === 'de';
   const wer = name?.trim() || (de ? 'Figur' : 'Character');
@@ -814,7 +822,9 @@ function Rasten({ w, aendere, setMeldung, name }: TeilProps & { readonly name?: 
           title={w.tp.aktuell === 0 ? t('rast.langOhneTp') : t('rast.langHinweis')}
           onClick={() => {
             if (!window.confirm(t('rast.langSicher'))) return;
+            const aufgefuellt = vorDemAuffuellen(AUFFUELLBAR);
             aendere(langeRast);
+            aufgefuellt();
             setMeldung(t('rast.langFertig', { tp: w.tp.max }));
             api.protokoll({ art: 'rast', text: de ? `${wer}: lange Rast` : `${wer}: long rest` });
           }}
@@ -847,10 +857,12 @@ function Rasten({ w, aendere, setMeldung, name }: TeilProps & { readonly name?: 
               data-kurz-wuerfeln
               onClick={() => {
                 let ergebnis: ReturnType<typeof kurzeRast> | null = null;
+                const aufgefuellt = vorDemAuffuellen(AUFFUELLBAR);
                 aendere((x) => {
                   ergebnis = kurzeRast(x, kurz);
                   return ergebnis.werte;
                 });
+                aufgefuellt();
                 const e = ergebnis as ReturnType<typeof kurzeRast> | null;
                 if (e) {
                   const summe = e.wuerfe.reduce((s, x) => s + x.geheilt, 0);
@@ -913,9 +925,9 @@ function Zustaende({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] })
           const name = z ? z.name[sprache] : id.startsWith(EIGEN) ? id.slice(EIGEN.length) : id;
           return (
             <li key={id}>
-              <span className={`chip${id.startsWith(EIGEN) ? ' chip--eigen' : ''}`} title={z ? z.text[sprache] : eigen?.text ?? ''} data-zustand={id}>
+              <span className={`chip${id.startsWith(EIGEN) ? ' chip--eigen' : ''}`} title={z ? z.text[sprache] : eigen?.text ?? ''} data-zustand={id} data-ausblenden>
                 {name}
-                <button type="button" aria-label={t('zustand.weg', { name })} onClick={() => aendere((x) => ({ ...x, zustaende: x.zustaende.filter((y) => y !== id) }))}>
+                <button type="button" aria-label={t('zustand.weg', { name })} onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((x) => ({ ...x, zustaende: x.zustaende.filter((y) => y !== id) })))}>
                   ×
                 </button>
               </span>
@@ -950,7 +962,7 @@ function Ressourcen({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }
   return (
     <div className="ressourcen">
       {w.ressourcen.map((r, n) => (
-        <div className="ressource" key={n} data-ressource={n}>
+        <div className="ressource" key={n} data-ressource={n} data-ausblenden>
           <input aria-label={t('ressource.name')} placeholder={t('ressource.name')} value={r.name} maxLength={80} onChange={(e) => setze(n, { name: e.target.value })} />
           <Pips wert={r.uebrig} max={Math.min(r.max, 20)} label={r.name || t('ressource.name')} aendern={(v) => setze(n, { uebrig: v })} />
           <ZahlRoh wert={r.max} min={1} max={20} feld={`ressource-max-${n}`} label={t('ressource.max')} aendern={(v) =>
@@ -975,7 +987,7 @@ function Ressourcen({ w, aendere }: { w: Werte; aendere: FigurProps['aendere'] }
             className="knopf--klein knopf--leise"
             aria-label={t('ressource.weg')}
             title={t('ressource.weg')}
-            onClick={() => aendere((x) => ({ ...x, ressourcen: x.ressourcen.filter((_, m) => m !== n) }))}
+            onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((x) => ({ ...x, ressourcen: x.ressourcen.filter((_, m) => m !== n) })))}
           >
             ×
           </button>

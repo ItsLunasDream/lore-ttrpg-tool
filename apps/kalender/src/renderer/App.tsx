@@ -269,7 +269,7 @@ export function App() {
           {t('einlesen')}
         </button>
       </div>
-      {meldung ? <p className="meldung">{meldung}</p> : null}
+      {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
       {fehler ? <p className="fehler">{fehler}</p> : null}
       {kommende.length ? (
         <section className="karte" data-naechste>
@@ -556,7 +556,7 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
         </button>
       </div>
       {meldung ? (
-        <p className="meldung" data-meldung>
+        <p key={meldung} className="meldung motion-meldung-ok" data-meldung>
           {meldung}
         </p>
       ) : null}
@@ -764,7 +764,7 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
       <section className="karte" data-beste>
         <h2>{t('beste')}</h2>
         {u.termin ? (
-          <p className="termin" data-termin>
+          <p key={`${u.termin.tag}-${u.termin.von}`} className="termin motion-meldung-ok" data-termin>
             📅 {zeigeZeitraum(u.termin)}{' '}
             <button
               type="button"
@@ -788,7 +788,7 @@ function UmfrageAnsicht({ u, lage, name, setName, zone, setZone, modus, setModus
         {vorschlaege.length === 0 ? <p className="leise">{u.dauer === null ? t('beste.leer.offen') : t('beste.leer')}</p> : null}
         <ol className="vorschlaege">
           {vorschlaege.map((v) => (
-            <li key={`${v.tag}-${v.von}`} data-vorschlag={`${v.tag}-${v.von}`}>
+            <li key={`${v.tag}-${v.von}`} className="motion-eintritt" data-vorschlag={`${v.tag}-${v.von}`}>
               {zeigeZeitraum(v)}
               <span className="leise">
                 {' · '}

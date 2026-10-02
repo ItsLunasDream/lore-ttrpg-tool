@@ -478,7 +478,7 @@ export function App() {
         </nav>
       </header>
 
-      {meldung && <p className="meldung">{meldung}</p>}
+      {meldung && <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p>}
 
       {reiter === 'bauen' && (
         <main className="bauen">

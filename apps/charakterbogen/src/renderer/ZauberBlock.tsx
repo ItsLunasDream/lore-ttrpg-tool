@@ -3,6 +3,7 @@
  * Plaetze je Grad, die Liste und das Hinzufuegen aus dem SRD.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { api } from './api';
 import type { Zauber, Zauberklasse } from '@suite/srd/zauber';
 import { Segment } from './Bedienung';
@@ -285,10 +286,12 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
                     <button
                       type="button"
                       className="knopf--klein knopf--gefahr"
-                      onClick={() => {
-                        setZ((x) => ({ ...x, liste: x.liste.filter((_, m) => m !== idx) }));
-                        setOffen(null);
-                      }}
+                      onClick={(ev) =>
+                        ausblendenUnd(ev.currentTarget, () => {
+                          setZ((x) => ({ ...x, liste: x.liste.filter((_, m) => m !== idx) }));
+                          setOffen(null);
+                        })
+                      }
                     >
                       {t('zauber.weg')}
                     </button>

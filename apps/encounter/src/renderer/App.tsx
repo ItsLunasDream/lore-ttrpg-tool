@@ -8,6 +8,7 @@
  * Siehe `docs/encounter.md`.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { einzeln } from '@suite/tastatur';
 import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
@@ -471,7 +472,7 @@ export function App() {
             />
           </label>
 
-          {meldung ? <p className="meldung">{meldung}</p> : null}
+          {meldung ? <p key={meldung} className="meldung motion-meldung-ok">{meldung}</p> : null}
           {fehler ? <p className="fehler">{fehler}</p> : null}
         </section>
       </div>
@@ -790,7 +791,7 @@ function Gruppenfeld({
     <div className="gruppenfeld">
       {gruppe.length === 0 ? <p className="hinweis">{t('gruppe.leer')}</p> : null}
       {gruppe.map((zeile, i) => (
-        <div className="gruppenfeld__zeile" key={i} data-gruppenzeile={i}>
+        <div className="gruppenfeld__zeile" key={i} data-gruppenzeile={i} data-ausblenden>
           <ZahlFeld
             className="gruppenfeld__zahl"
             min={1}
@@ -815,7 +816,7 @@ function Gruppenfeld({
             className="gegnerzeile__weg"
             aria-label={t('gruppe.weg')}
             title={t('gruppe.weg')}
-            onClick={() => setze(gruppe.filter((_, j) => j !== i))}
+            onClick={(e) => ausblendenUnd(e.currentTarget, () => setze(gruppe.filter((_, j) => j !== i)))}
           >
             ×
           </button>

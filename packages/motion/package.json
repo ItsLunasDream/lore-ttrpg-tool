@@ -7,7 +7,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./motion.css": "./src/motion.css"
+    "./motion.css": "./src/motion.css",
+    "./dom": "./src/dom.ts",
+    "./react": "./src/react.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

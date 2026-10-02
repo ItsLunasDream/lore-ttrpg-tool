@@ -3,6 +3,7 @@
  * Ausgeruestet, Eingestimmt und Traglast gibt es nur bei Figuren.
  */
 import { useState } from 'react';
+import { ausblendenUnd } from '@suite/motion/dom';
 import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { api } from './api';
 import { Segment, Suchwahl } from './Bedienung';
@@ -226,7 +227,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
           </div>
         ) : null}
         {bogen.gegenstaende.map((g) => (
-          <div key={g.id} className="gegenstand">
+          <div key={g.id} className="gegenstand" data-ausblenden>
             <div className={`gegenstand__zeile ${figur ? '' : 'gegenstand--gruppe'}`}>
               {umbenennen === g.id ? (
                 <input
@@ -401,7 +402,7 @@ export function InventarBlock({ bogen, andere, aendere, speichereJetzt, uebernim
                   <button
                     type="button"
                     className="knopf--klein knopf--gefahr"
-                    onClick={() => aendere((b) => ({ ...b, gegenstaende: b.gegenstaende.filter((x) => x.id !== g.id) }))}
+                    onClick={(e) => ausblendenUnd(e.currentTarget, () => aendere((b) => ({ ...b, gegenstaende: b.gegenstaende.filter((x) => x.id !== g.id) })))}
                   >
                     {t('loeschen')}
                   </button>
