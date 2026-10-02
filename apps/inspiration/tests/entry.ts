@@ -14,6 +14,8 @@ export {
   erzeugeVerbindung,
   erzeugeVerbindungen,
   erzeugeZeitstrahl,
+  mitFreiemNamen,
+  vergebeneNamen,
   ersetzeFigur,
   fuegeFigurHinzu,
   benenneFigurUm,

@@ -26,7 +26,9 @@ import {
   ersetzeFigur,
   fuegeFigurHinzu,
   benenneFigurUm,
+  mitFreiemNamen,
   moeglichkeiten,
+  vergebeneNamen,
   type Baustein,
   type Entwurf
 } from '../shared/erzeuge';
@@ -865,7 +867,9 @@ export function App() {
                       ersetze((alt) => ({
                         ...alt,
                         fraktionen: alt.fraktionen.map((eintrag, i) =>
-                          i === stelle ? erzeugeFraktion(zuschnitt, getLanguage(), wuerfel) : eintrag
+                          i === stelle
+                            ? mitFreiemNamen(() => erzeugeFraktion(zuschnitt, getLanguage(), wuerfel), vergebeneNamen(alt, eintrag.name))
+                            : eintrag
                         )
                       }))
                     )}
@@ -946,7 +950,7 @@ export function App() {
                         ersetzeFigur(
                           alt,
                           stelle,
-                          erzeugeFigur(zuschnitt, getLanguage(), wuerfel),
+                          mitFreiemNamen(() => erzeugeFigur(zuschnitt, getLanguage(), wuerfel), vergebeneNamen(alt, alt.figuren[stelle]?.name)),
                           zuschnitt,
                           getLanguage(),
                           wuerfel
@@ -995,7 +999,9 @@ export function App() {
                       ersetze((alt) => ({
                         ...alt,
                         orte: alt.orte.map((eintrag, i) =>
-                          i === stelle ? erzeugeOrt(zuschnitt, getLanguage(), wuerfel) : eintrag
+                          i === stelle
+                            ? mitFreiemNamen(() => erzeugeOrt(zuschnitt, getLanguage(), wuerfel), vergebeneNamen(alt, eintrag.name))
+                            : eintrag
                         )
                       }))
                     )}
