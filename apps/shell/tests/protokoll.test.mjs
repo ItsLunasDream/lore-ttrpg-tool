@@ -71,3 +71,19 @@ test('Zwischenstand: bereinigt, kaputte Einträge fallen weg', () => {
   assert.equal(s.naechsteId, 4);
   assert.equal(P.bereinigeSitzung({ beginn: 'kein Datum' }), null);
 });
+
+test('KI-Zusammenfassung: Anfrage mit Verlauf, gewöhnliche Würfe nur gezählt, Antwort bereinigt', () => {
+  let s = P.neueSitzung(zeit(19, 0), 'Sitzung 4');
+  s = P.mitDabei(s, ['Mira', 'Jo']);
+  s = P.mitEintrag(s, { art: 'kampf-beginn', quelle: 'initiative', text: 'Kampf beginnt: Brücke', zeit: zeit(19, 10) });
+  s = P.mitEintrag(s, { art: 'wurf', quelle: 'dice', text: '1d20: 7', zeit: zeit(19, 11) });
+  s = P.mitEintrag(s, { art: 'hand', quelle: 'hand', text: 'Die Gruppe verbündet sich mit den Schmugglern', zeit: zeit(19, 30) });
+  const a = P.kiAnfrage(s, 'de');
+  assert.match(a.system, /Erfinde nichts/);
+  assert.match(a.nutzer, /Dabei: Mira, Jo/);
+  assert.match(a.nutzer, /Kampf beginnt: Brücke/);
+  assert.match(a.nutzer, /Schmugglern/);
+  assert.doesNotMatch(a.nutzer, /1d20: 7/);
+  assert.match(a.nutzer, /1 gewöhnliche Würfe/);
+  assert.equal(P.bereinigeZusammenfassung('```\n# Zusammenfassung\nDie Gruppe kämpfte.\n```'), 'Die Gruppe kämpfte.');
+});

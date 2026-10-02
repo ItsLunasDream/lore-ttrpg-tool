@@ -56,7 +56,7 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { terminAm as kalenderTerminAm } from '../../../kalender/src/main/embed';
 import { Protokollfuehrer } from './protokoll';
-import { alsMarkdown as protokollAlsMarkdown, standardTitel as protokollTitel, wurfAusChat } from '../shared/protokoll';
+import { alsMarkdown as protokollAlsMarkdown, bereinigeZusammenfassung, kiAnfrage as protokollKiAnfrage, standardTitel as protokollTitel, wurfAusChat } from '../shared/protokoll';
 import { nimmRaumNachricht as nimmKalenderNachricht } from '../../../kalender/src/main/embed';
 import { berechneAppFlaeche, GROESSEN, VORGABE_GROESSE } from '../shared/apps';
 import {
@@ -100,6 +100,7 @@ import {
 } from './settings';
 import { anbieterAus, entschluessle, verschluessle } from './ki';
 import { Raumpasswoerter } from './raumPasswort';
+import { KiFehler } from '@suite/ki';
 import {
   leseSymbole,
   mitgelieferterOrdner,
@@ -1056,6 +1057,26 @@ function registriereKanaele(): void {
     const ergebnis = await legeSitzungsnotizAn(s.titel || protokollTitel(1, s.beginn, sprache), markdown, montageHaken('protokoll', gemerkteEinstellungen.language));
     if (ergebnis.ok) await protokoll!.schliesse(true);
     return { ok: ergebnis.ok, text: ergebnis.text };
+  });
+  handle('protokoll:kiDa', async () => anbieterAus(await readSettings(einstellungsDatei)) !== null);
+  /** Ein Vorschlag für die Zusammenfassung; landet im Feld, nicht direkt in der Notiz. */
+  handle('protokoll:ki', async () => {
+    const einstellungen = await readSettings(einstellungsDatei);
+    const sprache = einstellungen.language === 'de' ? 'de' : 'en';
+    const s = protokoll?.zustand();
+    if (!s) return { ok: false, text: '' };
+    const anbieter = anbieterAus(einstellungen);
+    if (!anbieter) return { ok: false, text: translate(einstellungen.language, 'session.aiNone') };
+    try {
+      const anfrage = protokollKiAnfrage(s, sprache);
+      const antwort = await anbieter.frage({ system: anfrage.system, nachrichten: [{ rolle: 'user', inhalt: anfrage.nutzer }] }, () => {});
+      const text = bereinigeZusammenfassung(antwort);
+      return text ? { ok: true, text } : { ok: false, text: translate(einstellungen.language, 'error.aiEmpty') };
+    } catch (fehler) {
+      const schluessel = fehler instanceof KiFehler ? fehler.schluessel : 'error.aiOther';
+      const werte = fehler instanceof KiFehler ? fehler.werte : { detail: String(fehler) };
+      return { ok: false, text: translate(einstellungen.language, schluessel, werte) };
+    }
   });
   handle('protokoll:verwerfen', async () => {
     await protokoll?.schliesse(false);

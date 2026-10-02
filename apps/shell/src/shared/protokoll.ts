@@ -183,3 +183,42 @@ export function bereinigeSitzung(roh: unknown): Sitzung | null {
     naechsteId: Math.max(1, ...eintraege.map((e) => e.id + 1), Number(r.naechsteId) || 1)
   };
 }
+
+// --- KI-Zusammenfassung --------------------------------------------------------
+
+/**
+ * Die Anfrage für eine Zusammenfassung der Sitzung (Rückmeldung). Mit
+ * Verlauf, Zeilen von Hand, Anwesenden und offenen Notizen; gewöhnliche
+ * Würfe nur als Zahl, sie erzählen nichts. Das Ergebnis ist ein Vorschlag im
+ * Feld „Zusammenfassung", nie automatisch übernommen.
+ */
+export function kiAnfrage(s: Sitzung, sprache: 'de' | 'en'): { system: string; nutzer: string } {
+  const de = sprache === 'de';
+  const aktiv = s.eintraege.filter((e) => !e.weg);
+  const wichtig = aktiv.filter((e) => e.wichtig).slice(-150);
+  const wuerfe = aktiv.filter((e) => !e.wichtig && e.art === 'wurf').length;
+  const system = de
+    ? 'Du fasst eine Pen-&-Paper-Sitzung zusammen. Schreibe 3 bis 6 Sätze auf Deutsch, im Präteritum, sachlich, ohne Überschrift und ohne Aufzählung. Erfinde nichts, was nicht im Protokoll steht.'
+    : 'You summarise a tabletop roleplaying session. Write 3 to 6 sentences in English, past tense, plain, no heading and no bullet list. Do not invent anything that is not in the log.';
+  const nutzer = [
+    `${de ? 'Titel' : 'Title'}: ${s.titel}`,
+    `${de ? 'Dabei' : 'Present'}: ${s.dabei.join(', ') || '—'}`,
+    s.notizen.length ? `${de ? 'Offene Notizen' : 'Notes opened'}: ${s.notizen.join(', ')}` : '',
+    '',
+    de ? 'Verlauf:' : 'Log:',
+    ...wichtig.map((e) => `- ${uhr(e.zeit)} ${e.text}`),
+    wuerfe ? (de ? `(dazu ${wuerfe} gewöhnliche Würfe)` : `(plus ${wuerfe} ordinary rolls)`) : ''
+  ]
+    .filter((z) => z !== '')
+    .join('\n');
+  return { system, nutzer };
+}
+
+/** Die Antwort der KI als Text fürs Feld: ohne Zaun, ohne Überschrift, begrenzt. */
+export function bereinigeZusammenfassung(text: string): string {
+  return text
+    .replace(/^\s*```[a-z]*\s*|\s*```\s*$/g, '')
+    .replace(/^#+\s.*\n+/, '')
+    .trim()
+    .slice(0, 3000);
+}

@@ -226,6 +226,8 @@ const api = {
     vorschau: (zusammenfassung: string) => ipcRenderer.invoke('protokoll:vorschau', zusammenfassung) as Promise<string>,
     anlegen: (zusammenfassung: string) => ipcRenderer.invoke('protokoll:anlegen', zusammenfassung) as Promise<{ ok: boolean; text: string }>,
     verwerfen: () => ipcRenderer.invoke('protokoll:verwerfen') as Promise<boolean>,
+    kiDa: () => ipcRenderer.invoke('protokoll:kiDa') as Promise<boolean>,
+    ki: () => ipcRenderer.invoke('protokoll:ki') as Promise<{ ok: boolean; text: string }>,
     beiAenderung: (fn: (z: { laeuft: boolean; anzahl: number } | null) => void): (() => void) => {
       const hoerer = (_e: unknown, z: { laeuft: boolean; anzahl: number } | null) => fn(z);
       ipcRenderer.on('protokoll:geaendert', hoerer);
