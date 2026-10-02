@@ -27,6 +27,8 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
   const [tabellen, setTabellen] = useState<{ id: string; name: string }[] | null>(null);
   const [tabelle, setTabelle] = useState('');
   const [wurf, setWurf] = useState<string | null>(null);
+  // Aufgeklappte Iteminfo in der Liste (Rückmeldung: auf den Namen klicken).
+  const [auf, setAuf] = useState<string | null>(null);
 
   useEffect(() => {
     // Auch fuer Loot: ein gewuerfelter eigener Gegenstand bringt so seine Werte mit.
@@ -154,10 +156,22 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
           />
           {reiter === 'eigene' && eigene && eigene.length === 0 ? <p className="leise">{t('quelle.eigene.leer')}</p> : null}
           <ul className="quellen__liste" data-pfeile="liste">
-            {liste.map((e) => (
-              <li data-pfeil key={`${e.quelle}:${e.kennung}`}>
+            {liste.map((e) => {
+              const id = `${e.quelle}:${e.kennung}`;
+              return (
+              <li data-pfeil key={id} className={auf === id ? 'is-auf' : undefined}>
                 <div>
-                  <strong>{e.name}</strong> <span className="leise">{e.art}</span>
+                  <button
+                    type="button"
+                    className="quellen__name"
+                    data-quelle-info={e.kennung}
+                    aria-expanded={auf === id}
+                    title={t('quelle.info')}
+                    onClick={() => setAuf(auf === id ? null : id)}
+                  >
+                    <strong>{e.name}</strong>
+                  </button>{' '}
+                  <span className="leise">{e.art}</span>
                   <div className="leise quellen__zahlen">
                     {e.gewicht !== null ? gewichtAnzeige(e.gewicht, sprache) : ''}
                     {e.gewicht !== null && e.wert !== null ? ' · ' : ''}
@@ -167,8 +181,15 @@ export function Quellen({ aendere, setMeldung, schliessen }: Props) {
                 <button type="button" className="knopf--klein" data-quelle-dazu={e.kennung} title={e.beschreibung.slice(0, 400)} onClick={() => dazu(e)}>
                   + {t('quelle.nehmen')}
                 </button>
+                {auf === id ? (
+                  <div className="quellen__info" data-quelle-text={e.kennung}>
+                    {e.bild ? <img src={e.bild} alt="" className="quellen__bild" /> : null}
+                    <p>{e.beschreibung || t('quelle.keineInfo')}</p>
+                  </div>
+                ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </>
       )}

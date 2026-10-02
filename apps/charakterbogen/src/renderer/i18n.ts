@@ -60,6 +60,10 @@ const TEXTE = {
   'tp.max': ['Maximum', 'Maximum'],
   'tp.temp': ['Temporär', 'Temporary'],
   'tp.feld': ['Schaden / Heilung', 'Damage / Healing'],
+  'angriff.schadenBeispiel': ['1W8+3', '1d8+3'],
+  'tp.feldBeispiel': ['-7 / +5 / 2W6+3', '-7 / +5 / 2d6+3'],
+  'tp.wurfSchaden': ['Schaden', 'Damage'],
+  'tp.wurfHeilung': ['Heilung', 'Healing'],
   'tp.feldHinweis': [
     '7 oder -7 ist Schaden, +7 heilt. Würfel gehen: 2w6+3. Enter übernimmt.',
     '7 or -7 is damage, +7 heals. Dice work: 2d6+3. Enter applies.'
@@ -105,6 +109,8 @@ const TEXTE = {
   'quelle.loot': ['Loot-Tabelle', 'Loot table'],
   'quelle.suche': ['Suchen …', 'Search …'],
   'quelle.nehmen': ['Nehmen', 'Add'],
+  'quelle.info': ['Beschreibung zeigen', 'Show description'],
+  'quelle.keineInfo': ['Keine Beschreibung.', 'No description.'],
   'quelle.dazu': ['„{name}“ liegt im Inventar.', '“{name}” is in the inventory.'],
   'quelle.eigene.leer': [
     'Noch keine eigenen Gegenstände. Im Homebrew Creator oder Magic Item Generator gespeicherte stehen hier.',
@@ -128,6 +134,10 @@ const TEXTE = {
   'waffe.einfach': ['Einfache Waffen', 'Simple weapons'],
   'waffe.kriegs': ['Kriegswaffen', 'Martial weapons'],
   'angriff.wuerfeln': ['Angriff und Schaden würfeln', 'Roll attack and damage'],
+  'angriff.nurAngriff': ['Nur den Angriff würfeln', 'Roll only the attack'],
+  'angriff.nurAngriff.kurz': ['Angriff', 'Attack'],
+  'angriff.nurSchaden': ['Nur den Schaden würfeln', 'Roll only the damage'],
+  'angriff.nurSchaden.kurz': ['Schaden', 'Damage'],
   'angriff.attribut': ['Mit', 'Using'],
   'angriff.attribut.auto': ['nach Waffe', 'by weapon'],
   'angriff.attribut.sta': ['Stärke', 'Strength'],
@@ -204,6 +214,9 @@ const TEXTE = {
   'zauber.ritual': ['Ritual', 'Ritual'],
   'zauber.immer': ['Immer vorbereitet', 'Always prepared'],
   'zauber.wirken': ['Wirken', 'Cast'],
+  'zauber.ohnePlatzWirken': ['Ohne Platz wirken', 'Cast without a slot'],
+  'zauber.wirkenTitel': ['Wirken (Rechtsklick: ohne Platz)', 'Cast (right-click: without a slot)'],
+  'zauber.zuviel': ['{n} mehr vorbereitet als erlaubt', '{n} more prepared than allowed'],
   'zauber.ohnePlatz': [
     'Kein freier Platz ab dem {grad}. Grad für {name}. Trotzdem wirken (ohne einen Platz zu verbrauchen)?',
     'No free slot of level {grad} or higher for {name}. Cast anyway (without spending a slot)?'
@@ -446,7 +459,6 @@ const TEXTE = {
     'Lange Rast jetzt machen? TP, Trefferwürfel, Zauberplätze und Fähigkeiten kommen zurück, eine Erschöpfungsstufe fällt weg.',
     'Take a long rest now? HP, Hit Point Dice, spell slots and features come back, and one level of exhaustion goes away.'
   ],
-  'angriff.wuerfeln.kurz': ['Würfeln', 'Roll'],
   bild: ['Bild', 'Picture'],
   'bild.waehlen': ['Bild auswählen', 'Choose a picture'],
   'bild.aendern': ['Anderes Bild wählen', 'Choose another picture'],

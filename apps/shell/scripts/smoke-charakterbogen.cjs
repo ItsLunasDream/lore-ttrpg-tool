@@ -237,7 +237,10 @@ app.whenReady().then(async () => {
     pruefe(await bis(async () => story.executeJavaScript(`typeof window.api?.campaigns?.create === 'function'`), 15000), 'und ist geladen');
     await story.executeJavaScript(`(async () => {
       const auspacken = (antwort) => (antwort && 'value' in antwort ? antwort.value : antwort);
-      return auspacken(await window.api.campaigns.create('Testrunde')).name;
+      const k = auspacken(await window.api.campaigns.create('Testrunde'));
+      // Eine andere Notiz vorweg: „Notiz öffnen“ darf nicht beim ersten Eintrag landen (Rückmeldung).
+      await window.api.notes.create(k.id, 'note', 'Aaa Erste Notiz');
+      return k.name;
     })()`);
     await wechsle('/Charakter/');
     await warte(1500);
@@ -251,10 +254,17 @@ app.whenReady().then(async () => {
       if (fs.existsSync(o)) notizen.push(...fs.readdirSync(o).map((d) => fs.readFileSync(path.join(o, d), 'utf8')));
     }
     pruefe(notizen.some((n) => /Heimlichkeit \+9/.test(n)), 'die Notiz traegt die Lesefassung der Figur');
+    const bogenNotiz = notizen.find((n) => /Heimlichkeit \+9/.test(n)) ?? '';
+    pruefe(/charakterbogen:anfang/.test(bogenNotiz), 'die Notiz hat gleich die Markierungen (kein Doppel beim späteren Abgleich)');
+    pruefe(!/^# Mira/m.test(bogenNotiz.replace(/^---[\s\S]*?\n---\n/, '')), 'ohne Überschrift „# Name“ im Text');
     await js(`document.querySelector('[data-story-oeffnen]').click(); true`);
     pruefe(
       await bis(async () => /Story/.test(await hjs(`document.querySelector('.schiene__eintrag--an')?.title ?? ''`)), 8000),
       'Notiz oeffnen holt den Story Creator nach vorn'
+    );
+    pruefe(
+      await bis(async () => (await story.executeJavaScript(`document.querySelector('.note-editor__title')?.value ?? ''`)) === 'Mira Sturmhand', 6000),
+      `und zeigt die Notiz der Figur, nicht die erste (${await story.executeJavaScript(`document.querySelector('.note-editor__title')?.value ?? ''`)})`
     );
     // Zurueck zum Bogen fuer den Rest.
     await wechsle('/Charakter/');
@@ -280,6 +290,16 @@ app.whenReady().then(async () => {
       }, 8000),
       'eine Aenderung am Bogen landet in der Notiz, eigener Text dort bleibt'
     );
+    // Umbenennen (Rückmeldung): kein zweiter Charakter in der Notiz.
+    await js(tippe('[data-feld="name"]', 'Mira Neuname'));
+    await warte(2500);
+    await js(tippe('[data-feld="name"]', 'Mira Sturmhand'));
+    await warte(2500);
+    const nachUmbenennen = fs.readFileSync(notizDatei(), 'utf8');
+    pruefe(
+      (nachUmbenennen.match(/\*\*RK\*\*/g) ?? []).length === 1 && !/^# Mira/m.test(nachUmbenennen.replace(/^---[\s\S]*?\n---\n/, '')),
+      `nach dem Umbenennen steht der Bogen einmal in der Notiz (${(nachUmbenennen.match(/\*\*RK\*\*/g) ?? []).length}×)`
+    );
   }
 
   // --- Trefferpunkte -------------------------------------------------------
@@ -290,6 +310,8 @@ app.whenReady().then(async () => {
   pruefe(await js(`Boolean(document.querySelector('[data-tp-temp-balken]'))`), 'temporaere TP stehen als eigenes Stueck im Balken');
   await warte(200);
   const enter = `document.querySelector('[data-feld="tp-betrag"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); true`;
+  // Merkt sich, ob der TP-Kasten rot geblitzt hat (unabhängig davon, wann der Test hinsieht).
+  await js(`(() => { window.__blitz = false; const k = document.querySelector('[data-tp-kasten]'); new MutationObserver(() => { if (k.classList.contains('motion-schaden')) window.__blitz = true; }).observe(k, { attributes: true, attributeFilter: ['class'] }); return true; })()`);
   await js(tippe('[data-feld="tp-betrag"]', '-12'));
   await js(enter);
   await warte(300);
@@ -298,11 +320,17 @@ app.whenReady().then(async () => {
       (await js(`document.querySelector('[data-feld="tp-temp"]').value`)) === '0',
     '12 Schaden: erst 5 temporaere, dann 7 echte TP'
   );
-  pruefe(await js(`document.querySelector('[data-tp-kasten]').classList.contains('motion-schaden')`), 'Schaden blitzt rot');
+  pruefe(await js('window.__blitz === true'), 'Schaden blitzt rot');
   await js(tippe('[data-feld="tp-betrag"]', '+4'));
   await js(enter);
   await warte(300);
   pruefe((await js(`document.querySelector('[data-feld="tp-aktuell"]').value`)) === '27', '+4 heilt');
+  // Würfelausdruck im Feld: der Wurf steht unten rechts (Rückmeldung).
+  await js(tippe('[data-feld="tp-betrag"]', '+1d4'));
+  await js(enter);
+  await warte(200);
+  pruefe(/Heilung: \d+ \(1d4 \[\d\]\)/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Heilung mit Würfeln steht in der Wurfanzeige');
+  pruefe(/2d6\+3/.test(await js(`document.querySelector('[data-feld="tp-betrag"]').placeholder`)) || /2W6\+3/.test(await js(`document.querySelector('[data-feld="tp-betrag"]').placeholder`)), 'Beispiel im Feld in der Sprache der Oberfläche');
 
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
@@ -336,7 +364,8 @@ app.whenReady().then(async () => {
     (await js(`document.querySelectorAll('.punkt--weg').length`)) === 1,
     'Wirken verbraucht einen Platz des 1. Grades'
   );
-  pruefe(/Magisches Geschoss gewirkt/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Wirken meldet sich unten rechts');
+  pruefe(/Magisches Geschoss gewirkt/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].slice(-2).map((e) => e.textContent).join(' | ')`)), 'Wirken meldet sich unten rechts');
+  pruefe(/Magisches Geschoss · Schaden: \d+/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'und würfelt den Schaden gleich mit');
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
   pruefe((await js(`document.querySelectorAll('.punkt--weg').length`)) === 0, 'die lange Rast gibt ihn zurueck');
@@ -345,6 +374,8 @@ app.whenReady().then(async () => {
   await js(tippe('[data-platz-max="1"]', '0'));
   await warte(200);
   const anzahlZeilen = () => js(`document.querySelectorAll('[data-wurf-zeile]').length`);
+  // Die letzten Zeilen der Wurfanzeige (Wirken bringt Wirken, Angriff und Schaden als eigene Zeilen).
+  const letzteZeilen = (n = 3) => js(`[...document.querySelectorAll('[data-wurf-text]')].slice(-${n}).map((e) => e.textContent).join(' | ')`);
   const zeilenVorher = await anzahlZeilen();
   await js(`window.__frage = ''; window.confirm = (t) => { window.__frage = t; return false; }; true`);
   await js(`document.querySelector('[data-zauberliste] [data-wirken]').click(); true`);
@@ -353,8 +384,9 @@ app.whenReady().then(async () => {
   await js(`window.confirm = () => true; true`);
   await js(`document.querySelector('[data-zauberliste] [data-wirken]').click(); true`);
   await warte(200);
-  pruefe(/ohne freien Platz/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'bei Ja: gewirkt ohne Platz');
-  pruefe((await anzahlZeilen()) === zeilenVorher + 1, 'die neue Zeile kommt dazu, die alte bleibt stehen');
+  pruefe(/ohne freien Platz/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].slice(-2).map((e) => e.textContent).join(' | ')`)), 'bei Ja: gewirkt ohne Platz');
+  // Wirken und Schaden: zwei neue Zeilen, die alten bleiben (höchstens sechs stehen).
+  pruefe((await anzahlZeilen()) === Math.min(6, zeilenVorher + 2), 'die neuen Zeilen kommen dazu, die alten bleiben stehen');
   await js(tippe('[data-platz-max="1"]', '2'));
 
   // Angriffszauber würfeln den Zauberangriff mit. Die Suche ist vom Hinzufügen noch offen.
@@ -366,7 +398,8 @@ app.whenReady().then(async () => {
   await warte(300);
   await js(`[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Feuerpfeil|Fire Bolt/.test(li.innerText)).querySelector('[data-wirken]').click(); true`);
   await warte(200);
-  pruefe(/Zauberangriff: \d+ \(d20 \d+ \+6\)/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Feuerpfeil würfelt den Zauberangriff (+3 INT +3 Übung)');
+  pruefe(/Zauberangriff: \d+ \(d20 \d+ \+6\)/.test(await letzteZeilen()), 'Feuerpfeil würfelt den Zauberangriff (+3 INT +3 Übung)');
+  pruefe(/Feuerpfeil · Schaden: \d+ Feuerschaden \(2d10 \[\d+, \d+\]\)/.test(await letzteZeilen()), `und den Schaden, auf Stufe 5 mit 2W10 (${await letzteZeilen(1)})`);
 
   // Zauber mit Rettungswurf: der SG steht in der Zeile (Rückmeldung).
   if (!(await js(`Boolean(document.querySelector('[data-zauber-anfrage]'))`))) await js(`document.querySelector('[data-zauber-suchen]').click(); true`);
@@ -377,7 +410,26 @@ app.whenReady().then(async () => {
   await warte(300);
   await js(`[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Brennende Hände|Burning Hands/.test(li.innerText)).querySelector('[data-wirken]').click(); true`);
   await warte(200);
-  pruefe(/Rettungswurf GES, SG 14/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Brennende Hände zeigt Rettungswurf GES, SG 14');
+  pruefe(/Rettungswurf GES, SG 14/.test(await letzteZeilen()), 'Brennende Hände zeigt Rettungswurf GES, SG 14');
+  pruefe(/Schaden: \d+ Feuerschaden \(3d6/.test(await letzteZeilen()), 'und würfelt 3W6 Feuerschaden');
+  // Rechtsklick auf „Wirken“: ohne Platz wirken (Rückmeldung).
+  const wirkenBH = `[...document.querySelectorAll('[data-zauberliste] li')].find((li) => /Brennende Hände/.test(li.innerText)).querySelector('[data-wirken]')`;
+  const wegVorher = await js(`document.querySelectorAll('.punkt--weg').length`);
+  await js(`(() => { const k = ${wirkenBH}; const r = k.getBoundingClientRect(); k.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 5, clientY: r.top + 5 })); return true; })()`);
+  await warte(150);
+  pruefe(await js(`Boolean(document.querySelector('[data-wirken-menue]'))`), 'Rechtsklick auf „Wirken“ öffnet ein Menü');
+  await js(`document.querySelector('[data-wirken-ohne-platz]').click(); true`);
+  await warte(200);
+  pruefe(
+    (await js(`document.querySelectorAll('.punkt--weg').length`)) === wegVorher && /ohne freien Platz/.test(await letzteZeilen()),
+    '„Ohne Platz wirken“ verbraucht keinen Platz'
+  );
+  // Mehr vorbereitet als erlaubt: kleiner Hinweis.
+  await js(tippe('[data-vorbereitet] input', '0'));
+  await js(`(() => { const li = [...document.querySelectorAll('[data-zauberliste] li')].find((x) => /Brennende Hände/.test(x.innerText)); const c = li.querySelector('input[type=checkbox]'); if (!c.checked) c.click(); return true; })()`);
+  await warte(200);
+  pruefe(await js(`document.querySelector('[data-vorbereitet]').dataset.zuviel === '1'`), 'zu viele vorbereitete Zauber zeigen einen Hinweis');
+  await js(tippe('[data-vorbereitet] input', ''));
   // Den verbrauchten Platz zurück, damit die Kompaktansicht unten bei null anfängt.
   await js(`document.querySelector('[data-rast="lang"]').click(); true`);
   await warte(300);
@@ -473,6 +525,14 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-wurf-fertigkeit="acrobatics"], [data-wurf-fertigkeit]').click(); true`);
   await warte(200);
   pruefe(/\(d20 \d+/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), `Klick auf eine Fertigkeit würfelt (${await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)})`);
+  pruefe(await js(`Boolean([...document.querySelectorAll('[data-wurf-zeile]')].pop()?.querySelector('[data-wurf-zahl]'))`), 'die gewürfelte Zahl ist hervorgehoben');
+  // Natürliche 20 und 1: Effekt wie im Würfel-Werkzeug (Rückmeldung).
+  await js(`window.__z = Math.random; Math.random = () => 0.99; document.querySelector('[data-wurf-fertigkeit]').click(); Math.random = window.__z; true`);
+  await warte(150);
+  pruefe(await js(`(() => { const z = [...document.querySelectorAll('[data-wurf-zeile]')].pop(); return z?.dataset.nat === '20' && Boolean(z.querySelector('.wurf-glitzer')); })()`), 'eine natürliche 20 glitzert');
+  await js(`window.__z = Math.random; Math.random = () => 0; document.querySelector('[data-wurf-fertigkeit]').click(); Math.random = window.__z; true`);
+  await warte(150);
+  pruefe(await js(`(() => { const z = [...document.querySelectorAll('[data-wurf-zeile]')].pop(); return z?.dataset.nat === '1' && Boolean(z.querySelector('.wurf-streifen')); })()`), 'eine natürliche 1 bekommt Streifen');
   await js(`document.querySelector('[data-wurf-attribut="cha"], [data-wurf-attribut]').click(); true`);
   await warte(200);
   pruefe(/Charisma|\(d20/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'Klick auf ein Attribut würfelt');
@@ -557,6 +617,14 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-wuerfeln="a-0"]').click(); true`);
   await warte(200);
   pruefe(/^⚔ Rapier: \d+ \(d20 \d+ \+6\)/.test(await js(`document.querySelector('[data-wurf-ergebnis]')?.textContent ?? ''`)), 'Wuerfeln zeigt Angriff und Schaden');
+  pruefe(/Rapier: \d+/.test(await js(`[...document.querySelectorAll('[data-wurf-text]')].pop()?.textContent ?? ''`)), 'der Angriff steht auch unten rechts');
+  // Drei Knöpfe (Rückmeldung): nur Angriff, nur Schaden.
+  await js(`document.querySelector('[data-wuerfeln-angriff="a-0"]').click(); true`);
+  await warte(150);
+  pruefe(!/Schaden/.test(await js(`document.querySelector('[data-wurf-ergebnis]')?.textContent ?? ''`)), 'nur Angriff: kein Schaden');
+  await js(`document.querySelector('[data-wuerfeln-schaden="a-0"]').click(); true`);
+  await warte(150);
+  pruefe(/^⚔ Rapier · Schaden \d+/.test(await js(`document.querySelector('[data-wurf-ergebnis]')?.textContent ?? ''`)), 'nur Schaden: kein d20');
   // Eine Waffe im Inventar: ausgeruestet wird sie zum Angriff.
   await js(`document.querySelector('[data-block="inventar"] [data-gegenstand-dazu]').click(); true`);
   await warte(200);
@@ -663,6 +731,10 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-quelle-reiter="magie"]').click(); true`);
   await js(tippe('[data-quelle-suche]', 'nimmervoll'));
   await warte(200);
+  // Auf den Namen klicken zeigt die Info (Rückmeldung).
+  await js(`document.querySelector('[data-quelle-info="bag-of-holding"]').click(); true`);
+  await warte(150);
+  pruefe((await js(`document.querySelector('[data-quelle-text="bag-of-holding"]')?.textContent ?? ''`)).length > 40, 'Quelle: ein Klick auf den Namen zeigt die Beschreibung');
   await js(`document.querySelector('[data-quelle-dazu="bag-of-holding"]').click(); true`);
   await warte(200);
   pruefe(/Nimmervoller Beutel/.test(await namen()), 'SRD-Magie: der Nimmervolle Beutel liegt dort');

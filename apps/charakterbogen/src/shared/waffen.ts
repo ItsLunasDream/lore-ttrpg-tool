@@ -23,10 +23,14 @@ export { WAFFEN, waffeNach, type Waffe };
 
 // --- Rechnen ----------------------------------------------------------------
 
-export type AngriffsAttribut = 'auto' | Extract<Attribut, 'sta' | 'ges'>;
+/**
+ * Jedes Attribut ist wählbar (Rückmeldung: Paktwaffe mit Charisma, Schillerndes
+ * Schwert u. Ä.); „auto“ rechnet nach SRD mit Stärke oder Geschicklichkeit.
+ */
+export type AngriffsAttribut = 'auto' | Attribut;
 
 /** Das Attribut, mit dem angegriffen wird. */
-export function attributFuer(w: Werte, waffe: Waffe, wahl: AngriffsAttribut = 'auto'): 'sta' | 'ges' {
+export function attributFuer(w: Werte, waffe: Waffe, wahl: AngriffsAttribut = 'auto'): Attribut {
   if (wahl !== 'auto') return wahl;
   if (waffe.fern) return 'ges';
   if (waffe.finesse) return w.attribute.ges > w.attribute.sta ? 'ges' : 'sta';
@@ -160,15 +164,19 @@ function teiles(teile: string[], text: string, minus: boolean): void {
   teile.push(teile.length === 0 ? (minus ? `-${text}` : text) : `${minus ? '-' : '+'} ${text}`);
 }
 
-/** Angriffswurf und Schaden. Ohne lesbaren Bonus zaehlt 0. */
-export function wuerfleAngriff(werte: Angriffswerte, rng: RandomSource = Math.random): Angriffswurf {
-  const d20 = Math.floor(rng() * 20) + 1;
+/** Was gewürfelt wird (Rückmeldung: drei Knöpfe). */
+export type Wurfart = 'beides' | 'angriff' | 'schaden';
+
+/** Angriffswurf und/oder Schaden. Ohne lesbaren Bonus zaehlt 0. */
+export function wuerfleAngriff(werte: Angriffswerte, rng: RandomSource = Math.random, art: Wurfart = 'beides'): Angriffswurf {
+  const mitAngriff = art === 'beides' || art === 'angriff';
+  const d20 = mitAngriff ? Math.floor(rng() * 20) + 1 : 0;
   const krit = d20 === 20;
-  const schaden = werte.schaden ? wuerfleAusdruck(werte.schaden, rng, krit) : null;
+  const schaden = art !== 'angriff' && werte.schaden ? wuerfleAusdruck(werte.schaden, rng, krit) : null;
   return {
     d20,
-    gesamt: d20 + (werte.bonus ?? 0),
-    krit,
+    gesamt: mitAngriff ? d20 + (werte.bonus ?? 0) : 0,
+    krit: d20 === 20,
     patzer: d20 === 1,
     schaden: schaden ? schaden.summe : null,
     schadenText: schaden ? schaden.text : ''
@@ -179,11 +187,13 @@ export function wuerfleAngriff(werte: Angriffswerte, rng: RandomSource = Math.ra
 export function wurfZeile(name: string, werte: Angriffswerte, wurf: Angriffswurf, sprache: 'de' | 'en'): string {
   const de = sprache === 'de';
   const vorzeichen = (n: number) => (n >= 0 ? `+${n}` : `−${Math.abs(n)}`);
+  const schaden =
+    wurf.schaden !== null ? `${de ? 'Schaden' : 'Damage'} ${wurf.schaden}${werte.art ? ` ${werte.art}` : ''} (${wurf.schadenText})` : '';
+  // Nur Schaden: kein d20 gewürfelt.
+  if (wurf.d20 === 0) return `⚔ ${name} · ${schaden || (de ? 'kein Schaden' : 'no damage')}`;
   const angriff = `${wurf.gesamt} (d20 ${wurf.d20}${werte.bonus ? ` ${vorzeichen(werte.bonus)}` : ''})`;
   const zusatz = wurf.krit ? (de ? ' · KRITISCH' : ' · CRITICAL') : wurf.patzer ? (de ? ' · Patzer' : ' · miss') : '';
-  const schaden =
-    wurf.schaden !== null ? ` · ${de ? 'Schaden' : 'Damage'} ${wurf.schaden}${werte.art ? ` ${werte.art}` : ''} (${wurf.schadenText})` : '';
-  return `⚔ ${name}: ${angriff}${zusatz}${schaden}`;
+  return `⚔ ${name}: ${angriff}${zusatz}${schaden ? ` · ${schaden}` : ''}`;
 }
 
 // --- Aus dem Inventar -------------------------------------------------------

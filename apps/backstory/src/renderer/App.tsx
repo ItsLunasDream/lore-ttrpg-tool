@@ -130,6 +130,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
   notesRef.current = notes;
   const savingRef = useRef(false);
   const activeCampaignIdRef = useRef<string | null>(null);
+  // Ein Sprung von außen, der auf das Laden seiner Kampagne wartet; `sprungKampagne`
+  // hält die Kampagne, falls der Sprung vor dem ersten Laden kam.
+  const wunschNotiz = useRef<{ kampagne: string; notiz: string } | null>(null);
+  const sprungKampagne = useRef<string | null>(null);
   activeCampaignIdRef.current = activeCampaignId;
   const entwuerfeRef = useRef<Map<string, Entwurf>>(new Map());
   entwuerfeRef.current = entwuerfe;
@@ -252,7 +256,12 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       const list = await call(api.campaigns.list());
       setCampaigns(list);
 
-      const preferred = list.find((campaign) => campaign.id === loaded.lastCampaignId) ?? list[0] ?? null;
+      // Kam schon ein Sprung von außen, gilt seine Kampagne.
+      const preferred =
+        list.find((campaign) => campaign.id === sprungKampagne.current) ??
+        list.find((campaign) => campaign.id === loaded.lastCampaignId) ??
+        list[0] ??
+        null;
       setActiveCampaignId(preferred?.id ?? null);
     });
   }, [guard]);
@@ -382,7 +391,10 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
     }
     void guard(async () => {
       const list = await reloadNotes(activeCampaignId);
-      setDraft(list[0] ?? null);
+      // Ein Sprung von außen (Suche, Charakterbogen) geht vor den ersten Eintrag.
+      const wunsch = wunschNotiz.current?.kampagne === activeCampaignId ? wunschNotiz.current.notiz : null;
+      wunschNotiz.current = null;
+      setDraft((wunsch ? list.find((note) => note.id === wunsch) : undefined) ?? list[0] ?? null);
       setDirty(false);
       setFilters(EMPTY_FILTERS);
       setUnreadable(await call(api.notes.unreadable(activeCampaignId)));
@@ -745,8 +757,14 @@ function Workspace({ onLanguageChange }: { onLanguageChange: (language: Language
       void guard(async () => {
         if (ziel.kampagne !== activeCampaignIdRef.current) {
           await sichereVorWechsel();
+          // Das Laden der Kampagne setzt sonst den ersten Eintrag und überschreibt
+          // den Sprung (Rückmeldung: „Notiz öffnen“ landete beim ersten Eintrag).
+          wunschNotiz.current = ziel;
+          sprungKampagne.current = ziel.kampagne;
+          // Eine Kampagne, die von außen dazukam, kennt die Liste noch nicht.
+          setCampaigns(await call(api.campaigns.list()));
           setActiveCampaignId(ziel.kampagne);
-          await reloadNotes(ziel.kampagne);
+          return;
         }
         openNote(ziel.notiz);
       });

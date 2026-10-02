@@ -13,7 +13,7 @@ import type { WebContents } from 'electron';
 import type { Eintrag as SuchEintrag } from '@suite/eintraege';
 import { kanal } from '../shared/kanaele';
 import type { Quelleintrag } from '../shared/quellen';
-import { alsKachel, alsMarkdown, storyBlock, storyText, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
+import { alsKachel, alsMarkdown, storyBlock, figurAus, freieKennung, klassenText, leseBogen, zuId, type Figur, type Kachel } from '../shared/ablage';
 import { bereinige, type Bogen } from '../shared/bogen';
 import { uebergib, teileGeld, type Uebergabe } from '../shared/uebergabe';
 import type { Sprache } from '../shared/regeln';
@@ -41,7 +41,7 @@ export interface BogenEmbedOptions {
     /** Eigene Waffen, Ruestungen und Gegenstaende aus dem Homebrew Creator (Quelleintraege). */
     homebrew?(sprache: 'de' | 'en'): Promise<Quelleintrag[]>;
     /** Eigene Zauber aus dem Homebrew Creator, fuer die Zauberliste. */
-    homebrewZauber?(sprache: 'de' | 'en'): Promise<{ id: string; name: string; grad: number; text: string }[]>;
+    homebrewZauber?(sprache: 'de' | 'en'): Promise<({ id: string } & import('../shared/zauber').EigenerZauber)[]>;
   };
   /** Notizen im Story Creator (ueber die Huelle). */
   readonly story?: {
@@ -304,12 +304,12 @@ export async function mountCharakterbogen(options: BogenEmbedOptions): Promise<B
   });
 
   /** Eine Notiz fuer diese Figur im Story Creator: die Lesefassung ohne Kopf und Datenblock. */
-  handle('story:anlegen', async (_e: never, roh: unknown, sync: unknown) => {
+  handle('story:anlegen', async (_e: never, roh: unknown) => {
     if (!options.story) return { ok: false, text: '' };
     const b = bereinige(roh, 'story');
     try {
-      // Mit Abgleich gleich im markierten Abschnitt, damit spaetere Stände ihn finden.
-      return await options.story.anlegen(b.name, sync === true ? storyBlock(b, sprache) + '\n' : storyText(b, sprache));
+      // Immer mit Markierungen: sonst hängt ein späterer Abgleich den Bogen ein zweites Mal an (Rückmeldung).
+      return await options.story.anlegen(b.name, storyBlock(b, sprache) + '\n');
     } catch (fehler) {
       return { ok: false, text: fehler instanceof Error ? fehler.message : String(fehler) };
     }

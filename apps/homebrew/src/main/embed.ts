@@ -21,7 +21,7 @@ import type { Eintrag, Magisch } from '../shared/modell';
 import { alsMarkdown as magieAlsMarkdown, freieKennung as freieMagieKennung, leseGegenstand, zuId as magieZuId } from '@suite/magie/ablage';
 import { alsGegenstand, ausGegenstand, istMagieKennung, magieId } from '../shared/magisch';
 import { inventarEintrag, type InventarEintrag } from '../shared/inventar';
-import { ART_NAME, kurzzeile, zauberEigenschaften, zauberText } from '../shared/texte';
+import { ART_NAME, SCHADENSART_NAME, kurzzeile, zauberEigenschaften, zauberText } from '../shared/texte';
 
 export const WERKZEUG = 'homebrew';
 export const ORDNER_NAME = 'eintraege';
@@ -162,8 +162,40 @@ export async function leseFuerInventar(datenordner: string, sprache: 'de' | 'en'
 }
 
 /** Eigene Zauber fuer die Zauberliste des Charakterbogens (ueber die Huelle). */
-export async function leseZauberFuerBogen(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<{ id: string; name: string; grad: number; text: string }[]> {
-  return (await leseAlle(datenordner)).flatMap((e) => (e.art === 'zauber' ? [{ id: e.id, name: e.name, grad: e.grad, text: zauberText(e, sprache) }] : []));
+/** Was der Charakterbogen von einem eigenen Zauber braucht (Liste, Wirken, Schaden). */
+export interface ZauberFuerBogen {
+  id: string;
+  name: string;
+  grad: number;
+  text: string;
+  zeit: string;
+  reichweite: string;
+  /** Würfelausdruck wie „8d6+2“, nur wenn der Zauber Schaden macht. */
+  schaden?: string;
+  schadensart?: string;
+  heilung?: string;
+}
+
+export async function leseZauberFuerBogen(datenordner: string, sprache: 'de' | 'en' = 'de'): Promise<ZauberFuerBogen[]> {
+  const ausdruck = (anzahl: number, seiten: number, plus: number) =>
+    anzahl > 0 ? `${anzahl}d${seiten}${plus ? `+${plus}` : ''}` : plus > 0 ? String(plus) : '';
+  return (await leseAlle(datenordner)).flatMap((e) => {
+    if (e.art !== 'zauber') return [];
+    const schaden = e.wirkungen.includes('schaden') ? ausdruck(e.schadenAnzahl, e.schadenSeiten, e.schadenPlus) : '';
+    const heilung = e.wirkungen.includes('heilung') ? ausdruck(e.heilAnzahl, e.heilSeiten, e.heilPlus) : '';
+    return [
+      {
+        id: e.id,
+        name: e.name,
+        grad: e.grad,
+        text: zauberText(e, sprache),
+        zeit: e.zeit,
+        reichweite: e.reichweite,
+        ...(schaden ? { schaden, schadensart: SCHADENSART_NAME[e.schadensart][sprache] } : {}),
+        ...(heilung ? { heilung } : {})
+      }
+    ];
+  });
 }
 
 /** Alle Eintraege fuer das Nachschlagewerk: Name, Kurzzeile und Text je Sprache. */

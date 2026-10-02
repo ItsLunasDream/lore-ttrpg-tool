@@ -53,7 +53,7 @@ export interface Angriff {
   /** SRD-Waffe (Kennung aus `shared/waffen.ts`): dann rechnet der Bogen. */
   waffe?: string;
   /** Womit angegriffen wird; „auto" nach den Regeln der Waffe. */
-  attribut?: 'auto' | 'sta' | 'ges';
+  attribut?: 'auto' | Attribut;
   /** Uebung mit der Waffe (Vorgabe: ja). */
   geuebt?: boolean;
   /** Magischer Bonus (+1 bis +3) auf Angriff und Schaden. */
@@ -278,29 +278,46 @@ export function fuelleRessourcen(liste: readonly Ressource[], rast: 'kurz' | 'la
  * liest man „−7" als „sieben weniger".
  */
 export function leseBetrag(text: string, rng: RandomSource = Math.random): number | null {
+  return leseBetragMitWurf(text, rng)?.betrag ?? null;
+}
+
+/**
+ * Wie `leseBetrag`, dazu was gewürfelt wurde (Rückmeldung: „3d8“ ins Feld,
+ * dann soll der Wurf unten rechts stehen). `wurf` ist leer, wenn kein Würfel
+ * im Ausdruck stand; sonst „3d8 [2, 7, 5] + 2“.
+ */
+export function leseBetragMitWurf(text: string, rng: RandomSource = Math.random): { betrag: number; wurf: string } | null {
   const roh = text.replace(/\s+/g, '').toLowerCase().replace(/w/g, 'd').replace(/−/g, '-');
   if (!roh) return null;
   const heilt = roh.startsWith('+');
   const rest = roh.replace(/^[+-]/, '');
   if (!/^(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(rest)) return null;
   let summe = 0;
+  let gewuerfelt = false;
+  const teile: string[] = [];
   for (const teil of rest.match(/[+-]?[^+-]+/g) ?? []) {
     const minus = teil.startsWith('-');
     const kern = teil.replace(/^[+-]/, '');
     let wert: number;
+    let stueck: string;
     if (kern.includes('d')) {
       const [anzahl, seiten] = kern.split('d');
       const n = Math.min(100, Number(anzahl || '1'));
       const s = Number(seiten);
       if (!(n > 0 && s > 1)) return null;
-      wert = rollExpression(`${n}d${s}`, rng).total;
+      const wuerfe = Array.from({ length: n }, () => rollExpression(`1d${s}`, rng).total);
+      wert = wuerfe.reduce((x, y) => x + y, 0);
+      stueck = `${n}d${s} [${wuerfe.join(', ')}]`;
+      gewuerfelt = true;
     } else {
       wert = Number(kern);
+      stueck = kern;
     }
     summe += minus ? -wert : wert;
+    teile.push(teile.length === 0 ? (minus ? `-${stueck}` : stueck) : `${minus ? '-' : '+'} ${stueck}`);
   }
   if (!Number.isFinite(summe) || summe <= 0) return null;
-  return heilt ? summe : -summe;
+  return { betrag: heilt ? summe : -summe, wurf: gewuerfelt ? teile.join(' ') : '' };
 }
 
 /**
@@ -503,7 +520,7 @@ export function bereinige(roh: unknown, id: string): Bogen {
           const a: Angriff = { name: text(xx.name, 80), bonus: text(xx.bonus, 20), schaden: text(xx.schaden, 60), notiz: text(xx.notiz, 200) };
           if (typeof xx.waffe === 'string' && /^[a-z0-9-]{1,40}$/.test(xx.waffe)) {
             a.waffe = xx.waffe;
-            a.attribut = xx.attribut === 'sta' || xx.attribut === 'ges' ? xx.attribut : 'auto';
+            a.attribut = (ATTRIBUTE as readonly unknown[]).includes(xx.attribut) ? (xx.attribut as Attribut) : 'auto';
             a.geuebt = xx.geuebt !== false;
             a.magie = zahl(xx.magie, 0, 0, 3);
             a.zweihaendig = xx.zweihaendig === true;

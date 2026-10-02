@@ -10,8 +10,9 @@ import { Segment } from './Bedienung';
 import { useWurf } from './Wurf';
 import { probe } from '../shared/proben';
 import { getLanguage, t } from './i18n';
-import type { Werte } from '../shared/bogen';
-import { ATTRIBUTE, ATTRIBUT_NAMEN, mitVorzeichen, zauberAngriff, zauberSg } from '../shared/regeln';
+import { gesamtstufe, type Werte } from '../shared/bogen';
+import { ATTRIBUTE, ATTRIBUT_NAMEN, mitVorzeichen, modifikator, zauberAngriff, zauberSg } from '../shared/regeln';
+import { wuerfleAusdruck } from '../shared/waffen';
 import {
   KLASSEN,
   NACH_ID,
@@ -27,6 +28,8 @@ import {
   verbrauche,
   vorbereiteteAnzahl,
   wirkZeile,
+  zauberWurf,
+  type EigenerZauber,
   type Zauberei,
   type ZauberEintrag
 } from '../shared/zauber';
@@ -44,6 +47,21 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
   const [suchen, setSuchen] = useState(false);
   const [offen, setOffen] = useState<number | null>(null);
   const { zeige } = useWurf();
+  // Rechtsklick auf „Wirken“: kleines Menü mit „ohne Platz wirken“.
+  const [menue, setMenue] = useState<{ idx: number; x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!menue) return;
+    const zu = () => setMenue(null);
+    const taste = (ev: KeyboardEvent) => ev.key === 'Escape' && zu();
+    window.addEventListener('click', zu);
+    window.addEventListener('keydown', taste);
+    window.addEventListener('scroll', zu, true);
+    return () => {
+      window.removeEventListener('click', zu);
+      window.removeEventListener('keydown', taste);
+      window.removeEventListener('scroll', zu, true);
+    };
+  }, [menue]);
 
   if (!z) {
     return (
@@ -76,11 +94,13 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
    * nicht oben im Bogen, wo man sie beim Zauberteil nicht sieht. Ohne freien
    * Platz wird gefragt; Angriffszauber würfeln den Zauberangriff gleich mit.
    */
-  const wirke = (e: ZauberEintrag) => {
+  const wirke = (e: ZauberEintrag, ohnePlatz = false) => {
     const grad = gradVon(e);
     const name = nameVon(e, sprache);
     let platz: number | null = 0;
-    if (grad > 0) {
+    // Rechtsklick „ohne Platz“ (Rückmeldung): kein Platz, keine Rückfrage.
+    if (grad > 0 && ohnePlatz) platz = null;
+    else if (grad > 0) {
       const frei = freierPlatz(z, grad);
       if (frei === null && !window.confirm(t('zauber.ohnePlatz', { name, grad }))) return;
       if (frei !== null) setZ((x) => verbrauche(x, frei));
@@ -88,8 +108,19 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
     }
     const rettung = rettungswuerfeVon(e);
     zeige(wirkZeile(name, platz, sprache, rettung.length ? { attribute: rettung, sg: zauberSg(wert, pb) } : undefined));
-    if (istAngriffszauber(e)) zeige(probe(`${name} · ${t('zauber.angriff')}`, zauberAngriff(wert, pb)).text);
+    if (istAngriffszauber(e)) {
+      const p = probe(`${name} · ${t('zauber.angriff')}`, zauberAngriff(wert, pb));
+      zeige(p.text, { d20: p.d20 });
+    }
+    // Schaden oder Heilung gleich mitwürfeln (Rückmeldung: Feuerball zeigte nur den SG).
+    const zw = zauberWurf(e, platz === null ? grad : platz, gesamtstufe(w), modifikator(wert), sprache);
+    const gewuerfelt = zw ? wuerfleAusdruck(zw.ausdruck) : null;
+    if (zw && gewuerfelt) {
+      const was = t(zw.art === 'schaden' ? 'tp.wurfSchaden' : 'tp.wurfHeilung');
+      zeige(`🎲 ${name} · ${was}: ${gewuerfelt.summe}${zw.bezeichnung ? ` ${zw.bezeichnung}` : ''} (${gewuerfelt.text})`);
+    }
   };
+
 
   return (
     <div className="zauber">
@@ -115,7 +146,12 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
         </div>
         <label className="feld feld--zahl" title={t('zauber.vorbereitetHinweis')}>
           <span className="feld__label">{t('zauber.vorbereitet')}</span>
-          <span className="vorbereitet" data-vorbereitet>
+          <span
+            className={z.maxVorbereitet !== null && vorbereitet > z.maxVorbereitet ? 'vorbereitet is-zuviel' : 'vorbereitet'}
+            data-vorbereitet
+            data-zuviel={z.maxVorbereitet !== null && vorbereitet > z.maxVorbereitet ? '1' : undefined}
+            title={z.maxVorbereitet !== null && vorbereitet > z.maxVorbereitet ? t('zauber.zuviel', { n: vorbereitet - z.maxVorbereitet }) : undefined}
+          >
             {vorbereitet} /{' '}
             <input
               aria-label={t('zauber.maxVorbereitet')}
@@ -207,11 +243,29 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
                   {srd?.konzentration ? <span className="marke" title={t('zauber.konzentration')}>K</span> : null}
                   {srd?.ritual ? <span className="marke" title={t('zauber.ritual')}>R</span> : null}
                   {e.immer ? <span className="marke" title={t('zauber.immer')}>★</span> : null}
+                  {/* Herkunft (z. B. „Homebrew“) links, rechts daneben Zeitaufwand und Reichweite wie bei SRD-Zaubern (Rückmeldung). */}
+                  {!srd && e.herkunft ? (
+                    <span className="marke marke--herkunft" data-herkunft>
+                      {e.herkunft}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="leise zauberzeile__info">
-                  {srd ? `${srd.eigenschaften[sprache].zeit} · ${srd.eigenschaften[sprache].reichweite}` : e.herkunft}
+                  {srd
+                    ? `${srd.eigenschaften[sprache].zeit} · ${srd.eigenschaften[sprache].reichweite}`
+                    : [e.eigen?.zeit, e.eigen?.reichweite].filter(Boolean).join(' · ')}
                 </span>
-                <button type="button" className="knopf--klein" data-wirken onClick={() => wirke(e)}>
+                <button
+                  type="button"
+                  className="knopf--klein"
+                  data-wirken
+                  title={t('zauber.wirkenTitel')}
+                  onClick={() => wirke(e)}
+                  onContextMenu={(ev) => {
+                    ev.preventDefault();
+                    setMenue({ idx, x: ev.clientX, y: ev.clientY });
+                  }}
+                >
                   {t('zauber.wirken')}
                 </button>
               </div>
@@ -340,22 +394,48 @@ export function ZauberBlock({ w, pb, aendere }: Props) {
           klassen={klassenAusNamen(w.klassen.map((k) => k.name))}
           dazu={(id) => setZ((x) => ({ ...x, liste: [...x.liste, { srd: id, vorbereitet: false, immer: false, herkunft: '' }] }))}
           dazuEigen={(h) =>
-            setZ((x) => ({ ...x, liste: [...x.liste, { eigen: { name: h.name, grad: h.grad, text: h.text }, vorbereitet: false, immer: false, herkunft: 'Homebrew' }] }))
+            setZ((x) => {
+              const { id: _id, ...eigen } = h;
+              return { ...x, liste: [...x.liste, { eigen, vorbereitet: false, immer: false, herkunft: 'Homebrew' }] };
+            })
           }
           schliessen={() => setSuchen(false)}
         />
+      ) : null}
+
+      {menue && z.liste[menue.idx] ? (
+        <div className="kontextmenue" role="menu" data-wirken-menue style={{ left: menue.x, top: menue.y }} onClick={(ev) => ev.stopPropagation()}>
+          <button
+            type="button"
+            role="menuitem"
+            data-wirken-ohne-platz
+            onClick={() => {
+              const e = z.liste[menue.idx];
+              setMenue(null);
+              wirke(e, true);
+            }}
+          >
+            {t('zauber.ohnePlatzWirken')}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const e = z.liste[menue.idx];
+              setMenue(null);
+              wirke(e);
+            }}
+          >
+            {t('zauber.wirken')}
+          </button>
+        </div>
       ) : null}
     </div>
   );
 }
 
 /** Ein eigener Zauber aus dem Homebrew Creator, wie die Huelle ihn liefert. */
-interface HomebrewZauber {
-  id: string;
-  name: string;
-  grad: number;
-  text: string;
-}
+type HomebrewZauber = { id: string } & EigenerZauber;
 
 function ZauberSuche({
   vorhanden,

@@ -346,9 +346,15 @@ textarea {
 
 .angriff__zeile {
   display: grid;
-  grid-template-columns: 2fr 1.6fr 64px 1.4fr 36px 34px;
+  grid-template-columns: 2fr 1.6fr 64px 1.4fr auto 34px;
   gap: 6px;
   align-items: center;
+}
+
+/* Drei Würfelknöpfe: beides, nur Angriff, nur Schaden (Rückmeldung). */
+.angriff__wuerfe {
+  display: inline-flex;
+  gap: 3px;
 }
 
 .angriff__wert {
@@ -763,6 +769,43 @@ textarea {
 
 .quellen__zahlen {
   font-size: 0.85em;
+}
+
+.quellen__liste li {
+  flex-wrap: wrap;
+}
+
+.quellen__name {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quellen__name:hover strong {
+  color: var(--betont);
+}
+
+/* Aufgeklappte Iteminfo über die ganze Zeile (Rückmeldung). */
+.quellen__info {
+  flex-basis: 100%;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.quellen__info p {
+  margin: 4px 0 0;
+}
+
+.quellen__bild {
+  float: right;
+  max-width: 96px;
+  max-height: 96px;
+  margin: 0 0 6px 10px;
+  border-radius: 6px;
 }
 
 .quellen__wurf {
@@ -2300,6 +2343,131 @@ button.wuerfelbar:hover:not(:disabled) {
   animation: wurf-raus 0.6s ease-in forwards;
 }
 
+/* Die Zahl, auf die es ankommt (Rückmeldung). */
+.wurfanzeige__zahl {
+  font-size: 1.45em;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--betont);
+  margin: 0 1px;
+}
+
+/*
+ * Natürliche 20 und 1 wie im Würfel-Werkzeug (apps/dice): goldener Schein mit
+ * Funken, violetter Schleier mit fallenden Streifen. Nur bei echten d20.
+ */
+.wurfanzeige__zeile {
+  position: relative;
+}
+
+.wurfanzeige__zeile.ist-nat20 {
+  border-color: #ffb02e;
+  box-shadow: 0 0 0 2px #ffd76a88, 0 0 18px #ffb02e88, 0 12px 28px rgb(0 0 0 / 0.35);
+}
+
+.wurfanzeige__zeile.ist-nat20 .wurfanzeige__zahl {
+  color: #e8a516;
+  text-shadow: 0 0 8px #ffd76a;
+}
+
+.wurfanzeige__zeile.ist-nat1 {
+  border-color: #8b5cf6;
+  background-image: radial-gradient(ellipse 70% 90% at 50% 20%, #6d28d933 0%, transparent 75%);
+}
+
+.wurfanzeige__zeile.ist-nat1 .wurfanzeige__zahl {
+  color: #8b5cf6;
+}
+
+.wurf-glitzer,
+.wurf-streifen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.wurf-glitzer__funke {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background:
+    linear-gradient(to bottom, transparent 44%, #fff6c9 50%, transparent 56%),
+    linear-gradient(to right, transparent 44%, #fff6c9 50%, transparent 56%);
+  filter: drop-shadow(0 0 3px #ffd76a);
+  animation: wurf-funke 1100ms var(--motion-ease-standard, ease) infinite;
+}
+
+@keyframes wurf-funke {
+  0%,
+  100% {
+    transform: scale(0.55) rotate(0deg);
+    opacity: 0.65;
+  }
+  45% {
+    transform: scale(1.15) rotate(60deg);
+    opacity: 1;
+  }
+}
+
+.wurf-streifen__linie {
+  position: absolute;
+  top: -12%;
+  width: 4px;
+  height: 76%;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(to bottom, #8b5cf6 0%, #a855f7 55%, #a855f700 100%);
+  animation: wurf-streifen 1600ms linear infinite;
+}
+
+.wurf-streifen__linie:nth-child(1) {
+  left: 18%;
+}
+
+.wurf-streifen__linie:nth-child(2) {
+  left: 40%;
+  height: 60%;
+  animation-delay: 400ms;
+}
+
+.wurf-streifen__linie:nth-child(3) {
+  left: 62%;
+  animation-delay: 800ms;
+}
+
+.wurf-streifen__linie:nth-child(4) {
+  left: 82%;
+  height: 66%;
+  animation-delay: 1200ms;
+}
+
+@keyframes wurf-streifen {
+  0% {
+    transform: translateY(-40%);
+    opacity: 0;
+  }
+  20%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(80%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wurf-glitzer__funke {
+    animation: none;
+    transform: scale(1) rotate(45deg);
+  }
+
+  .wurf-streifen__linie {
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
 .wurfanzeige__hinweis {
   font-size: 13px;
   font-weight: 400;
@@ -2478,4 +2646,48 @@ button.wuerfelbar:hover:not(:disabled) {
 .klassenhinweise__quelle {
   margin: 4px 0 0;
   font-size: 12px;
+}
+
+/* Rechtsklick auf „Wirken“: kleines Menü (Rückmeldung). */
+.kontextmenue {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  min-width: 170px;
+  padding: 4px;
+  background: var(--grund-hoch);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.35);
+  animation: motion-erscheinen var(--motion-state, 120ms) var(--motion-ease-enter, ease-out);
+}
+
+.kontextmenue button {
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.kontextmenue button:hover,
+.kontextmenue button:focus-visible {
+  background: var(--betont-leise);
+}
+
+/* Mehr Zauber vorbereitet als erlaubt (Rückmeldung). */
+.vorbereitet.is-zuviel {
+  color: var(--gefahr);
+  font-weight: 700;
+}
+
+.vorbereitet.is-zuviel::after {
+  content: ' ⚠';
+}
+
+/* Herkunft eines eigenen Zaubers als Marke, links neben Zeitaufwand und Reichweite. */
+.marke--herkunft {
+  width: auto;
+  padding: 0 6px;
+  font-size: 11px;
 }
