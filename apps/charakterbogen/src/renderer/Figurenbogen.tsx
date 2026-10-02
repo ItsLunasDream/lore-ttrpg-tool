@@ -669,8 +669,9 @@ function Todesrettung({ w, aendere, name }: { w: Werte; aendere: FigurProps['aen
           type="button"
           className="knopf--klein todesrettung__wurf"
           data-todesrettung-wuerfeln
-          title={t('todesrettung.titel')}
-          disabled={istTot(w)}
+          // Nur bei 0 TP (SRD); mit TP gehen die Würfe ohnehin auf null.
+          title={w.tp.aktuell > 0 ? t('todesrettung.erstBei0') : t('todesrettung.titel')}
+          disabled={istTot(w) || w.tp.aktuell > 0}
           onClick={() => {
             // Gewürfelt wird gegen den aktuellen Stand; die Zeile entsteht mit.
             let zeile = '';

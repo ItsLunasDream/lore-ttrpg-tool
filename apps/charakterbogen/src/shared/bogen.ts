@@ -532,5 +532,17 @@ export function bereinige(roh: unknown, id: string): Bogen {
       : []
   };
   if (bogen.werte.klassen.length === 0) bogen.werte.klassen = leer.klassen;
+  bogen.werte = mitTodesrettung(bogen.werte);
   return bogen;
+}
+
+/**
+ * SRD 5.2.1 (Death Saving Throws): Erfolge und Fehlschläge gehen auf null,
+ * sobald man wieder Trefferpunkte hat. Gilt für jeden Weg zu den TP (Feld,
+ * Heilung, Initiative Tracker, Laden), deshalb als feste Regel hier
+ * (Rückmeldung: das Ausgrauen blieb nach dem Heilen stehen).
+ */
+export function mitTodesrettung(w: Werte): Werte {
+  if (w.tp.aktuell <= 0 || (w.todesrettung.erfolge === 0 && w.todesrettung.fehlschlaege === 0)) return w;
+  return { ...w, todesrettung: { erfolge: 0, fehlschlaege: 0 } };
 }

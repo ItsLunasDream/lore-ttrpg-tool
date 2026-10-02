@@ -464,6 +464,9 @@ app.whenReady().then(async () => {
 
   // Todesrettung: würfeln und eintragen, bei drei Fehlschlägen „tot".
   if (await js(`Boolean(document.querySelector('[data-todesrettung-wuerfeln]'))`)) {
+    pruefe(await js(`document.querySelector('[data-todesrettung-wuerfeln]').disabled`), 'mit TP gibt es keinen Todesrettungswurf');
+    await js(tippe('[data-feld="tp-aktuell"]', '0'));
+    await warte(300);
     await js(`window.__zufall = Math.random; Math.random = () => 0.2; true`);
     for (let n = 0; n < 3; n++) {
       await js(`document.querySelector('[data-todesrettung-wuerfeln]').click(); true`);
@@ -477,7 +480,15 @@ app.whenReady().then(async () => {
     pruefe(await bis(async () => js(`Boolean(document.querySelector('[data-kachel-tot]'))`), 4000), 'in der Liste steht „Tot" neben den TP');
     await js(`document.querySelector('.kachel[data-bogen]').click(); true`);
     await bis(async () => js(`Boolean(document.querySelector('[data-todesrettung-fehlschlaege]'))`), 4000);
-    await js(`Math.random = window.__zufall; (() => { const p = document.querySelectorAll('[data-todesrettung-fehlschlaege] [data-wert]'); p[0]?.click(); p[0]?.click(); return true; })()`);
+    // SRD: wer wieder TP hat, verliert Erfolge und Fehlschläge; das Grau geht weg.
+    await js(tippe('[data-feld="tp-aktuell"]', '5'));
+    await warte(300);
+    pruefe(!(await js(`Boolean(document.querySelector('.blatt--tot'))`)) && !(await js(`Boolean(document.querySelector('[data-tot]'))`)), 'mit TP ist die Figur nicht mehr tot');
+    await js(tippe('[data-feld="tp-aktuell"]', '0'));
+    await warte(300);
+    pruefe(!(await js(`Boolean(document.querySelector('.blatt--tot'))`)), 'und die Fehlschläge sind auf null, auch zurück bei 0 TP');
+    await js(`Math.random = window.__zufall; true`);
+    await js(tippe('[data-feld="tp-aktuell"]', '30'));
     await warte(200);
   } else pruefe(false, 'der Knopf für den Todesrettungswurf ist da');
 

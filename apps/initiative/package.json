@@ -23,11 +23,12 @@
   },
   "dependencies": {
     "@suite/dice": "*",
-    "@suite/motion": "*",
-    "@suite/tastatur": "*",
     "@suite/eintraege": "*",
+    "@suite/motion": "*",
+    "@suite/srd": "*",
+    "@suite/tastatur": "*",
     "@suite/uebergabe": "*",
-    "@suite/srd": "*"
+    "@suite/zahlfeld": "*"
   },
   "author": {
     "name": "ItsLunasDream"

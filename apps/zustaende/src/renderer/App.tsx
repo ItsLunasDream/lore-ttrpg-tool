@@ -9,7 +9,8 @@
  * Die Waage steht direkt unter dem Blatt und nicht in einer Ecke: sie ist
  * der Teil, der beim Bauen tatsaechlich hilft.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsLeib, freieKennung, zuId } from '../shared/ablage';
@@ -53,6 +54,8 @@ const wuerfel = () => Math.random();
 type Reiter = 'bauen' | 'paket' | 'sammlung';
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [sprache, setSpracheState] = useState<Language>(DEFAULT_LANGUAGE);
   const [reiter, setReiter] = useState<Reiter>('bauen');
   const [artId, setArtId] = useState('');
@@ -630,7 +633,7 @@ export function App() {
               </section>
 
               <section className="abgang">
-                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichern()}>
+                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => einzeln(speichertGerade, speichern)}>
                   {t('knopf.speichern')}
                 </button>
                 {offenId && (
@@ -726,7 +729,7 @@ export function App() {
               </div>
 
               <section className="abgang">
-                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speicherePaket()}>
+                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => einzeln(speichertGerade, speicherePaket)}>
                   {t('paket.alleSpeichern')}
                 </button>
                 <button type="button" className="knopf" onClick={() => setKarte(paket.zustaende)}>

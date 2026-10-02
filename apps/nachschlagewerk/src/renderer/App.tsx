@@ -6,6 +6,7 @@
  * ohne sie neu aufzubauen, und die Suche soll stehen bleiben.
  */
 import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { NAMENSNENNUNG, type Sprache } from '@suite/srd';
 import { api } from './api';
@@ -97,6 +98,8 @@ function zweitName(regel: Regel, spr: Sprache): string | null {
 }
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [, neuZeichnen] = useState(0);
   const [suche, setSuche] = useState('');
   const [offenId, setOffenId] = useState<string | null>(null);
@@ -398,7 +401,7 @@ export function App() {
               neu={bearbeitung.neu}
               regeln={regeln}
               fehler={fehler}
-              speichern={(regel) => void speichereHausregel(regel, bearbeitung.neu)}
+              speichern={(regel) => einzeln(speichertGerade, () => speichereHausregel(regel, bearbeitung.neu))}
               abbrechen={() => {
                 setBearbeitung(null);
                 setFehler('');

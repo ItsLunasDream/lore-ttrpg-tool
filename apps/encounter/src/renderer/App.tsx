@@ -7,7 +7,9 @@
  *
  * Siehe `docs/encounter.md`.
  */
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { einzeln } from '@suite/tastatur';
+import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { api } from './api';
 import { getLanguage, setLanguage, t } from './i18n';
@@ -48,6 +50,8 @@ function sprache(): Sprache {
 }
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [, neuZeichnen] = useState(0);
   const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
   /** Die Gruppe am Tisch. Gilt fuer das ganze Werkzeug, eingestellt wird sie hier. */
@@ -318,7 +322,7 @@ export function App() {
             type="button"
             className="knopf knopf--haupt"
             data-speichern
-            onClick={() => void speichereOffen()}
+            onClick={() => einzeln(speichertGerade, speichereOffen)}
           >
             {t('speichern')}
           </button>
@@ -360,15 +364,13 @@ export function App() {
                     className={gibtEs ? 'gegnerzeile' : 'gegnerzeile gegnerzeile--fehlt'}
                     data-monster={einer.monsterId}
                   >
-                    <input
+                    <ZahlFeld
                       className="gegnerzeile__anzahl"
-                      type="number"
                       min={1}
                       max={99}
-                      value={einer.anzahl}
+                      wert={einer.anzahl}
                       aria-label={einer.name}
-                      onChange={(e) => {
-                        const anzahl = Math.max(1, Math.min(99, Number(e.target.value) || 1));
+                      aendern={(anzahl) => {
                         setOffen({
                           ...offen,
                           gegner: offen.gegner.map((g) =>
@@ -784,37 +786,29 @@ function Gruppenfeld({
   readonly gruppe: Gruppe;
   readonly setze: (neu: Gruppe) => void;
 }) {
-  const begrenze = (wert: string, max: number) =>
-    Math.max(1, Math.min(max, Math.round(Number(wert)) || 1));
   return (
     <div className="gruppenfeld">
       {gruppe.length === 0 ? <p className="hinweis">{t('gruppe.leer')}</p> : null}
       {gruppe.map((zeile, i) => (
         <div className="gruppenfeld__zeile" key={i} data-gruppenzeile={i}>
-          <input
+          <ZahlFeld
             className="gruppenfeld__zahl"
-            type="number"
             min={1}
             max={20}
-            value={zeile.anzahl}
+            wert={zeile.anzahl}
             aria-label={t('gruppe.figuren')}
-            onChange={(e) =>
-              setze(gruppe.map((z, j) => (j === i ? { ...z, anzahl: begrenze(e.target.value, 20) } : z)))
-            }
+            aendern={(anzahl) => setze(gruppe.map((z, j) => (j === i ? { ...z, anzahl } : z)))}
           />
           <span>{t('gruppe.figuren')}</span>
           <span className="gruppenfeld__mal">·</span>
           <span>{t('gruppe.stufe')}</span>
-          <input
+          <ZahlFeld
             className="gruppenfeld__zahl"
-            type="number"
             min={1}
             max={20}
-            value={zeile.stufe}
+            wert={zeile.stufe}
             aria-label={t('gruppe.stufe')}
-            onChange={(e) =>
-              setze(gruppe.map((z, j) => (j === i ? { ...z, stufe: begrenze(e.target.value, 20) } : z)))
-            }
+            aendern={(stufe) => setze(gruppe.map((z, j) => (j === i ? { ...z, stufe } : z)))}
           />
           <button
             type="button"

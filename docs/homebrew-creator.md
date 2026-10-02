@@ -156,7 +156,13 @@ und im Nachschlagewerk.
   und Meisterschaften (eigene Kurzfassungen, kein SRD-Zitat).
 - **Abschnitte zuklappbar** in allen Arten.
 - **Strg+S** speichert, in allen Werkzeugen mit Speichern-Knopf
-  (`packages/tastatur`).
+  (`packages/tastatur`); der Knopf pulsiert dabei kurz, auch beim Klick.
+- **Nah/Fern** steht nur unter „Reichweite“, nicht mehr doppelt unter
+  „Grundlagen“.
+- **Zahlenfelder** prüfen Minimum und Maximum erst beim Verlassen oder mit
+  Enter (`packages/zahlfeld`); „10“ lässt sich bei Minimum 5 tippen. Dasselbe
+  Feld nutzen Encounter Builder, Initiative Tracker, Monster-Bearbeitung und
+  die Anzahl im Inventar des Charakterbogens.
 - **Magischer Gegenstand = eine Sammlung mit dem Generator.** Er liegt in
   der Ablage des Magic Item Generators (`magicitems/gegenstaende`, Format aus
   `@suite/magie/ablage`, jetzt mit Bild und Gewicht). Das Formular für Art,

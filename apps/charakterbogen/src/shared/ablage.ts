@@ -84,7 +84,7 @@ export function alsKachel(b: Bogen): Kachel {
     art: b.art,
     kurz: [klassenText(b), w?.spezies.trim() ?? ''].filter(Boolean).join(' · '),
     tp: w ? `${w.tp.aktuell}/${w.tp.max}${w.tp.temp ? ` (+${w.tp.temp})` : ''}` : '',
-    ...(w && w.todesrettung.fehlschlaege >= 3 ? { tot: true } : {}),
+    ...(w && w.todesrettung.fehlschlaege >= 3 && w.tp.aktuell <= 0 ? { tot: true } : {}),
     geaendert: b.geaendert
   };
 }

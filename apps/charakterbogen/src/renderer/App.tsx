@@ -22,7 +22,7 @@ import { LiveLeiste, LiveListe, SlHinweis, SlMarke, SlMarkenKontext, markenAus }
 import { alsKachel, figurAus, type Kachel } from '../shared/ablage';
 import { schritteAus, type Anfrage, type Schritt } from '../shared/live';
 import type { LiveZustand } from '../main/live';
-import { neuerBogen, type Bogen, type Werte } from '../shared/bogen';
+import { mitTodesrettung, neuerBogen, type Bogen, type Werte } from '../shared/bogen';
 import { designVariablen, designVon } from '../shared/design';
 
 /** Wartezeit bis zum Speichern nach der letzten Aenderung. */
@@ -174,7 +174,7 @@ export function App() {
   );
 
   const aendereWerte = useCallback(
-    (wie: (w: Werte) => Werte, schritt?: Schritt) => aendere((b) => (b.werte ? { ...b, werte: wie(b.werte) } : b), schritt),
+    (wie: (w: Werte) => Werte, schritt?: Schritt) => aendere((b) => (b.werte ? { ...b, werte: mitTodesrettung(wie(b.werte)) } : b), schritt),
     [aendere]
   );
 
@@ -312,7 +312,7 @@ export function App() {
       api.beiExtern((b) => {
         const jetzt = offenRef.current;
         if (jetzt && jetzt.id === b.id && schmutzig.current && jetzt.werte && b.werte) {
-          offenRef.current = { ...jetzt, werte: { ...jetzt.werte, tp: b.werte.tp } };
+          offenRef.current = { ...jetzt, werte: mitTodesrettung({ ...jetzt.werte, tp: b.werte.tp }) };
           setOffen(offenRef.current);
           return;
         }

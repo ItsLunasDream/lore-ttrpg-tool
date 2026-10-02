@@ -453,6 +453,9 @@ Gebaut auf Wunsch nach Schritt 7:
   höchstens sechs.
 - **Tote Figur** (drei fehlgeschlagene Todesrettungswürfe): Der Bogen ist
   ausgegraut, bleibt aber bedienbar; in der Liste steht „☠ Tot“ neben den TP.
+  Sobald die Figur wieder TP hat, gehen Erfolge und Fehlschläge auf null
+  (SRD 5.2.1, Death Saving Throws), egal ob über das Feld, eine Heilung, den
+  Initiative Tracker oder beim Laden (`mitTodesrettung` in `shared/bogen.ts`).
 - **Neue Bögen** haben die Gemeinsprache unter Sprachen.
 - **Eigene Zustände:** Die Zustände aus dem Status Effect Creator stehen in
   der Suchwahl unter „Eigene“ und tragen ihren Text als Hinweis; im Bogen

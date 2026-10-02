@@ -80,5 +80,7 @@ test('Neuer Bogen: Gemeinsprache vorbelegt; tote Figur in der Kachel', () => {
   const b = B.neuerBogen('a', 'A');
   assert.equal(B.alsKachel(b).tot, undefined);
   b.werte.todesrettung = { erfolge: 0, fehlschlaege: 3 };
+  assert.equal(B.alsKachel(b).tot, undefined, 'mit TP lebt die Figur');
+  b.werte.tp.aktuell = 0;
   assert.equal(B.alsKachel(b).tot, true);
 });

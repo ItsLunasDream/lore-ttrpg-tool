@@ -148,6 +148,7 @@ const TEXTE = {
   'wurf.klick': ['Klicken würfelt: {name}', 'Click to roll: {name}'],
   'todesrettung.wuerfeln': ['Würfeln', 'Roll'],
   'todesrettung.titel': ['Todesrettungswurf würfeln und eintragen', 'Roll and record a death save'],
+  'todesrettung.erstBei0': ['Todesrettungswürfe gibt es erst bei 0 TP', 'Death saves only happen at 0 HP'],
   'tot': ['Tot', 'Dead'],
   'tot.hinweis': ['Drei fehlgeschlagene Todesrettungswürfe.', 'Three failed death saves.'],
 

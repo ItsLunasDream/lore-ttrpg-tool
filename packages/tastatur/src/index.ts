@@ -11,7 +11,8 @@
  *   das Ende. Tab springt wie gewohnt in die nächste Gruppe. Ein einziger
  *   Hörer am Dokument (`installierePfeile`) genügt; neue Listen brauchen nur
  *   das Attribut.
- * - **Strg+S** klickt den Knopf mit `data-speichern`, wo es einen gibt.
+ * - **Strg+S** klickt den Knopf mit `data-speichern`, wo es einen gibt; der
+ *   Knopf pulsiert dabei kurz (auch beim Klick mit der Maus).
  * - **Klickflächen, die keine Knöpfe sind** (`alsKnopf`): erreichbar mit
  *   Tab, ausgelöst mit Enter oder Leertaste.
  *
@@ -163,8 +164,48 @@ export function installierePfeile(dokument: Document = document): () => void {
     pfeilInGruppe(ereignis, dokument);
     speichernPerTaste(ereignis, dokument);
   };
+  const klick = (ereignis: MouseEvent) => zeigeSpeichern(ereignis.target, dokument);
   dokument.addEventListener('keydown', hoerer);
-  return () => dokument.removeEventListener('keydown', hoerer);
+  dokument.addEventListener('click', klick, true);
+  return () => {
+    dokument.removeEventListener('keydown', hoerer);
+    dokument.removeEventListener('click', klick, true);
+  };
+}
+
+/** Klasse, die der Speichern-Knopf für die Dauer der Animation trägt. */
+export const SPEICHERN_KLASSE = 'suite-gespeichert';
+
+const STIL = `
+[data-speichern].${SPEICHERN_KLASSE} { animation: suite-speichern 0.7s ease-out; }
+@keyframes suite-speichern {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  30% { transform: scale(1.08); }
+  100% { transform: scale(1); box-shadow: 0 0 0 12px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-speichern].${SPEICHERN_KLASSE} { animation-duration: 0.01s; }
+}`;
+
+/**
+ * Rückmeldung: Beim Speichern (Klick oder Strg+S) pulsiert der Knopf kurz.
+ * Gilt für jeden `[data-speichern]` in jedem Werkzeug; der Stil kommt einmal
+ * je Dokument dazu, damit kein Werkzeug eigenes CSS braucht.
+ */
+function zeigeSpeichern(ziel: EventTarget | null, dokument: Document): void {
+  const el = ziel && 'closest' in (ziel as Element) ? (ziel as Element).closest('[data-speichern]') : null;
+  if (!el || (el as HTMLButtonElement).disabled) return;
+  if (!dokument.getElementById('suite-speichern-stil')) {
+    const stil = dokument.createElement('style');
+    stil.id = 'suite-speichern-stil';
+    stil.textContent = STIL;
+    dokument.head.appendChild(stil);
+  }
+  el.classList.remove(SPEICHERN_KLASSE);
+  // Neu anstoßen, auch bei schnellem zweitem Speichern.
+  void (el as HTMLElement).offsetWidth;
+  el.classList.add(SPEICHERN_KLASSE);
+  el.addEventListener('animationend', () => el.classList.remove(SPEICHERN_KLASSE), { once: true });
 }
 
 /** Strg+S (macOS: Cmd+S), ohne Umschalt: „Speichern unter" bleibt dem Werkzeug. */
@@ -186,6 +227,23 @@ function speichernPerTaste(ereignis: KeyboardEvent, dokument: Document): void {
   if (!knopf) return;
   ereignis.preventDefault();
   knopf.click();
+}
+
+/**
+ * Lässt eine (asynchrone) Aktion nicht doppelt laufen. Rückmeldung: Strg+S
+ * und ein Klick kurz hintereinander legten einen neuen Eintrag zweimal an,
+ * weil der zweite Aufruf noch „neu" sah. Die Sperre ist ein Ref des
+ * Werkzeugs (`useRef(false)`).
+ */
+export function einzeln(sperre: { current: boolean }, aktion: () => unknown): void {
+  if (sperre.current) return;
+  sperre.current = true;
+  void Promise.resolve()
+    .then(aktion)
+    .catch((fehler: unknown) => console.error(fehler))
+    .finally(() => {
+      sperre.current = false;
+    });
 }
 
 /** Enter oder Leertaste: die Tasten, die einen Knopf auslösen. */

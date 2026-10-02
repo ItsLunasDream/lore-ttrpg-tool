@@ -32,6 +32,7 @@
     "@suite/magie": "*",
     "@suite/motion": "*",
     "@suite/srd": "*",
-    "@suite/tastatur": "*"
+    "@suite/tastatur": "*",
+    "@suite/zahlfeld": "*"
   }
 }

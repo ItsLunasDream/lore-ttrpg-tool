@@ -8,6 +8,7 @@
  * jederzeit vorkommt.
  */
 import { useState, type ReactNode } from 'react';
+import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { Kontextmenue, type MenueEintrag } from './Kontextmenue';
 import { t } from './i18n';
 import { regelZu, useZustandsliste } from './zustandsliste';
@@ -407,13 +408,12 @@ function Ausklapp({
           />
         </Feld>
         <Feld label={t('feld.anzahl')}>
-          <input
-            type="number"
+          <ZahlFeld
             className="schmal"
             min={1}
             max={99}
-            value={teilnehmer.koerper.length}
-            onChange={(e) => onGruppe(Number.parseInt(e.target.value, 10) || 1)}
+            wert={teilnehmer.koerper.length}
+            aendern={onGruppe}
           />
         </Feld>
         <Feld label={t('feld.tempHp')}>

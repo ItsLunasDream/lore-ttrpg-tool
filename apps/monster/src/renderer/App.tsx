@@ -7,7 +7,8 @@
  * Das ist Absicht: die Pruefung ist der Kern des Werkzeugs, und sie soll
  * nicht wie ein Anhaengsel wirken, das man im Bauen-Reiter uebersieht.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import type { Eintrag } from '../shared/ablage';
 import { alsLeib, freieKennung, zuId } from '../shared/ablage';
@@ -31,6 +32,8 @@ const wuerfel = () => Math.random();
 type Reiter = 'bauen' | 'sammlung' | 'pruefen';
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [sprache, setSpracheState] = useState<Language>(DEFAULT_LANGUAGE);
   const [reiter, setReiter] = useState<Reiter>('bauen');
   /*
@@ -492,7 +495,7 @@ export function App() {
               </section>
 
               <section className="abgang">
-                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichern()}>
+                <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => einzeln(speichertGerade, speichern)}>
                   {t('knopf.speichern')}
                 </button>
                 {offenId && (

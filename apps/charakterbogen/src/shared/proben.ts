@@ -32,8 +32,9 @@ export function probe(name: string, bonus: number, rng: Zufall = Math.random): P
 
 export type Todesausgang = 'erfolg' | 'fehlschlag' | 'doppelt' | 'aufgestanden' | 'stabil' | 'tot';
 
-export function istTot(w: Pick<Werte, 'todesrettung'>): boolean {
-  return w.todesrettung.fehlschlaege >= 3;
+/** Drei Fehlschläge bei 0 TP; wer wieder TP hat, lebt (Fehlschläge gehen dann auf null). */
+export function istTot(w: Pick<Werte, 'todesrettung' | 'tp'>): boolean {
+  return w.todesrettung.fehlschlaege >= 3 && w.tp.aktuell <= 0;
 }
 
 /** Ein Todesrettungswurf; liefert den neuen Stand, was passiert ist und die Chatzeile. */

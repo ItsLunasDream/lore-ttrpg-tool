@@ -1,0 +1,20 @@
+{
+  "name": "@suite/zahlfeld",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "description": "Zahlenfeld, das erst nach der Eingabe auf Minimum und Maximum prüft (Rückmeldung: „10“ ließ sich nicht tippen) — geteilt von allen Werkzeugen",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./feld": "./src/ZahlFeld.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -8,7 +8,8 @@
  *
  * Siehe `docs/magicitems.md`.
  */
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { einzeln } from '@suite/tastatur';
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 import { SELTENHEITEN, SELTENHEIT_NAME, gegenstandswert, type Seltenheit } from '@suite/srd';
 import { MagieFelder } from '@suite/magie/formular';
@@ -54,6 +55,8 @@ function leer(): Gegenstand {
 }
 
 export function App() {
+  // Strg+S und Klick kurz hintereinander: nur einmal speichern (sonst doppelte neue Einträge).
+  const speichertGerade = useRef(false);
   const [, neuZeichnen] = useState(0);
   const [eintraege, setEintraege] = useState<readonly Eintrag[]>([]);
   const [suche, setSuche] = useState('');
@@ -445,7 +448,7 @@ export function App() {
           >
             {offen.imLoot ? t('loot.drin') : t('loot')}
           </button>
-          <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => void speichere()}>
+          <button type="button" className="knopf knopf--haupt" data-speichern onClick={() => einzeln(speichertGerade, speichere)}>
             {t('speichern')}
           </button>
         </div>
