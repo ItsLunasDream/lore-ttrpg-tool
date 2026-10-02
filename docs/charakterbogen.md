@@ -450,6 +450,28 @@ Gebaut auf Wunsch nach Schritt 7:
   `<!-- charakterbogen:anfang -->` und `<!-- charakterbogen:ende -->` neu;
   was davor oder danach in der Notiz steht, bleibt. Änderungen innerhalb des
   Abschnitts überschreibt der Bogen.
+- **Würfe hervorgehoben:** Die gewürfelte Zahl steht groß und fett (nach dem
+  Doppelpunkt und nach „Schaden“/„Heilung“). Bei einem echten d20 gibt es
+  bei 20 Funken und goldenen Schein, bei 1 violette Streifen wie im
+  Würfel-Werkzeug; Schaden- und Heilwürfe bekommen das nie.
+- **Schaden/Heilung mit Würfeln:** „3d8“ im TP-Feld würfelt und zeigt den
+  Wurf unten rechts; das Beispiel im Feld steht in der Sprache der
+  Oberfläche (2W6 / 2d6).
+- **Angriffe:** jedes Attribut wählbar (z. B. Charisma für eine Paktwaffe);
+  drei Knöpfe: 🎲 Angriff und Schaden, nur Angriff, nur Schaden. Der Wurf
+  steht auch unten rechts.
+- **Zauber:** Beim Wirken wird Schaden oder Heilung mitgewürfelt
+  (`zauberWurf`: aus dem SRD-Text, mit höherem Platz und Zaubertrick-Stufen;
+  Homebrew-Zauber bringen ihre Würfel aus dem Homebrew Creator mit).
+  Rechtsklick auf „Wirken“: „Ohne Platz wirken“. Mehr vorbereitete Zauber als
+  eingetragen: rote Zahl mit ⚠. Homebrew-Zauber zeigen „Homebrew“ als Marke,
+  daneben Zeitaufwand und Reichweite.
+- **Aus Quelle hinzufügen:** ein Klick auf den Namen zeigt die Beschreibung.
+- **Story-Notiz:** immer mit Markierungen angelegt, ohne „# Name“; ältere
+  Notizen, die nur aus dem Bogentext bestehen, werden beim ersten Abgleich
+  ersetzt statt doppelt. Zauber als „Grad 1 · Name“ (vorher „1. Name“, das
+  Markdown als Liste in der Liste las). „Notiz öffnen“ zeigt die Notiz der
+  Figur (der Hülle fehlte beim Story Creator der Sprung zum Eintrag).
 - **Wurfanzeige:** Würfe und gewirkte Zauber stapeln sich unten rechts, neue
   unten (sie leuchten kurz auf), ältere rutschen hoch und gehen nach 25 s;
   höchstens sechs.

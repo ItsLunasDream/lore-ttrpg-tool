@@ -30,7 +30,7 @@ import {
   initiativeBonus,
   kurzeRast,
   langeRast,
-  leseBetrag,
+  leseBetragMitWurf,
   passiverWert,
   uebungIn,
   wendeBetragAn,
@@ -593,12 +593,16 @@ function Trefferpunkte({ w, aendere, setMeldung, kennung }: TeilProps & { readon
   useWertBlitz(kasten, w.tp.aktuell + w.tp.temp, kennung);
   const [hinweis, setHinweis] = useState('');
   const anteil = w.tp.max > 0 ? w.tp.aktuell / w.tp.max : 0;
+  const { zeige } = useWurf();
   const uebernimm = () => {
-    const betrag = leseBetrag(eingabe);
-    if (betrag === null) {
+    const gelesen = leseBetragMitWurf(eingabe);
+    if (gelesen === null) {
       setHinweis(t('tp.unlesbar'));
       return;
     }
+    const betrag = gelesen.betrag;
+    // Mit Würfeln im Ausdruck steht der Wurf unten rechts (Rückmeldung).
+    if (gelesen.wurf) zeige(`🎲 ${t(betrag < 0 ? 'tp.wurfSchaden' : 'tp.wurfHeilung')}: ${Math.abs(betrag)} (${gelesen.wurf})`);
     // Im Raum reist der Betrag, nicht der neue Stand: zwei Treffer zugleich zaehlen beide.
     aendere((x) => wendeBetragAn(x, betrag), { typ: 'betrag', text: betrag > 0 ? `+${betrag}` : String(betrag) });
     setEingabe('');
@@ -649,7 +653,7 @@ function Trefferpunkte({ w, aendere, setMeldung, kennung }: TeilProps & { readon
         data-feld="tp-betrag"
         aria-label={t('tp.feld')}
         value={eingabe}
-        placeholder={`${t('tp.feld')}: -7 / +5 / 2w6+3`}
+        placeholder={`${t('tp.feld')}: ${t('tp.feldBeispiel')}`}
         title={t('tp.feldHinweis')}
         onChange={(e) => {
           setEingabe(e.target.value);
@@ -696,12 +700,14 @@ function Todesrettung({ w, aendere, name }: { w: Werte; aendere: FigurProps['aen
           onClick={() => {
             // Gewürfelt wird gegen den aktuellen Stand; die Zeile entsteht mit.
             let zeile = '';
+            let d20 = 0;
             aendere((x) => {
               const r = todesrettungWurf(x, name?.trim() || t('figur'), sprache);
               zeile = r.text;
+              d20 = r.d20;
               return r.werte;
             });
-            if (zeile) zeige(zeile);
+            if (zeile) zeige(zeile, { d20 });
           }}
         >
           🎲 {t('todesrettung.wuerfeln')}

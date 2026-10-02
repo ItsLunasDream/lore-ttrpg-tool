@@ -18,10 +18,52 @@ interface Kontext {
   /** Würfelt d20 + Bonus und zeigt das Ergebnis. */
   wuerfle(name: string, bonus: number): void;
   /** Zeigt eine fertige Zeile (z. B. Todesrettungswurf) und schickt sie in den Raum. */
-  zeige(text: string): void;
+  zeige(text: string, extra?: Zusatz): void;
+}
+
+/** Was eine Zeile über den Text hinaus weiß. */
+export interface Zusatz {
+  /** Die gewürfelte Augenzahl eines echten d20: bei 20 und 1 der Effekt wie im Würfel-Werkzeug. */
+  readonly d20?: number;
+  /** Nur anzeigen, nicht in den Raum schicken (das Werkzeug schickt selbst). */
+  readonly lokal?: boolean;
 }
 
 const WurfKontext = createContext<Kontext>({ wuerfle: () => undefined, zeige: () => undefined });
+
+/**
+ * Die Zahlen, auf die es ankommt, groß und fett (Rückmeldung: „sonst sucht
+ * man erst"): die erste Zahl nach dem Doppelpunkt und die nach
+ * „Schaden"/„Heilung" (auch englisch).
+ */
+const WICHTIG = /(:\s*|(?:Schaden|Heilung|Damage|Healing)\s+)(\d+)/g;
+
+export function hebeHervor(text: string): ReactNode[] {
+  const teile: ReactNode[] = [];
+  let rest = 0;
+  for (const m of text.matchAll(WICHTIG)) {
+    const anfang = (m.index ?? 0) + m[1].length;
+    teile.push(text.slice(rest, anfang));
+    teile.push(
+      <strong key={anfang} className="wurfanzeige__zahl" data-wurf-zahl>
+        {m[2]}
+      </strong>
+    );
+    rest = anfang + m[2].length;
+  }
+  teile.push(text.slice(rest));
+  return teile;
+}
+
+/** Funken wie beim Höchstwurf im Würfel-Werkzeug (apps/dice, Wuerfel.tsx). */
+const FUNKEN = [
+  { x: 4, y: 22, verzug: 0 },
+  { x: 28, y: 12, verzug: 120 },
+  { x: 58, y: 18, verzug: 260 },
+  { x: 95, y: 30, verzug: 190 },
+  { x: 86, y: 80, verzug: 330 },
+  { x: 40, y: 84, verzug: 80 }
+] as const;
 
 export function useWurf(): Kontext {
   return useContext(WurfKontext);
@@ -45,6 +87,7 @@ interface Zeile {
   nr: number;
   text: string;
   hinweis: string;
+  d20?: number;
   /** Läuft gerade aus (Animation), danach weg. */
   geht: boolean;
 }
@@ -85,12 +128,12 @@ export function WurfBuehne({ imRaum, children }: { imRaum: boolean; children: Re
   );
 
   const zeige = useCallback(
-    (text: string) => {
+    (text: string, extra?: Zusatz) => {
       const nr = ++zaehler.current;
       // Neue Zeilen kommen unten dazu, ältere rutschen nach oben; die älteste fällt bei Überlauf weg.
-      setZeilen((alt) => [...alt, { nr, text, hinweis: '', geht: false }].slice(-HOECHSTENS));
+      setZeilen((alt) => [...alt, { nr, text, hinweis: '', geht: false, d20: extra?.d20 }].slice(-HOECHSTENS));
       spaeter(STEHT_MS, () => entferne(nr));
-      if (!imRaum || ziel === 'nicht') return;
+      if (extra?.lokal || !imRaum || ziel === 'nicht') return;
       void api.wurf(text, ziel).then((antwort) => {
         const hinweis =
           antwort === 'ok' ? t(ziel === 'sl' ? 'wurf.anSl' : 'wurf.anAlle') : antwort === 'selbst' ? t('wurf.selbst') : antwort === 'aus' ? '' : t('wurf.fehler');
@@ -99,7 +142,13 @@ export function WurfBuehne({ imRaum, children }: { imRaum: boolean; children: Re
     },
     [imRaum, ziel, spaeter, entferne]
   );
-  const wuerfle = useCallback((name: string, bonus: number) => zeige(probe(name, bonus).text), [zeige]);
+  const wuerfle = useCallback(
+    (name: string, bonus: number) => {
+      const p = probe(name, bonus);
+      zeige(p.text, { d20: p.d20 });
+    },
+    [zeige]
+  );
 
   return (
     <WurfKontext.Provider value={{ wuerfle, zeige }}>
@@ -116,10 +165,30 @@ export function WurfBuehne({ imRaum, children }: { imRaum: boolean; children: Re
             </span>
           ) : null}
           {zeilen.map((z) => (
-            <div key={z.nr} className={z.geht ? 'wurfanzeige__zeile is-geht' : 'wurfanzeige__zeile'} data-wurf-zeile>
+            <div
+              key={z.nr}
+              className={`wurfanzeige__zeile${z.geht ? ' is-geht' : ''}${z.d20 === 20 ? ' ist-nat20' : z.d20 === 1 ? ' ist-nat1' : ''}`}
+              data-wurf-zeile
+              data-nat={z.d20 === 20 ? '20' : z.d20 === 1 ? '1' : undefined}
+            >
               <span className="wurfanzeige__text" data-wurf-text>
-                {z.text.replace(/^🎲\s*/, '')}
+                {hebeHervor(z.text.replace(/^🎲\s*/, ''))}
               </span>
+              {z.d20 === 20 ? (
+                <span className="wurf-glitzer" aria-hidden="true">
+                  {FUNKEN.map((f, n) => (
+                    <span key={n} className="wurf-glitzer__funke" style={{ left: `${f.x}%`, top: `${f.y}%`, animationDelay: `${f.verzug}ms` }} />
+                  ))}
+                </span>
+              ) : null}
+              {z.d20 === 1 ? (
+                <span className="wurf-streifen" aria-hidden="true">
+                  <span className="wurf-streifen__linie" />
+                  <span className="wurf-streifen__linie" />
+                  <span className="wurf-streifen__linie" />
+                  <span className="wurf-streifen__linie" />
+                </span>
+              ) : null}
               {z.hinweis ? <span className="leise wurfanzeige__hinweis">{z.hinweis}</span> : null}
               <button type="button" className="knopf--klein knopf--leise" aria-label={t('wurf.zu')} onClick={() => entferne(z.nr)}>
                 ×

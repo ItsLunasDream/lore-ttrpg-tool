@@ -11,11 +11,28 @@
 import { ZAUBER, type Zauber, type Zauberklasse } from '@suite/srd/zauber';
 import { ATTRIBUTE, ATTRIBUT_NAMEN, type Attribut } from './regeln';
 
+/**
+ * Ein eigener Zauber. Aus dem Homebrew Creator kommen Zeitaufwand,
+ * Reichweite, Schaden und Heilung mit (Rückmeldung: Homebrew-Zeile wie bei
+ * SRD-Zaubern, Schaden beim Wirken).
+ */
+export interface EigenerZauber {
+  name: string;
+  grad: number;
+  text: string;
+  zeit?: string;
+  reichweite?: string;
+  /** Würfelausdruck wie „8d6+2“. */
+  schaden?: string;
+  schadensart?: string;
+  heilung?: string;
+}
+
 export interface ZauberEintrag {
   /** Kennung eines SRD-Zaubers. */
   srd?: string;
   /** Oder ein eigener Zauber. */
-  eigen?: { name: string; grad: number; text: string };
+  eigen?: EigenerZauber;
   vorbereitet: boolean;
   /** Immer vorbereitet, etwa durch die Unterklasse. */
   immer: boolean;
@@ -168,6 +185,73 @@ export function rettungswuerfeVon(e: ZauberEintrag): Attribut[] {
   return heraus;
 }
 
+export interface ZauberWurf {
+  readonly art: 'schaden' | 'heilung';
+  /** Würfelausdruck mit „d“, z. B. „8d6“ oder „2d8+3“. */
+  readonly ausdruck: string;
+  /** Schadensart in der Sprache der Oberfläche („Feuerschaden“, „Fire“), leer bei Heilung. */
+  readonly bezeichnung: string;
+}
+
+const SCHADEN_EN = /(\d+d\d+(?:\s*\+\s*\d+)?)\s+([A-Z][a-z]+)\s+damage/;
+// „8W6 Feuerschaden“ oder „1W10 nekrotischen Schaden“ (wird zu „nekrotischer Schaden“).
+const SCHADEN_DE = /(\d+W\d+(?:\s*\+\s*\d+)?)\s+(?:([A-ZÄÖÜ][a-zäöüß]*schaden)|([a-zäöüß]+)en Schaden)/;
+const HEILUNG_EN = /Hit Points equal to (\d+d\d+) plus your spellcasting ability modifier/;
+const HOCH_EN = /(?:damage|healing) increases by (\d+)d(\d+) for each spell slot level above (\d)/;
+const TRICK_EN = /levels 5 \((\d+d\d+)\), 11 \((\d+d\d+)\), and 17 \((\d+d\d+)\)/;
+const WUERFEL_EIGEN = /(\d+)\s*[dDwW]\s*(\d+)(?:\s*\+\s*(\d+))?/;
+
+/**
+ * Schaden oder Heilung eines Zaubers zum Würfeln (Rückmeldung: Feuerball
+ * zeigte den SG, aber keinen Schaden). SRD: aus dem englischen Text, mit
+ * höherem Platz („increases by 1d6 for each spell slot level above 3“) und
+ * Zaubertrick-Stufen („levels 5 (2d10), 11 …“); die Bezeichnung aus dem
+ * deutschen Text. Eigene Zauber: was der Homebrew Creator mitgibt, sonst der
+ * erste Würfel im Text. Mehrere Geschosse oder Strahlen sind ein Wurf je
+ * Treffer; gewürfelt wird einer.
+ */
+export function zauberWurf(
+  e: ZauberEintrag,
+  platz: number | null,
+  stufe: number,
+  attributMod: number,
+  sprache: 'de' | 'en'
+): ZauberWurf | null {
+  if (e.eigen) {
+    const g = e.eigen;
+    if (g.schaden) return { art: 'schaden', ausdruck: g.schaden, bezeichnung: g.schadensart ?? '' };
+    if (g.heilung) return { art: 'heilung', ausdruck: g.heilung, bezeichnung: '' };
+    const m = WUERFEL_EIGEN.exec(g.text);
+    if (!m) return null;
+    const heilt = /heil|heal/i.test(g.text) && !/schaden|damage/i.test(g.text);
+    return { art: heilt ? 'heilung' : 'schaden', ausdruck: `${m[1]}d${m[2]}${m[3] ? `+${m[3]}` : ''}`, bezeichnung: '' };
+  }
+  const z = e.srd ? NACH_ID.get(e.srd) : undefined;
+  if (!z) return null;
+  const en = z.bloecke.en.map((b) => ('text' in b ? b.text : '')).join(' ');
+  const de = z.bloecke.de.map((b) => ('text' in b ? b.text : '')).join(' ');
+  const mehr = (ausdruck: string): string => {
+    const h = HOCH_EN.exec(en);
+    if (!h || platz === null || platz <= Number(h[3])) return ausdruck;
+    return `${ausdruck}+${Number(h[1]) * (platz - Number(h[3]))}d${h[2]}`;
+  };
+  const schaden = SCHADEN_EN.exec(en);
+  if (schaden) {
+    let ausdruck = schaden[1].replace(/\s+/g, '');
+    const t = z.grad === 0 ? TRICK_EN.exec(en) : null;
+    if (t) ausdruck = stufe >= 17 ? t[3] : stufe >= 11 ? t[2] : stufe >= 5 ? t[1] : ausdruck;
+    const deutsch = SCHADEN_DE.exec(de);
+    const deName = deutsch ? (deutsch[2] ?? `${deutsch[3]}er Schaden`) : schaden[2];
+    return { art: 'schaden', ausdruck: mehr(ausdruck), bezeichnung: sprache === 'de' ? deName : schaden[2] };
+  }
+  const heilung = HEILUNG_EN.exec(en);
+  if (heilung) {
+    const mod = attributMod ? `${attributMod > 0 ? '+' : '-'}${Math.abs(attributMod)}` : '';
+    return { art: 'heilung', ausdruck: mehr(heilung[1]) + mod, bezeichnung: '' };
+  }
+  return null;
+}
+
 /**
  * Die Zeile zum Wirken für Anzeige und Raum. `platz` ist der verbrauchte
  * Grad; 0 = Zaubertrick, null = gewirkt ohne freien Platz.
@@ -217,6 +301,11 @@ export function sucheZauber(
 
 // --- Pruefen beim Einlesen -------------------------------------------------
 
+function wahlText<K extends string>(roh: Record<string, unknown>, feld: K, laenge: number): Partial<Record<K, string>> {
+  const w = roh[feld];
+  return typeof w === 'string' && w.trim() ? ({ [feld]: w.trim().slice(0, laenge) } as Partial<Record<K, string>>) : {};
+}
+
 function zahl(wert: unknown, ersatz: number, min: number, max: number): number {
   const n = typeof wert === 'number' ? wert : Number(wert);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : ersatz;
@@ -254,7 +343,12 @@ export function bereinigeZauberei(roh: unknown): Zauberei | undefined {
             eigen: {
               name: eigen.name.slice(0, 80),
               grad: zahl(eigen.grad, 0, 0, 9),
-              text: typeof eigen.text === 'string' ? eigen.text.slice(0, 5000) : ''
+              text: typeof eigen.text === 'string' ? eigen.text.slice(0, 5000) : '',
+              ...wahlText(eigen, 'zeit', 80),
+              ...wahlText(eigen, 'reichweite', 80),
+              ...wahlText(eigen, 'schaden', 40),
+              ...wahlText(eigen, 'schadensart', 40),
+              ...wahlText(eigen, 'heilung', 40)
             },
             ...basis
           }

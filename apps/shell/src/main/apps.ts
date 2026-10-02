@@ -1334,6 +1334,9 @@ async function montiereBackstory(id: string, haken: MontageHaken): Promise<Monti
     id,
     sicht,
     springeZuOrt: (ort) => eingebettet.springeZuOrt(sicht.webContents as WebContents, ort),
+    // Eine bestimmte Notiz zeigen (Charakterbogen „Notiz öffnen“, Suche). Fehlte bisher,
+    // deshalb blieb der Story Creator beim ersten Eintrag stehen (Rückmeldung).
+    zeigeEintrag: (kennung) => eingebettet.zeigeEintrag(sicht.webContents as WebContents, kennung),
     nachladen: async () => {
       await lade(sicht, eingebettet);
       geladen = true;

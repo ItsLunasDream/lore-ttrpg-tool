@@ -150,8 +150,9 @@ export function alsMarkdown(b: Bogen, sprache: Sprache): string {
       teile.push(`## ${L('Zauber', 'Spells')}`, '');
       for (const e of sortiert(w.zauber.liste, sprache)) {
         const g = gradVon(e);
-        const marke = g === 0 ? L('Zaubertrick', 'Cantrip') : `${g}.`;
-        teile.push(`- ${marke} ${nameVon(e, sprache)}${e.immer ? ' ★' : e.vorbereitet && g > 0 ? ' ●' : ''}`);
+        // Nicht „- 1. Name“: das liest Markdown als Liste in der Liste (Rückmeldung: leere Punkte im Story Creator).
+        const marke = g === 0 ? L('Zaubertrick', 'Cantrip') : L(`Grad ${g}`, `Level ${g}`);
+        teile.push(`- ${marke} · ${nameVon(e, sprache)}${e.immer ? ' ★' : e.vorbereitet && g > 0 ? ' ●' : ''}`);
       }
       teile.push('');
     }
@@ -213,7 +214,8 @@ export function storyText(b: Bogen, sprache: Sprache): string {
   const md = alsMarkdown(b, sprache);
   const ohneKopf = md.replace(/^---\n[\s\S]*?\n---\n/, '');
   const ohneBlock = ohneKopf.slice(0, ohneKopf.lastIndexOf(MARKE));
-  return ohneBlock.replace(/^# .*\n\n?/, '').trim() + '\n';
+  // Ohne die Überschrift „# Name“: in der Notiz sah sie aus wie ein neuer Charakter (Rückmeldung).
+  return ohneBlock.trimStart().replace(/^# .*\n\n?/, '').trim() + '\n';
 }
 
 /*
@@ -234,8 +236,34 @@ export function storyBlock(b: Bogen, sprache: Sprache): string {
 /** Setzt den Abschnitt in einen Notiztext: ersetzt den alten, sonst unten angehaengt. */
 export function ersetzeStoryBlock(text: string, block: string): string {
   if (BLOCK.test(text)) return text.replace(BLOCK, () => block);
+  // Ältere Notizen wurden ohne Markierungen angelegt; der erste Abgleich hängte
+  // den Bogen dann ein zweites Mal an (Rückmeldung). Besteht die Notiz nur aus
+  // dem Bogentext, wird sie ersetzt; mit eigenen Abschnitten bleibt sie und der
+  // Bogen kommt dazu.
+  if (nurBogentext(text)) return `${block}\n`;
   const rest = text.trimEnd();
   return rest ? `${rest}\n\n${block}\n` : `${block}\n`;
+}
+
+const BOGEN_UEBERSCHRIFTEN = new Set(
+  [
+    'Zauber', 'Spells', 'Angriffe', 'Attacks', 'Inventar', 'Inventory', 'Gruppeninventar', 'Party inventory', 'Notizen', 'Notes',
+    'Klassenmerkmale', 'Class features', 'Speziesmerkmale', 'Species traits', 'Talente', 'Feats', 'Aussehen', 'Appearance',
+    'Persönlichkeit und Geschichte', 'Personality and backstory'
+  ].map((x) => x.toLowerCase())
+);
+
+/** Beginnt mit der Wertezeile des Bogens und hat keine fremden Überschriften. */
+export function nurBogentext(text: string): boolean {
+  const zeilen = text.trim().split('\n');
+  let start = 0;
+  if (/^# /.test(zeilen[0] ?? '')) start = 1;
+  while (start < zeilen.length && !zeilen[start].trim()) start += 1;
+  if (!/^\*\*(RK|AC)\*\* .* · \*\*(TP|HP)\*\*/.test(zeilen[start] ?? '')) return false;
+  return zeilen.slice(start).every((z) => {
+    const m = /^#{1,6}\s+(.*)$/.exec(z);
+    return !m || BOGEN_UEBERSCHRIFTEN.has(m[1].trim().toLowerCase());
+  });
 }
 
 /** Liest eine Datei. Ohne JSON-Block (etwa von Hand angelegt) wird es ein leerer Bogen mit dem Namen aus dem Kopf. */

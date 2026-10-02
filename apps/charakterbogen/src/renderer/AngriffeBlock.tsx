@@ -9,8 +9,9 @@ import { api } from './api';
 import { getLanguage, t } from './i18n';
 import type { Angriff, Werte } from '../shared/bogen';
 import type { Schritt } from '../shared/live';
-import { mitVorzeichen } from '../shared/regeln';
-import { angriffswerte, WAFFEN, wuerfleAngriff, wurfZeile } from '../shared/waffen';
+import { ATTRIBUTE, ATTRIBUT_NAMEN, mitVorzeichen } from '../shared/regeln';
+import { useWurf } from './Wurf';
+import { angriffswerte, WAFFEN, wuerfleAngriff, wurfZeile, type Wurfart } from '../shared/waffen';
 import { Segment, Suchwahl, type Wahlpunkt } from './Bedienung';
 
 /** Die SRD-Waffen fuer die Suchwahl, nach Art gruppiert und alphabetisch. */
@@ -43,12 +44,15 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
   const setze = (n: number, teil: Partial<Angriff>) =>
     aendere((x) => ({ ...x, angriffe: x.angriffe.map((a, m) => (m === n ? { ...a, ...teil } : a)) }));
 
-  const wuerfle = (a: Angriff, schluessel: string) => {
+  const { zeige } = useWurf();
+  const wuerfle = (a: Angriff, schluessel: string, art: Wurfart = 'beides') => {
     const werte = angriffswerte(w, a, sprache);
-    const wurf = wuerfleAngriff(werte);
+    const wurf = wuerfleAngriff(werte, Math.random, art);
     const name = a.name.trim() || (werte.waffe ? werte.waffe.name[i] : t('angriff.ohneName'));
     const text = wurfZeile(name, werte, wurf, sprache);
     setErgebnis({ schluessel, text, hinweis: '' });
+    // Auch unten rechts, mit hervorgehobener Zahl und Effekt bei 20/1; in den Raum schickt der Block selbst.
+    zeige(text, { lokal: true, ...(wurf.d20 ? { d20: wurf.d20 } : {}) });
     if (!imRaum || ziel === 'nicht') return;
     void api.wurf(text, ziel).then((antwort) => {
       const hinweis =
@@ -115,15 +119,23 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
           ) : (
             <input
               aria-label={t('angriff.schaden')}
-              placeholder="1W8+3"
+              placeholder={t('angriff.schadenBeispiel')}
               value={a.schaden}
               maxLength={60}
               onChange={(e) => n !== null && setze(n, { schaden: e.target.value })}
             />
           )}
-          <button type="button" className="knopf--klein" data-wuerfeln={schluessel} title={t('angriff.wuerfeln')} onClick={() => wuerfle(a, schluessel)}>
-            🎲 {t('angriff.wuerfeln.kurz')}
-          </button>
+          <span className="angriff__wuerfe">
+            <button type="button" className="knopf--klein" data-wuerfeln={schluessel} title={t('angriff.wuerfeln')} onClick={() => wuerfle(a, schluessel)}>
+              🎲
+            </button>
+            <button type="button" className="knopf--klein" data-wuerfeln-angriff={schluessel} title={t('angriff.nurAngriff')} onClick={() => wuerfle(a, schluessel, 'angriff')}>
+              {t('angriff.nurAngriff.kurz')}
+            </button>
+            <button type="button" className="knopf--klein" data-wuerfeln-schaden={schluessel} title={t('angriff.nurSchaden')} onClick={() => wuerfle(a, schluessel, 'schaden')}>
+              {t('angriff.nurSchaden.kurz')}
+            </button>
+          </span>
           {n !== null ? (
             <button
               type="button"
@@ -144,7 +156,10 @@ export function AngriffeBlock({ w, aendere, ausInventar, imRaum }: Props) {
               klein
               label={t('angriff.attribut')}
               wert={a.attribut ?? 'auto'}
-              optionen={(['auto', 'sta', 'ges'] as const).map((x) => ({ wert: x, text: t(`angriff.attribut.${x}`) }))}
+              optionen={[
+                { wert: 'auto' as const, text: t('angriff.attribut.auto') },
+                ...ATTRIBUTE.map((x) => ({ wert: x, text: ATTRIBUT_NAMEN[x].kurz[i], titel: ATTRIBUT_NAMEN[x].lang[i] }))
+              ]}
               aendern={(v) => n !== null && setze(n, { attribut: v })}
             />
             <label className="schalter">
