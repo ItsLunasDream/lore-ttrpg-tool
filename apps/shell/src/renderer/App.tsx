@@ -1008,6 +1008,15 @@ export function App() {
       {dialog === 'protokoll' && <Protokoll onClose={() => zeigeDialog(null)} t={t} />}
       {dialog === 'teilen' && (
         <Austausch
+          oeffneEintrag={async (werkzeug, kennung) => {
+            // Nur was hier wirklich liegt (eigener oder angenommener Eintrag); sonst entscheidet der Teilen-Dialog.
+            const alle = await window.shell.suche.eintraege();
+            if (!alle.some((e) => e.werkzeug === werkzeug && e.kennung === kennung)) return false;
+            zeigeDialog(null);
+            await waehle(werkzeug);
+            await window.shell.suche.zeige(werkzeug, kennung);
+            return true;
+          }}
           onClose={() => {
             setRaumFehler(null);
             zeigeDialog(null);

@@ -318,6 +318,8 @@ const api = {
       }>,
     suchen: () => ipcRenderer.invoke('raum:suchen') as Promise<GefundenerRaum[]>,
     aktualisieren: () => ipcRenderer.invoke('raum:aktualisieren') as Promise<GefundenerRaum[]>,
+    passwortGemerkt: (id: string) => ipcRenderer.invoke('raum:passwortGemerkt', id) as Promise<boolean>,
+    passwort: () => ipcRenderer.invoke('raum:passwort') as Promise<string>,
     eroeffnen: (name: string, passwort: string, optionen: { internet?: boolean; port?: number; sl?: boolean; raumId?: string } = {}) =>
       ipcRenderer.invoke('raum:eroeffnen', name, passwort, optionen) as Promise<{
         ok: boolean;
@@ -344,6 +346,7 @@ const api = {
       ipcRenderer.invoke('raum:beitreten', adresse, port, passwort) as Promise<Raumzustand>,
     verlassen: () => ipcRenderer.invoke('raum:verlassen') as Promise<Raumzustand>,
     chat: (text: string, an: string | null) => ipcRenderer.invoke('raum:chat', text, an) as Promise<boolean>,
+    paketMitEintrag: (werkzeug: string, kennung: string) => ipcRenderer.invoke('raum:paketMitEintrag', werkzeug, kennung) as Promise<number | null>,
     paketVerwerfen: (id: number | null) => ipcRenderer.invoke('raum:paketVerwerfen', id) as Promise<boolean>,
     vergessen: () => ipcRenderer.invoke('raum:vergessen') as Promise<Raumzustand>,
     umbenennen: (name: string) => ipcRenderer.invoke('raum:umbenennen', name) as Promise<boolean>,

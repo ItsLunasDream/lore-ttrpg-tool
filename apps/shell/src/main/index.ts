@@ -64,7 +64,7 @@ import {
   mountApp,
   setzeSammlungssprache,
   registerSchemes,
-  setzeSuchtaste, setzeFokustaste, setzeHilfetaste, setzeHuellenFenster,
+  setzeSuchtaste, setzeFokustaste, setzeHilfetaste, setzeHuellenFenster, fokussiereNachDialog,
   setzeGroessentaste,
   type MontageHaken,
   type MontierteApp,
@@ -99,6 +99,7 @@ import {
   type ShellSettings
 } from './settings';
 import { anbieterAus, entschluessle, verschluessle } from './ki';
+import { Raumpasswoerter } from './raumPasswort';
 import {
   leseSymbole,
   mitgelieferterOrdner,
@@ -702,6 +703,8 @@ async function erzeugeFenster(): Promise<void> {
   // Die Huelle laedt nur ihr eigenes Dokument. Alles andere — ein Link in
   // einem Text, ein umgeleiteter Aufruf — verlaesst die Anwendung und gehoert
   // in den Browser des Systems, nicht in dieses Fenster.
+  // Auch die Hülle selbst fragt mit confirm() (Raum schließen, Protokoll verwerfen).
+  fokussiereNachDialog(huelle);
   huelle.webContents.on('will-navigate', (event, url) => {
     if (devServerUrl && url.startsWith(devServerUrl)) return;
     event.preventDefault();
@@ -1162,6 +1165,9 @@ function registriereKanaele(): void {
   let tischschluessel: Tischschluessel | null = null;
   const holeTischschluessel = () => (tischschluessel ??= ladeTischschluessel(join(app.getPath('userData'), 'tischschluessel.json')));
   let offenerRaum: GespeicherterRaum | null = null;
+  // Passwort des offenen eigenen Raums: der Host sieht es im Raum (Rückmeldung).
+  let offenesPasswort = '';
+  const raumPasswoerter = new Raumpasswoerter(join(app.getPath('userData'), 'raeume-passwoerter.json'));
   const meldeRaumliste = () =>
     void raumAblage.liste().then((liste) => huelle?.webContents.send('raum:ereignis', { art: 'gespeichert', raeume: liste }));
   const sichereOffenenRaum = async (aenderung: Partial<GespeicherterRaum>) => {
@@ -1286,6 +1292,8 @@ function registriereKanaele(): void {
         // Fortsetzen: Rollen und Einstellungen aus dem gespeicherten Raum. Neu: ein neuer Eintrag.
         const gespeichert = typeof optionen?.raumId === 'string' ? await raumAblage.lies(optionen.raumId) : null;
         const sl = typeof optionen?.sl === 'boolean' ? optionen.sl : undefined;
+        // Fortsetzen ohne Eingabe: das gemerkte Passwort des eigenen Raums.
+        if (!passwort && gespeichert) passwort = await raumPasswoerter.gib(gespeichert.id);
         const offen = await raum.eroeffne(name, passwort, meinName(), { internet, port, sl, rollen: gespeichert?.rollen ?? {} });
         offenerRaum = await raumAblage.speichere({
           id: gespeichert?.id ?? neueRaumId(),
@@ -1298,6 +1306,8 @@ function registriereKanaele(): void {
           geaendert: ''
         });
         raumZusatz = { einstellungen: offenerRaum.einstellungen, gruppeninventar: offenerRaum.gruppeninventar };
+        offenesPasswort = passwort;
+        await raumPasswoerter.merke(offenerRaum.id, passwort).catch(() => false);
         meldeRaumliste();
         meldeRaumLage();
         return { ok: true, port: offen, raumId: offenerRaum.id };
@@ -1306,11 +1316,16 @@ function registriereKanaele(): void {
       }
     }
   );
+  /** Ob für einen gespeicherten Raum ein Passwort gemerkt ist (das Passwort selbst bleibt hier). */
+  handle('raum:passwortGemerkt', async (_event, id: string) => typeof id === 'string' && (await raumPasswoerter.gib(id)) !== '');
+  /** Das Passwort des offenen Raums, nur für den Host. */
+  handle('raum:passwort', () => (raum.zustand().rolle === 'gastgeber' ? offenesPasswort : ''));
   handle('raum:rolle', (_event, ziel: string, sl: boolean) => typeof ziel === 'string' && raum.slRolle(ziel, sl === true));
   handle('raum:gespeicherte', () => raumAblage.liste());
   handle('raum:gespeichertLoeschen', async (_event, id: string) => {
     if (offenerRaum?.id === id) return false;
     const ok = await raumAblage.loesche(String(id));
+    await raumPasswoerter.merke(String(id), '').catch(() => false);
     meldeRaumliste();
     return ok;
   });
@@ -1380,11 +1395,23 @@ function registriereKanaele(): void {
     return true;
   });
   handle('raum:verlassen', () => {
+    offenesPasswort = '';
     raum.verlasse();
     return raum.zustand();
   });
   handle('raum:chat', (_event, text: string, an: string | null) => raum.chatte(text, an));
   // Angekommene Pakete wegwerfen: eines (nach ID) oder alle (`null`).
+  /** Das angekommene Paket, in dem ein Eintrag steckt (für einen Klick im Chat), oder null. */
+  handle('raum:paketMitEintrag', (_event, werkzeug: string, kennung: string) => {
+    for (let i = raumPakete.length - 1; i >= 0; i -= 1) {
+      try {
+        if (lesePaket(raumPakete[i].paket).sendungen.some((s) => s.werkzeug === werkzeug && s.kennung === kennung)) return raumPakete[i].id;
+      } catch {
+        // kaputtes Paket: weiter
+      }
+    }
+    return null;
+  });
   handle('raum:paketVerwerfen', (_event, id: number | null) => {
     if (id === null) raumPakete.length = 0;
     else {

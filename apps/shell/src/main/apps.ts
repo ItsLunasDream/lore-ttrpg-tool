@@ -396,7 +396,7 @@ const DIALOG_ZU = '__huelle_dialog_zu__';
  * Hülle holt dann den Fokus einmal weg und zurück. Eine Stelle für alle
  * Werkzeuge statt 23 Aufrufstellen.
  */
-function fokussiereNachDialog(sicht: WebContentsView): void {
+export function fokussiereNachDialog(sicht: WebContentsView): void {
   sicht.webContents.on('dom-ready', () => {
     void sicht.webContents
       .executeJavaScript(
