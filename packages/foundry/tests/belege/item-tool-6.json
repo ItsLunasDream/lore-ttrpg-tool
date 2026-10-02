@@ -1,0 +1,167 @@
+{
+ "_woher": "Foundry 14.368, dnd5e 6.0.5, Export einer Nutzer:in 02.10.2026: Diebeswerkzeug (SRD)",
+ "_geruest": {
+  "_stats": {
+   "compendiumSource": "str",
+   "coreVersion": "str",
+   "createdTime": "int",
+   "duplicateSource": "null",
+   "exportSource": {
+    "coreVersion": "str",
+    "systemId": "str",
+    "systemVersion": "str",
+    "uuid": "str",
+    "worldId": "str"
+   },
+   "lastModifiedBy": "str",
+   "modifiedTime": "int",
+   "systemId": "str",
+   "systemVersion": "str"
+  },
+  "effects": [],
+  "flags": {
+   "dnd5e": {
+    "riders": {
+     "activity": [],
+     "effect": []
+    }
+   }
+  },
+  "folder": "null",
+  "img": "str",
+  "name": "str",
+  "ownership": {
+   "default": "int"
+  },
+  "system": {
+   "ability": "str",
+   "activities": {
+    "4pIHxWxCdaF3Ieok": {
+     "_id": "str",
+     "activation": {
+      "condition": "str",
+      "override": "bool",
+      "type": "str",
+      "value": "null"
+     },
+     "behaviors": [],
+     "check": {
+      "ability": "str",
+      "associated": [],
+      "dc": {
+       "calculation": "str",
+       "formula": "str"
+      },
+      "visible": "bool"
+     },
+     "consumption": {
+      "scaling": {
+       "allowed": "bool",
+       "max": "str"
+      },
+      "spellSlot": "bool",
+      "targets": []
+     },
+     "description": {
+      "chatFlavor": "str",
+      "value": "str"
+     },
+     "duration": {
+      "concentration": "bool",
+      "expiry": "null",
+      "override": "bool",
+      "special": "str",
+      "units": "str",
+      "value": "str"
+     },
+     "effects": [],
+     "flags": {},
+     "img": "str",
+     "name": "str",
+     "range": {
+      "override": "bool",
+      "special": "str",
+      "units": "str"
+     },
+     "sort": "int",
+     "target": {
+      "affects": {
+       "choice": "bool",
+       "count": "str",
+       "special": "str",
+       "type": "str"
+      },
+      "override": "bool",
+      "prompt": "bool",
+      "template": {
+       "contiguous": "bool",
+       "count": "str",
+       "height": "str",
+       "size": "str",
+       "stationary": "bool",
+       "type": "str",
+       "units": "str",
+       "width": "str"
+      }
+     },
+     "type": "str",
+     "uses": {
+      "max": "str",
+      "recovery": [],
+      "spent": "int"
+     },
+     "visibility": {
+      "level": {},
+      "requireAttunement": "bool",
+      "requireIdentification": "bool",
+      "requireMagic": "bool"
+     }
+    }
+   },
+   "attuned": "bool",
+   "attunement": "str",
+   "bonus": "str",
+   "chatFlavor": "str",
+   "container": "null",
+   "description": {
+    "chat": "str",
+    "value": "str"
+   },
+   "equipped": "bool",
+   "identified": "bool",
+   "identifier": "str",
+   "price": {
+    "denomination": "str",
+    "value": "int"
+   },
+   "proficient": "null",
+   "properties": [],
+   "quantity": "int",
+   "rarities": [],
+   "source": {
+    "book": "str",
+    "custom": "str",
+    "license": "str",
+    "revision": "int",
+    "rules": "str"
+   },
+   "type": {
+    "baseItem": "str",
+    "value": "str"
+   },
+   "unidentified": {
+    "description": "str"
+   },
+   "uses": {
+    "max": "str",
+    "recovery": [],
+    "spent": "int"
+   },
+   "weight": {
+    "units": "str",
+    "value": "int"
+   }
+  },
+  "type": "str"
+ }
+}

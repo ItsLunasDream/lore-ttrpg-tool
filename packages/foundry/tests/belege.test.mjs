@@ -151,6 +151,8 @@ test('ein magischer Gegenstand erfindet keine Felder, die es in Foundry nicht gi
       'item-weapon.json'
     ].flatMap((datei) => [...pfade(beleg(datei))].map(ohneKennungen))
   );
+  // Siehe oben: `magicalBonus` ist als Verzauberungsziel belegt (docs/magicitems.md).
+  echt.add('system.magicalBonus');
   for (const art of ['waffe', 'ruestung', 'schild', 'wundersam', 'ring', 'stab', 'trank', 'schriftrolle']) {
     const meine = [
       ...pfade(
@@ -159,7 +161,9 @@ test('ein magischer Gegenstand erfindet keine Felder, die es in Foundry nicht gi
           art,
           seltenheit: 'rare',
           einstimmung: true,
-          wirkungen: ['Wirkung.'],
+          // Mit Bonus: sonst entstehen `magicalBonus` und der RK-Effekt nie,
+          // und der Test prueft sie nicht (so blieb die alte Effektform unbemerkt).
+          wirkungen: ['Wirkung.', '+1 bonus to attack rolls and AC'],
           fluch: 'Fluch.',
           wert: 4000
         })
@@ -168,4 +172,77 @@ test('ein magischer Gegenstand erfindet keine Felder, die es in Foundry nicht gi
     const unbekannt = meine.filter((p) => !echt.has(p));
     assert.deepEqual(unbekannt, [], `${art}: steht in keinem echten Export: ${unbekannt.join(', ')}`);
   }
+});
+
+// --- Homebrew (dnd5e 6.0.5) --------------------------------------------------
+
+const H = require('../dist/tests/entry.cjs');
+const KOPF = { name: 'Probe', beschreibung: 'Text.', bild: null, preis: 10, gewicht: 2, magisch: true };
+const WAFFE = {
+  ...KOPF, kategorie: 'kriegs', fern: false, wuerfel: '1d8', schadenPlus: 0, schadensart: 'hieb',
+  zusatz: [{ wuerfel: '1d6', plus: 0, art: 'feuer' }], reichweiteNah: 10, eigenschaften: ['vielseitig', 'reichweite'],
+  vielseitig: '1d10', reichweiteNormal: 20, reichweiteMax: 60, meisterschaft: 'sap', bonus: 1
+};
+const ZAUBER = {
+  ...KOPF, grad: 3, schule: 'hervorrufung', zeit: 'Aktion', reichweite: '150 Fuß', komponenten: 'V, G, M (Schwefel)',
+  dauer: 'Sofort', konzentration: false, ritual: false, wirkungen: ['schaden', 'heilung'], schadenAnzahl: 8, schadenSeiten: 6,
+  schadenPlus: 0, schadensart: 'feuer', heilAnzahl: 1, heilSeiten: 4, heilPlus: 0, ziel: 'flaeche', flaeche: 'kugel',
+  flaecheGroesse: 20, rettungswurf: 'ges', angriffswurf: false, halbBeiErfolg: true, hoehererGrad: '+1W6 je Grad'
+};
+const echt6 = (...dateien) => new Set(dateien.flatMap((d) => [...pfade(beleg(d))].map(ohneKennungen)));
+const unbekannt = (item, echt) => [...pfade(item)].map(ohneKennungen).filter((p) => !echt.has(p));
+// Die Schadensteile einer Taetigkeit sind bei Waffe und Zauber dasselbe Feld;
+// das Langschwert hat keine, die Zauber zeigen ihre Form.
+const teilePfade = [...echt6('item-spell-save-6.json', 'item-spell-attack-6.json')].filter((p) => p.startsWith('system.activities.*.damage.parts'));
+// `system.magicalBonus` setzt die offizielle Waffe +1/+2/+3 per Verzauberung
+// (docs/magicitems.md); im Feldgeruest steht es nur als Wert, nicht als Pfad.
+const waffenEcht = new Set([...echt6('item-weapon-6.json', 'item-weapon-bonus.json'), ...teilePfade, 'system.magicalBonus']);
+
+test('Homebrew-Waffe, -Rüstung, -Gegenstand und -Zauber erfinden keine Felder (Belege aus 6.0.5)', () => {
+  const id = 'AAAAAAAAAAAAAAAA';
+  const faelle = [
+    ['Waffe', H.alsFoundryWaffe(WAFFE, id), waffenEcht],
+    ['Waffe fern', H.alsFoundryWaffe({ ...WAFFE, fern: true, eigenschaften: ['munition'], bonus: 0 }, id), waffenEcht],
+    ['Rüstung', H.alsFoundryRuestung({ ...KOPF, ruestungsart: 'schwer', rk: 16, staerke: 13, heimlichkeitNachteil: true, bonus: 1 }), echt6('item-equipment-ruestung-6.json', 'item-equipment-schild.json')],
+    ['Gegenstand', H.alsFoundryKram(KOPF), echt6('item-loot-eigen-6.json')],
+    ['Zauber Rettungswurf', H.alsFoundryZauber(ZAUBER, id), echt6('item-spell-save-6.json', 'item-spell-attack-6.json')],
+    ['Zauber Angriff', H.alsFoundryZauber({ ...ZAUBER, angriffswurf: true, rettungswurf: '', ziel: 'einzel' }, id), echt6('item-spell-save-6.json', 'item-spell-attack-6.json')]
+  ];
+  for (const [was, item, echt] of faelle) {
+    const fremd = unbekannt(item, echt);
+    assert.deepEqual(fremd, [], `${was}: steht in keinem echten Export: ${fremd.join(', ')}`);
+  }
+});
+
+test('Homebrew: die Werte stehen dort, wo Foundry sie liest', () => {
+  const w = H.alsFoundryWaffe(WAFFE, 'AAAAAAAAAAAAAAAA');
+  assert.equal(w.type, 'weapon');
+  assert.deepEqual(w.system.type, { value: 'martialM', baseItem: '' });
+  assert.deepEqual([w.system.damage.base.number, w.system.damage.base.denomination, w.system.damage.base.types], [1, 8, ['slashing']]);
+  assert.deepEqual([w.system.damage.versatile.number, w.system.damage.versatile.denomination], [1, 10]);
+  assert.deepEqual(w.system.properties, ['ver', 'rch', 'mgc']);
+  assert.equal(w.system.range.reach, 10);
+  assert.equal(w.system.mastery, 'sap');
+  assert.equal(w.system.magicalBonus, 1);
+  assert.deepEqual(w.system.activities.AAAAAAAAAAAAAAAA.damage.parts[0].types, ['fire']);
+  assert.equal(w._stats.systemVersion, '6.0.5');
+
+  const z = H.alsFoundryZauber(ZAUBER, 'AAAAAAAAAAAAAAAA');
+  const t = z.system.activities.AAAAAAAAAAAAAAAA;
+  assert.deepEqual([z.type, z.system.level, z.system.school], ['spell', 3, 'evo']);
+  assert.deepEqual(z.system.properties, ['vocal', 'somatic', 'material']);
+  assert.equal(z.system.materials.value, 'Schwefel');
+  assert.deepEqual(z.system.range, { value: '150', units: 'ft', special: '' });
+  assert.deepEqual(z.system.target.template.type, 'sphere');
+  assert.equal(t.type, 'save');
+  assert.deepEqual(t.save.ability, ['dex']);
+  assert.equal(t.damage.onSave, 'half');
+  assert.deepEqual([t.damage.parts[0].number, t.damage.parts[0].denomination, t.damage.parts[0].scaling], [8, 6, { mode: 'whole', number: 1, formula: '' }]);
+  assert.match(z.system.description.value, /Heilung \/ Healing:<\/strong> 1d4/);
+
+  const r = H.alsFoundryRuestung({ ...KOPF, ruestungsart: 'mittel', rk: 13, staerke: 0, heimlichkeitNachteil: false, bonus: 0 });
+  assert.deepEqual([r.type, r.system.type.value, r.system.armor.value, r.system.armor.dex, r.system.strength], ['equipment', 'medium', 13, 2, null]);
+
+  const g = H.alsFoundryKram({ ...KOPF, bild: 'data:image/png;base64,AAAA' });
+  assert.deepEqual([g.type, g.img], ['loot', 'data:image/png;base64,AAAA']);
 });
