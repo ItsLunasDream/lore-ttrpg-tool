@@ -476,8 +476,18 @@ app.whenReady().then(async () => {
   await warte(300);
   await setzeZahl(1, 0, 1);
   await warte(200);
+  // Eine dritte Zeile, gleich wieder löschen, und noch während sie ausblendet
+  // die Stufe der zweiten eintragen: die Eingabe darf nicht verloren gehen.
+  await js(`document.querySelector('[data-gruppe-dazu]').click(); true`);
+  await warte(300);
+  await js(`document.querySelector('[data-gruppenzeile="2"] .gegnerzeile__weg').click(); true`);
+  await warte(30);
   await setzeZahl(1, 1, 6);
   await warte(600);
+  pruefe(
+    (await js(`document.querySelectorAll('[data-gruppenzeile]').length`)) === 2,
+    'die gelöschte Zeile ist weg'
+  );
   pruefe(
     /3x4, 1x6/.test(fs.readFileSync(path.join(ordner, 'einstellungen.json'), 'utf8')),
     'die Gruppe, im Werkzeug eingetragen, liegt so auf der Platte'

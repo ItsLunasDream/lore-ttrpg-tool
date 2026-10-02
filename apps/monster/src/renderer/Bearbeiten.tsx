@@ -9,6 +9,7 @@
 
 import type { Monster, Faehigkeitseintrag } from '../shared/erzeuge';
 import { ausblendenUnd } from '@suite/motion/dom';
+import { useAktuell } from '@suite/motion/react';
 import { ZahlFeld } from '@suite/zahlfeld/feld';
 import { abzweig } from '../shared/erzeuge';
 import { angriffName, schadenProRunde, type Angriff } from '../shared/angriffe';
@@ -34,6 +35,8 @@ export function Bearbeiten({
   readonly monster: Monster;
   readonly onAendern: (monster: Monster) => void;
 }) {
+  // Löschen läuft erst nach dem Ausblenden: dann vom aktuellen Stand aus.
+  const aktuell = useAktuell(monster);
   const sprache = getLanguage() === 'en' ? 'en' : 'de';
   const setzeFaehigkeit = (stelle: number, neu: Partial<Faehigkeitseintrag>) =>
     onAendern({
@@ -126,7 +129,7 @@ export function Bearbeiten({
             <button
               type="button"
               className="knopf knopf--klein"
-              onClick={(e) => ausblendenUnd(e.currentTarget, () => onAendern({ ...monster, faehigkeiten: monster.faehigkeiten.filter((_, i) => i !== stelle) }))}
+              onClick={(e) => ausblendenUnd(e.currentTarget, () => onAendern({ ...aktuell.current, faehigkeiten: aktuell.current.faehigkeiten.filter((_, i) => i !== stelle) }))}
             >
               {t('knopf.loeschen')}
             </button>

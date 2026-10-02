@@ -36,3 +36,14 @@ export function useWertBlitz(ref: { readonly current: Element | null }, wert: nu
     spieleAb(ref.current, wert < alt.wert ? 'motion-schaden' : 'motion-heilung');
   }, [wert, kennung, ref]);
 }
+
+/**
+ * Der Wert vom letzten Rendern, für verzögerte Aktionen wie `ausblendenUnd`.
+ * Ohne das arbeitet das Löschen nach dem Ausblenden mit dem Stand vom Klick und
+ * überschreibt eine Eingabe, die in der Zwischenzeit kam.
+ */
+export function useAktuell<T>(wert: T): { readonly current: T } {
+  const ref = useRef(wert);
+  ref.current = wert;
+  return ref;
+}
