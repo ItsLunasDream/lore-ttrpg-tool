@@ -374,6 +374,15 @@ export function migrate(raw: unknown, report: LoadReport): MapDocument {
   // gespeicherte Karte ein leeres `heightMaps` und ein `filters: null`
   // eingetragen, die dort nichts zu suchen haben.
   if (input.filters !== undefined) doc.filters = input.filters;
+  // Lage über einer anderen Karte: nur die zwei bekannten Felder, geprüft.
+  if (input.ebene && typeof input.ebene === 'object') {
+    const e = input.ebene as Record<string, unknown>;
+    const ebene = {
+      ...(typeof e.liegtUeber === 'string' && e.liegtUeber ? { liegtUeber: e.liegtUeber } : {}),
+      ...(e.bodenTransparent === true ? { bodenTransparent: true } : {}),
+    };
+    if (Object.keys(ebene).length) doc.ebene = ebene;
+  }
   if (input.heightMaps !== undefined) doc.heightMaps = input.heightMaps;
 
   // Hilfslinien: nur, was Hand und Fuß hat. Eine Linie ohne Achse oder mit

@@ -232,8 +232,22 @@ in den Abschnitten darunter.
   erste Karte in `scene.json`, die übrigen liegen unter `maps/`; eine ältere
   Fassung des Editors öffnet so wenigstens die erste. Fassungen unter
   `versions/` enthalten alle Karten.
-  Offen: Bild-, UVTT- und Foundry-Export nehmen nur die offene Karte; der
-  Verweis geht nicht mit nach Foundry und ist am Pin nicht zu sehen.
+  Offen: der Verweis geht nicht mit nach Foundry und ist am Pin nicht zu sehen.
+- ~~**Karten übereinander** und **Ebenen für Foundry v14**~~ — **erledigt**
+  (03.10.2026). Je Karte „Liegt über" und „Boden durchsichtig" (rechts unter
+  „Ebene"); die Karten darunter erscheinen im Editor als Bild unter der
+  offenen (`ui/Unterlage.tsx`, Deckkraft einstellbar). Der Renderer spiegelt
+  weiter nur eine Karte: andere baut er kurz auf und rendert sie
+  (`renderFremdeKarte`). Ein durchsichtiger Boden ist im Bild- und UVTT-Export
+  transparent. „Alle n Karten (ZIP)" im VTT-Dialog schreibt je Karte eine
+  UVTT-Datei, von unten nach oben nummeriert, mit Anleitung.
+  Recherche (03.10.2026, Suchergebnisse, foundryvtt.com war von hier aus
+  gesperrt): Foundry v14 hat „Scene Levels" — mehrere Bilder in Höhenbändern
+  einer Szene, Wände und Lichter je Ebene. UVTT kennt keine Ebenen; dass der
+  Universal Battlemap Importer welche anlegt, war nicht zu belegen. Deshalb je
+  Ebene eine Datei, zusammengeführt in Foundry (Community-Modul „Level
+  Merger", github.com/WasabiPrime/levelmerger, oder von Hand). Eine Szene mit
+  Ebenen direkt zu schreiben braucht erst einen echten v14-Export als Beleg.
 - **Import aus Dungeondraft-Projektdateien**, nicht nur aus deren UVTT-Export.
 
 ## Danach denkbar

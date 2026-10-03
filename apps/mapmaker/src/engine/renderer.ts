@@ -30,6 +30,7 @@ import {
   RenderTexture,
   Sprite,
   Text,
+  Texture,
   type BLEND_MODES,
 } from 'pixi.js';
 import {
@@ -104,6 +105,13 @@ export class MapRenderer {
   readonly textMetrics: TextMetrics = new Map();
 
   private mapBackground = new Graphics();
+  /**
+   * Die Karten darunter (`model/mappe.ts`), als fertige Bilder: der Renderer
+   * spiegelt nur ein Dokument, die anderen kommen als Bild herein
+   * (`setzeUnterlage`). Geht nie in einen Export.
+   */
+  private unterlage = new Container();
+  private unterlageTexturen: Texture[] = [];
   private stack = new Container();
   private gridOverlay = new GridOverlay();
   private vttOverlay = new VttOverlay();
@@ -157,7 +165,7 @@ export class MapRenderer {
     });
     this.attachTo(host);
 
-    this.world.addChild(this.mapBackground, this.stack, this.vignetteGfx, this.overlay);
+    this.world.addChild(this.unterlage, this.mapBackground, this.stack, this.vignetteGfx, this.overlay);
     // Hilfslinien in das Overlay, nicht in den Layer-Stapel: sie gehören
     // niemandem und gehen in keinen Export. `hide(this.overlay)` beim Export
     // nimmt sie damit gleich mit heraus.
@@ -410,10 +418,16 @@ export class MapRenderer {
     for (const id in doc.objects) this.dirtyObjects.add(id);
   }
 
-  /** Vollständiger Neuaufbau — nach dem Laden einer Projektdatei. */
-  rebuildAll(): void {
+  /**
+   * Vollständiger Neuaufbau — nach dem Laden einer Projektdatei.
+   *
+   * Mit `fremd` baut er kurz eine andere Karte derselben Datei auf, um sie als
+   * Bild zu exportieren (`io/exportImage.ts`, `renderFremdeKarte`); danach muss
+   * ein Aufruf ohne Argument die offene Karte wiederherstellen.
+   */
+  rebuildAll(fremd?: MapDocument): void {
     if (!this.initialized) return;
-    const doc = useEditor.getState().doc;
+    const doc = fremd ?? useEditor.getState().doc;
 
     for (const view of this.objectViews.values()) view.node.destroy({ children: true });
     this.objectViews.clear();
@@ -435,12 +449,32 @@ export class MapRenderer {
 
   private drawMapBackground(doc: MapDocument): void {
     const { width, height } = mapPixelSize(doc.grid, doc.size);
+    this.mapBackground.clear();
+    // Durchsichtiger Boden: kein Hintergrund, die Karte darunter scheint durch.
+    if (!doc.ebene?.bodenTransparent) this.mapBackground.rect(0, 0, width, height).fill({ color: doc.background });
     this.mapBackground
-      .clear()
-      .rect(0, 0, width, height)
-      .fill({ color: doc.background })
       .rect(0, 0, width, height)
       .stroke({ width: 2 / this.camera.zoom, color: 0x000000, alpha: 0.5 });
+  }
+
+  /**
+   * Die Karten darunter als Bilder, von unten nach oben. `breite`/`hoehe`
+   * je Bild in Weltpixeln: die Bilder werden kleiner gerendert und hier
+   * wieder auf Kartengröße gezogen. Leer räumt die Unterlage ab.
+   */
+  setzeUnterlage(bilder: readonly { canvas: HTMLCanvasElement; breite: number; hoehe: number }[], deckkraft: number): void {
+    this.unterlage.removeChildren().forEach((c) => c.destroy());
+    for (const t of this.unterlageTexturen) t.destroy(true);
+    this.unterlageTexturen = [];
+    for (const b of bilder) {
+      const textur = Texture.from(b.canvas);
+      this.unterlageTexturen.push(textur);
+      const sprite = new Sprite(textur);
+      sprite.width = b.breite;
+      sprite.height = b.hoehe;
+      this.unterlage.addChild(sprite);
+    }
+    this.unterlage.alpha = deckkraft;
   }
 
   /**
@@ -1291,8 +1325,10 @@ export class MapRenderer {
     onlyLayer?: LayerId;
     /** Filter für diesen Durchgang abschalten. */
     ignoreFilters?: boolean;
+    /** Die Karte, die gerade aufgebaut ist, wenn es nicht die offene ist. */
+    doc?: MapDocument;
   }): () => void {
-    const doc = useEditor.getState().doc;
+    const doc = options.doc ?? useEditor.getState().doc;
     const restore: Array<() => void> = [];
 
     const hide = (node: Container) => {
@@ -1327,7 +1363,9 @@ export class MapRenderer {
       }
     }
     if (!options.includeGrid) hide(this.gridOverlay.view as unknown as Container);
-    if (!options.includeBackground) hide(this.mapBackground);
+    if (!options.includeBackground || doc.ebene?.bodenTransparent) hide(this.mapBackground);
+    // Die Karten darunter sind nur Anschauung im Editor.
+    hide(this.unterlage);
 
     // Layer, die im Panel vom Export ausgenommen sind, verschwinden ebenfalls.
     for (const [id, container] of this.layerContainers) {

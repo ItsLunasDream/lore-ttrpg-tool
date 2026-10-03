@@ -18,6 +18,7 @@ import {
   SYSTEM_GRID,
   SYSTEM_VTT,
   isSystemLayer,
+  type Ebene,
   type GridSettings,
   type Guide,
   type HeightMap,
@@ -1056,6 +1057,34 @@ export class RenameMap implements Command {
     if (!(next instanceof RenameMap)) return false;
     this.name = next.name;
     return true;
+  }
+}
+
+/** Lage über einer anderen Karte (`MapDocument.ebene`), ein Rückgängig-Schritt. */
+export class SetEbene implements Command {
+  label = t('cmd.ebene');
+  private previous: Ebene | undefined;
+  private recorded = false;
+
+  constructor(private readonly patch: Ebene) {}
+
+  do(doc: MapDocument): DocChange[] {
+    if (!this.recorded) {
+      this.previous = doc.ebene ? { ...doc.ebene } : undefined;
+      this.recorded = true;
+    }
+    const neu: Ebene = { ...doc.ebene, ...this.patch };
+    if (!neu.liegtUeber) delete neu.liegtUeber;
+    if (!neu.bodenTransparent) delete neu.bodenTransparent;
+    if (Object.keys(neu).length) doc.ebene = neu;
+    else delete doc.ebene;
+    return [{ type: 'canvas' }];
+  }
+
+  undo(doc: MapDocument): DocChange[] {
+    if (this.previous) doc.ebene = { ...this.previous };
+    else delete doc.ebene;
+    return [{ type: 'canvas' }];
   }
 }
 

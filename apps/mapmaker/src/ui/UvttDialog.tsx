@@ -7,6 +7,7 @@ import {
   canvasToBase64,
   exportSize,
   renderMapToCanvasAsync,
+  renderFremdeKarte,
   type ExportProgress,
   downloadBlob,
   safeFilename,
@@ -26,6 +27,8 @@ import { buildFoundryNotesMacro } from '@/io/foundryNotes';
 import { buildFoundryWalls, buildFoundryWallsMacro } from '@/io/foundryWalls';
 import { TARGET_TRAITS, VTT_TARGETS, targetWarnings, type VttTarget } from '@/io/vttTargets';
 import { isNeutral } from '@/model/filters';
+import { ebenenDateiname, ebenenReihenfolge, ebenenZip } from '@/io/ebenenExport';
+import type { MapDocument } from '@/model/types';
 import { useT } from '@/i18n/useT';
 import { Row, Select, Slider, Toggle, useEscapeClose } from './controls';
 
@@ -35,6 +38,7 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
   useEscapeClose(onClose);
   const doc = useEditor((s) => s.doc);
+  const karten = useEditor((s) => s.karten);
   const rev = useEditor((s) => s.rev);
   const [pixelsPerGrid, setPixelsPerGrid] = useState(100);
   const [format, setFormat] = useState<ImageFormat>('webp');
@@ -188,6 +192,53 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
         new Blob([text], { type: 'application/json' }),
         safeFilename(doc.meta.name, extension),
       );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  };
+
+  /**
+   * Alle Karten der Datei, je eine UVTT-Datei, zusammen in einem ZIP — für
+   * Foundrys Ebenen (`io/ebenenExport.ts`). Mit denselben Einstellungen wie
+   * der einzelne Export; die Bereinigung rechnet je Karte.
+   */
+  const runAlle = async () => {
+    const renderer = getRenderer();
+    if (!renderer) return;
+    setBusy(true);
+    setError(null);
+    setVerified(null);
+    try {
+      await new Promise((r) => setTimeout(r, 30));
+      const filterAn = (k: MapDocument) =>
+        !isNeutral(k.filters) || Object.values(k.layers).some((l) => !isNeutral(l.filters));
+      const reihe = ebenenReihenfolge(karten);
+      const dateien: { name: string; text: string }[] = [];
+      for (const [i, k] of reihe.entries()) {
+        setProgress({ done: i, total: reihe.length });
+        await new Promise((r) => setTimeout(r, 0));
+        const canvas = renderFremdeKarte(renderer, k, doc, {
+          pixelsPerTile: pixelsPerGrid,
+          format,
+          quality: 0.92,
+          includeGrid,
+          includeBackground: true,
+          ignoreFilters: !bakeFilters,
+        });
+        const image = await canvasToBase64(canvas, format, 0.92);
+        const vttOut = cleanup ? applyExportCleanup(k.vtt, planExportCleanup(k)) : k.vtt;
+        const file = buildUvtt(
+          { ...k, vtt: { ...vttOut, bakedLighting: bakeFilters && filterAn(k) } },
+          { image, pixelsPerGrid, target },
+        );
+        dateien.push({ name: ebenenDateiname(i, k.meta.name, extension), text: serializeUvtt(file) });
+      }
+      const liesmich = [t('uvtt.alleLiesmich'), '', ...dateien.map((d) => `- ${d.name}`)].join('\n');
+      downloadBlob(new Blob([ebenenZip(dateien, liesmich) as Uint8Array<ArrayBuffer>], { type: 'application/zip' }), `${baseName()}-ebenen.zip`);
+      setVerified(t('uvtt.alleFertig', { n: dateien.length }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -393,6 +444,11 @@ export function UvttDialog({ onClose }: { onClose: () => void }) {
 
         <footer>
           <button onClick={onClose}>{t('export.close')}</button>
+          {karten.length > 1 ? (
+            <button disabled={busy || size.tooLarge} onClick={runAlle} title={t('uvtt.alleHinweis')} data-uvtt-alle>
+              {t('uvtt.alle', { n: karten.length })}
+            </button>
+          ) : null}
           <button className="primary" disabled={busy || size.tooLarge} onClick={run}>
             {busy ? t('export.rendering') : t('export.run')}
           </button>

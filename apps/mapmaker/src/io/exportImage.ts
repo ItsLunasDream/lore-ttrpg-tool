@@ -142,6 +142,7 @@ function* renderTiles(
     includeBackground: options.includeBackground,
     onlyLayer: options.onlyLayer,
     ignoreFilters: options.ignoreFilters,
+    doc,
   });
 
   try {
@@ -300,4 +301,28 @@ export function downloadBlob(blob: Blob, filename: string): void {
 export function safeFilename(name: string, extension: string): string {
   const base = name.trim().replace(/[<>:"/\\|?*\s]+/g, '_').replace(/\.+$/, '') || 'karte';
   return `${base}.${extension}`;
+}
+
+/**
+ * Eine andere Karte derselben Datei als Bild (`model/mappe.ts`).
+ *
+ * Der Renderer spiegelt nur die offene Karte. Für die Unterlage im Editor und
+ * den Export aller Ebenen baut er die andere kurz auf, rendert sie und baut
+ * danach die offene wieder auf — alles in einem Zug, ohne dass ein Bild der
+ * fremden Karte auf dem Schirm erscheint. Ist `doc` die offene Karte, ist es
+ * dasselbe wie `renderMapToCanvas`.
+ */
+export function renderFremdeKarte(
+  renderer: MapRenderer,
+  doc: MapDocument,
+  offen: MapDocument,
+  options: ImageExportOptions,
+): HTMLCanvasElement {
+  if (doc === offen) return renderMapToCanvas(renderer, doc, options);
+  renderer.rebuildAll(doc);
+  try {
+    return renderMapToCanvas(renderer, doc, options);
+  } finally {
+    renderer.rebuildAll();
+  }
 }
