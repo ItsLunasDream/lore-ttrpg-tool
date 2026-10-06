@@ -2,7 +2,7 @@
   "name": "backstory-creator",
   "version": "1.0.0",
   "private": true,
-  "description": "Desktop-Tool zum Schreiben von D&D-Charakter-Backstorys",
+  "description": "Desktop-Tool zum Schreiben von Charakter-Backstorys fuer Rollenspiele",
   "repository": {
     "type": "git",
     "url": "https://github.com/ItsLunasDream/ttrpg-tool"

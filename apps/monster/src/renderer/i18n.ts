@@ -140,8 +140,8 @@ const TEXTE = {
   'befund.zuStark': ['Zu stark für den Grad', 'Too strong for the rating'],
   'befund.zuSchwach': ['Zu schwach für den Grad', 'Too weak for the rating'],
   'befund.erklaerung': [
-    'Gerechnet wird wie in D&D 5e: aus Trefferpunkten und Rüstung ein Grad, den es aushält, aus Schaden und Angriffsbonus einer, den es austeilt. Der Mittelwert ist das Ergebnis.',
-    'Computed the D&D 5e way: hit points and armor give a rating it can survive, damage and attack bonus give one it can dish out. The result is the mean of the two.'
+    'Gerechnet wird nach den 5E-Regeln: aus Trefferpunkten und Rüstung ein Grad, den es aushält, aus Schaden und Angriffsbonus einer, den es austeilt. Der Mittelwert ist das Ergebnis.',
+    'Computed the 5E way: hit points and armor give a rating it can survive, damage and attack bonus give one it can dish out. The result is the mean of the two.'
   ],
   'befund.gerechnet': ['Gerechnet: Grad {cr}', 'Computed: CR {cr}'],
   'befund.eingestellt': ['Eingestellt: Grad {cr}', 'Set: CR {cr}'],
@@ -188,8 +188,8 @@ const TEXTE = {
   'sammlung.nachDatum': ['zuletzt geändert', 'last changed'],
 
   'hinweis.dnd': [
-    'Dieses Werkzeug rechnet nach den Regeln von D&D 5e (2024). Grade, Trefferpunkte, Rüstungsklasse und Schaden pro Runde sind so gemeint, wie sie dort gemeint sind.',
-    'This tool follows the rules of D&D 5e (2024). Ratings, hit points, armor class and damage per round mean what they mean there.'
+    'Dieses Werkzeug ist 5E-kompatibel und rechnet nach den Regeln von 2024 (SRD 5.2.1). Grade, Trefferpunkte, Rüstungsklasse und Schaden pro Runde sind so gemeint, wie sie dort gemeint sind.',
+    'This tool is 5E compatible and follows the 2024 rules (SRD 5.2.1). Ratings, hit points, armor class and damage per round mean what they mean there.'
   ],
 
   'pruefen.hinweis': [

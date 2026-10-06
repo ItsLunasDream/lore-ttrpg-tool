@@ -14,7 +14,7 @@ KI-Anbindung, die man selbst einrichtet.
   Abzug.
 - **Story Creator**: Figuren, Orte, Beziehungen als Markdown-Notizen mit
   Wiki-Links.
-- **Charakterbogen**: kleiner Bogen für D&D 5.5e, der mitrechnet.
+- **Charakterbogen**: kleiner 5E-kompatibler Bogen, der mitrechnet.
 - **NPC Creator**: Randfiguren aus Tabellen oder per KI.
 - **Inspirationshilfe**: Gerüst für eine neue Kampagne (Aufhänger,
   Fraktionen, Figuren, Orte, Verbindungen, Zeitstrahl).
@@ -179,7 +179,7 @@ Obsidian.
 
 ## Charakterbogen
 
-- Bogen für D&D 5.5e (2024), aufgebaut wie ein klassischer: Attribute,
+- 5E-kompatibler Bogen (Regeln von 2024, SRD 5.2.1), aufgebaut wie ein klassischer: Attribute,
   Rettungswürfe, 18 Fertigkeiten (alphabetisch) mit halber Übung, Übung und
   Expertise, Alleskönner, RK, Initiative, TP, Trefferwürfel, Zustände (SRD
   und eigene aus dem Status Effect Creator), Erschöpfung, Heldische

@@ -430,8 +430,8 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
     id: 'charakterbogen',
     titel: { de: 'Charakterbogen', en: 'Character Sheet' },
     satz: {
-      de: 'Ein kleiner Bogen für D&D 5.5e (2024), der mitrechnet.',
-      en: 'A small sheet for D&D 5.5e (2024) that does the maths.'
+      de: 'Ein kleiner 5E-kompatibler Bogen (Regeln von 2024), der mitrechnet.',
+      en: 'A small 5E-compatible sheet (2024 rules) that does the maths.'
     },
     punkte: [
       {

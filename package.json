@@ -2,7 +2,7 @@
   "name": "dnd-suite",
   "version": "1.0.0",
   "private": true,
-  "description": "Werkzeugsammlung fuer D&D-Kampagnen — Workspace-Wurzel",
+  "description": "LORE — Werkzeugsammlung fuer Rollenspielrunden, Workspace-Wurzel",
   "workspaces": [
     "apps/*",
     "packages/*"
