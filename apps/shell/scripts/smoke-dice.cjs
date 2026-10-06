@@ -275,7 +275,17 @@ app.whenReady().then(async () => {
   pruefe(streifen > 0, `die Eins bekommt Streifen (${streifen} gesehen)`);
 
   // Abgeschaltet heisst abgeschaltet.
-  await js("[...document.querySelectorAll('.aussehen__schalter input')][0].click(); true");
+  // Den Glitzer-Schalter über seinen Text suchen, nicht über die Stelle:
+  // seit der 3D-Schalter darüber steht, traf [0] den falschen.
+  await js(`(() => {
+    const l = [...document.querySelectorAll('.aussehen__schalter')].find((x) => /Glitzer|Sparkle/.test(x.textContent));
+    l?.querySelector('input')?.click();
+    return true;
+  })()`);
+  pruefe(
+    (await js(`[...document.querySelectorAll('.aussehen__schalter')].find((x) => /Glitzer|Sparkle/.test(x.textContent))?.querySelector('input')?.checked`)) === false,
+    'der Glitzer-Schalter ist aus'
+  );
   await warte(200);
   await js("document.querySelector('.auswahl__knoepfe .knopf--haupt').click(); true");
   await warte(1200);
@@ -283,7 +293,12 @@ app.whenReady().then(async () => {
     (await js("document.querySelectorAll('.glitzer').length")) === 0,
     'abgeschalteter Glitzer bleibt aus'
   );
-  await js("[...document.querySelectorAll('.aussehen__schalter input')][0].click(); true");
+  // Wieder an, für die Schritte danach.
+  await js(`(() => {
+    const l = [...document.querySelectorAll('.aussehen__schalter')].find((x) => /Glitzer|Sparkle/.test(x.textContent));
+    l?.querySelector('input')?.click();
+    return true;
+  })()`);
 
   // --- Koerperdarstellung (3D) --------------------------------------------
   /*

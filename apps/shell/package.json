@@ -55,7 +55,7 @@
     "appId": "de.itslunasdream.ttrpgtools",
     "productName": "LORE",
     "copyright": "Copyright © ItsLunasDream",
-    "electronVersion": "33.4.11",
+    "electronVersion": "44.5.1",
     "npmRebuild": false,
     "directories": {
       "output": "release",
