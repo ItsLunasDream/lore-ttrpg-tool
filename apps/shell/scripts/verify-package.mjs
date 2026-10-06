@@ -168,8 +168,17 @@ async function pruefeEingebetteteDateien() {
       fehlend.push(voll);
     }
   }
+  // Lizenz und Namensnennung gehören ins Paket (NOTICE.md: sie wegzulassen
+  // wäre ein Lizenzbruch), ebenso die Lizenzen der Schriften und Symbole.
+  for (const datei of ['LICENSE', 'NOTICE.md', 'SCHRIFTEN.md', path.join('symbole', 'LIZENZ.md')]) {
+    try {
+      await access(path.join(resources, datei));
+    } catch {
+      fehlend.push(path.join(resources, datei));
+    }
+  }
   return fehlend.length
-    ? [`Dateien eingebetteter Anwendungen fehlen im Paket:\n  ${fehlend.join('\n  ')}`]
+    ? [`Dateien fehlen im Paket:\n  ${fehlend.join('\n  ')}`]
     : [];
 }
 

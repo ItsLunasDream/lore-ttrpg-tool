@@ -226,6 +226,18 @@
           "**/*",
           "!LIESMICH.md"
         ]
+      },
+      {
+        "from": "../../LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "../../NOTICE.md",
+        "to": "NOTICE.md"
+      },
+      {
+        "from": "../charakterbogen/SCHRIFTEN.md",
+        "to": "SCHRIFTEN.md"
       }
     ],
     "win": {
