@@ -45,7 +45,33 @@ export function eindeutigeIds(karten: readonly MapDocument[]): void {
 export function neueKarteWie(vorlage: MapDocument, name: string): MapDocument {
   const doc = createDocument(vorlage.size.cols, vorlage.size.rows, name);
   doc.grid = { ...vorlage.grid };
+  // Meist die nächste Etage: über der Vorlage, mit durchsichtigem Boden.
+  // Für einen Keller lässt sich beides in den Karteneinstellungen ändern.
+  if (vorlage.meta.id) doc.ebene = { liegtUeber: vorlage.meta.id, bodenTransparent: true };
   return doc;
+}
+
+/**
+ * Die Karten unter `doc`, von unten nach oben: der Keller zuerst, dann das
+ * Erdgeschoss. Ein Kreis (A über B über A) bricht ab, statt ewig zu laufen.
+ */
+export function kartenDarunter(karten: readonly MapDocument[], doc: MapDocument): MapDocument[] {
+  const kette: MapDocument[] = [];
+  const gesehen = new Set<MapDocument>([doc]);
+  let ziel = doc.ebene?.liegtUeber;
+  while (ziel) {
+    const unten = karten.find((k) => k.meta.id === ziel);
+    if (!unten || gesehen.has(unten)) break;
+    kette.unshift(unten);
+    gesehen.add(unten);
+    ziel = unten.ebene?.liegtUeber;
+  }
+  return kette;
+}
+
+/** Karten, über die `doc` gelegt werden darf, ohne einen Kreis zu bilden. */
+export function moeglicheUnterlagen(karten: readonly MapDocument[], doc: MapDocument): MapDocument[] {
+  return karten.filter((k) => k !== doc && !kartenDarunter(karten, k).includes(doc));
 }
 
 /** Ein freier Name: „Etage 2", „Etage 3" … ohne einen vorhandenen zu doppeln. */
@@ -65,6 +91,10 @@ export function freierKartenName(karten: readonly MapDocument[], stamm: string):
 export function entferneVerweiseAuf(karten: readonly MapDocument[], id: string): number {
   let n = 0;
   for (const k of karten) {
+    if (k.ebene?.liegtUeber === id) {
+      delete k.ebene.liegtUeber;
+      if (!k.ebene.bodenTransparent) delete k.ebene;
+    }
     for (const note of k.vtt.notes) {
       if (note.zielKarte === id) {
         delete note.zielKarte;

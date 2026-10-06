@@ -2,7 +2,7 @@
   "name": "ttrpg-charakterbogen",
   "version": "1.0.0",
   "private": true,
-  "description": "Charakterbogen — kleiner Bogen fuer D&D 5.5e (SRD 5.2) mit Inventar",
+  "description": "Charakterbogen — kleiner 5E-kompatibler Bogen (SRD 5.2.1) mit Inventar",
   "type": "module",
   "scripts": {
     "build": "npm run build:renderer && npm run build:main",

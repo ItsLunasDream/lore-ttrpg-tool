@@ -9,6 +9,7 @@ import {
   ResizeMap,
   SetObjectGroup,
   SetBackground,
+  SetEbene,
   type ResizeAnchor,
 } from '@/model/commands';
 import { buildScaleBar } from '@/model/scaleBar';
@@ -16,6 +17,7 @@ import { isDark } from '@/model/color';
 import { defaultTargetLayer } from '@/model/document';
 import { mapPixelSize } from '@/model/grid';
 import { useEditor } from '@/model/store';
+import { moeglicheUnterlagen } from '@/model/mappe';
 import { align, distribute, type Deltas, type Item as AlignItem } from '@/model/align';
 import { getRenderer } from '@/engine/instance';
 import { makeId } from '@/model/ids';
@@ -96,6 +98,47 @@ export function MapSettings() {
           tile: doc.grid.tileSize,
         })}
       </p>
+    </Section>
+  );
+}
+
+/**
+ * Wie die offene Karte über einer anderen derselben Datei liegt
+ * (`model/mappe.ts`). Erscheint erst, wenn die Datei mehrere Karten hat.
+ */
+export function EbenenSettings() {
+  const { t } = useT();
+  const doc = useEditor((s) => s.doc);
+  const karten = useEditor((s) => s.karten);
+  const rev = useEditor((s) => s.rev);
+  const exec = useEditor((s) => s.exec);
+  const deckkraft = useEditor((s) => s.unterlageDeckkraft);
+  const setDeckkraft = useEditor((s) => s.setUnterlageDeckkraft);
+  void rev;
+  if (karten.length < 2) return null;
+
+  return (
+    <Section title={t('ebene.title')}>
+      <Select<string>
+        label={t('ebene.liegtUeber')}
+        value={doc.ebene?.liegtUeber ?? ''}
+        options={[
+          { value: '', label: t('ebene.keine') },
+          ...moeglicheUnterlagen(karten, doc)
+            .filter((k) => k.meta.id)
+            .map((k) => ({ value: k.meta.id!, label: k.meta.name })),
+        ]}
+        onChange={(v) => exec(new SetEbene({ liegtUeber: v || undefined }))}
+      />
+      <Toggle
+        label={t('ebene.transparent')}
+        checked={!!doc.ebene?.bodenTransparent}
+        onChange={(v) => exec(new SetEbene({ bodenTransparent: v }))}
+      />
+      {doc.ebene?.liegtUeber ? (
+        <Slider label={t('ebene.deckkraft')} min={0} max={1} step={0.05} value={deckkraft} onChange={setDeckkraft} />
+      ) : null}
+      <p className="hint">{t('ebene.hinweis')}</p>
     </Section>
   );
 }

@@ -401,7 +401,11 @@ app.whenReady().then(async () => {
   pruefe(/47913/.test(await js("document.querySelector('[data-raum-portfreigabe]')?.textContent ?? ''")), 'der Hinweis zur Portfreigabe nennt den Port');
   await js(`document.querySelector('[data-raum-einladung]').click(); true`);
   pruefe(
-    await bis(() => /47913/.test(require('electron').clipboard.readText()) && !/geheim/.test(require('electron').clipboard.readText())),
+    // Seit Electron 44 liefert readText ein Promise.
+    await bis(async () => {
+      const text = await require('electron').clipboard.readText();
+      return /47913/.test(text) && !/geheim/.test(text);
+    }),
     'die Einladung liegt in der Zwischenablage, mit Port, ohne Passwort'
   );
   if (process.env.BILD_NETZ) await warte(3000);

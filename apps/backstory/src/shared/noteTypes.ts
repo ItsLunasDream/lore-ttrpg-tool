@@ -29,9 +29,9 @@ export const NOTIZTYP_VORLAGEN: Record<Language, NoteTypeDef[]> = {
         { key: 'height', label: 'Größe', type: 'text', placeholder: 'z.B. 1,72 m' },
         {
           key: 'dndBeyondUrl',
-          label: 'D&D-Beyond-Sheet',
+          label: 'Link zum Online-Bogen',
           type: 'url',
-          placeholder: 'https://www.dndbeyond.com/characters/...'
+          placeholder: 'https://…'
         }
       ]
     },
@@ -87,9 +87,9 @@ export const NOTIZTYP_VORLAGEN: Record<Language, NoteTypeDef[]> = {
         { key: 'height', label: 'Height', type: 'text', placeholder: "e.g. 5'8\"" },
         {
           key: 'dndBeyondUrl',
-          label: 'D&D Beyond sheet',
+          label: 'Online sheet link',
           type: 'url',
-          placeholder: 'https://www.dndbeyond.com/characters/...'
+          placeholder: 'https://…'
         }
       ]
     },

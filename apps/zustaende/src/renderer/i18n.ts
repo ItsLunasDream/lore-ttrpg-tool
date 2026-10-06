@@ -13,8 +13,8 @@ const TEXTE = {
     'Custom conditions with levels — and every one gets weighed.'
   ],
   'hinweis.regeln': [
-    'Die Vorlagen orientieren sich an D&D 5e. Was „Nachteil" an deinem Tisch bedeutet, entscheidet dein Tisch — das Werkzeug kennt nur Stufen, Dauern und Auslöser.',
-    'The tables lean on D&D 5e. What “disadvantage” means at your table is your table’s call — the tool only knows levels, durations and triggers.'
+    'Die Vorlagen orientieren sich an 5E. Was „Nachteil" an deinem Tisch bedeutet, entscheidet dein Tisch — das Werkzeug kennt nur Stufen, Dauern und Auslöser.',
+    'The tables lean on 5E. What “disadvantage” means at your table is your table’s call — the tool only knows levels, durations and triggers.'
   ],
 
   'reiter.bauen': ['Bauen', 'Build'],

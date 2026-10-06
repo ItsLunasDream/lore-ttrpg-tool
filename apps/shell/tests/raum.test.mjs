@@ -467,3 +467,43 @@ test('Rollen: ohne SL darf der Gastgeber ernennen; gemerkte Rollen kommen am Sch
     g.d.beende();
   }
 });
+
+test('ohne Anmeldung: Frist, kleine Zeilen und höchstens acht wartende Leitungen', async () => {
+  const net = await import('node:net');
+  const g = dienst(47961);
+  const a = dienst(47961);
+  const offen = [];
+  const verbinde = (port) =>
+    new Promise((fertig) => {
+      const s = net.connect(port, '127.0.0.1');
+      s.zu = false;
+      s.on('close', () => (s.zu = true));
+      s.on('error', () => {});
+      // Lesen, sonst bleibt die Herausforderung im Puffer und `close` kommt nie.
+      s.resume();
+      s.on('connect', () => fertig(s));
+      offen.push(s);
+    });
+  try {
+    const port = await g.d.eroeffne('Probe', 'geheim', 'SL');
+    // Acht stille Leitungen: der Raum ist trotzdem nicht „voll".
+    const still = [];
+    for (let i = 0; i < 8; i += 1) still.push(await verbinde(port));
+    // Die neunte wird gleich getrennt.
+    const neunte = await verbinde(port);
+    await bis(() => neunte.zu);
+    // Eine riesige Zeile vor der Anmeldung trennt sofort.
+    still[0].write('x'.repeat(100 * 1024));
+    await bis(() => still[0].zu);
+    // Wer das Passwort kennt, kommt weiter herein.
+    await a.d.trittBei('127.0.0.1', port, 'geheim', 'Anna');
+    await bis(() => g.d.zustand().personen.length === 2);
+    // Nach der Frist sind die stillen Leitungen zu.
+    await bis(() => still.every((s) => s.zu), 13000);
+    assert.equal(g.d.zustand().personen.length, 2);
+  } finally {
+    for (const s of offen) s.destroy();
+    a.d.beende();
+    g.d.beende();
+  }
+});

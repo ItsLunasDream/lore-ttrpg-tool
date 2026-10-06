@@ -121,3 +121,66 @@ describe('Karten im Editor', () => {
     expect(s.rev).not.toBe(s.lastSavedRev);
   });
 });
+
+describe('Karten übereinander', () => {
+  it('die Kette darunter, von unten nach oben, ohne Kreis', async () => {
+    const { kartenDarunter, moeglicheUnterlagen } = await import('@/model/mappe');
+    const keller = karte('Keller');
+    const eg = karte('EG');
+    const og = karte('OG');
+    eg.ebene = { liegtUeber: keller.meta.id };
+    og.ebene = { liegtUeber: eg.meta.id, bodenTransparent: true };
+    const alle = [eg, og, keller];
+    expect(kartenDarunter(alle, og).map((k) => k.meta.name)).toEqual(['Keller', 'EG']);
+    // Der Keller darf nicht über das OG gelegt werden: das wäre ein Kreis.
+    expect(moeglicheUnterlagen(alle, keller).map((k) => k.meta.name)).toEqual([]);
+    expect(moeglicheUnterlagen(alle, eg).map((k) => k.meta.name)).toEqual(['Keller']);
+    keller.ebene = { liegtUeber: og.meta.id };
+    expect(kartenDarunter(alle, og).map((k) => k.meta.name)).toEqual(['Keller', 'EG']);
+  });
+
+  it('neue Karte liegt über der offenen, mit durchsichtigem Boden', () => {
+    useEditor.getState().ladeMappe([karte('EG')], 0);
+    const egId = useEditor.getState().doc.meta.id;
+    useEditor.getState().neueKarte('OG');
+    expect(useEditor.getState().doc.ebene).toEqual({ liegtUeber: egId, bodenTransparent: true });
+  });
+
+  it('SetEbene ist ein Rückgängig-Schritt und räumt leere Angaben ab', async () => {
+    const { SetEbene } = await import('@/model/commands');
+    useEditor.getState().ladeMappe([karte('EG'), karte('OG')], 1);
+    const st = () => useEditor.getState();
+    st().exec(new SetEbene({ liegtUeber: st().karten[0].meta.id, bodenTransparent: true }));
+    expect(st().doc.ebene?.bodenTransparent).toBe(true);
+    st().exec(new SetEbene({ liegtUeber: undefined, bodenTransparent: false }));
+    expect(st().doc.ebene).toBeUndefined();
+    st().undo();
+    expect(st().doc.ebene).toEqual({ liegtUeber: st().karten[0].meta.id, bodenTransparent: true });
+  });
+
+  it('Lage übersteht Speichern und Laden; Unbekanntes fällt weg', () => {
+    const eg = karte('EG');
+    const og = karte('OG');
+    og.ebene = { liegtUeber: eg.meta.id, bodenTransparent: true };
+    (og.ebene as Record<string, unknown>).fremd = 'x';
+    const { bundle } = unpackProject(packMappe([eg, og], 0));
+    expect(bundle.karten[1].ebene).toEqual({ liegtUeber: eg.meta.id, bodenTransparent: true });
+  });
+
+  it('Entfernen der Karte darunter löst die Lage', () => {
+    useEditor.getState().ladeMappe([karte('EG')], 0);
+    useEditor.getState().neueKarte('OG');
+    useEditor.getState().entferneKarte(0);
+    expect(useEditor.getState().doc.ebene).toEqual({ bodenTransparent: true });
+  });
+
+  it('Export aller Ebenen: von unten nach oben, nummeriert', async () => {
+    const { ebenenReihenfolge, ebenenDateiname } = await import('@/io/ebenenExport');
+    const og = karte('OG');
+    const eg = karte('EG');
+    const turm = karte('Turm');
+    og.ebene = { liegtUeber: eg.meta.id };
+    expect(ebenenReihenfolge([og, eg, turm]).map((k) => k.meta.name)).toEqual(['EG', 'Turm', 'OG']);
+    expect(ebenenDateiname(0, 'Erd geschoss', 'dd2vtt')).toBe('01-Erd_geschoss.dd2vtt');
+  });
+});

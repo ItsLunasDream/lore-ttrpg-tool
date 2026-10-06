@@ -322,6 +322,9 @@ export interface EditorState {
   /** Eine Karte aus der Datei nehmen; Verweise auf sie verschwinden mit. */
   entferneKarte(stelle: number): void;
   benenneKarte(stelle: number, name: string): void;
+  /** Wie deutlich die Karten darunter im Editor zu sehen sind (Ansicht, kein Dokument). */
+  unterlageDeckkraft: number;
+  setUnterlageDeckkraft(wert: number): void;
 }
 
 const initialDoc = mitKartenId(createDocument());
@@ -337,6 +340,10 @@ export const useEditor = create<EditorState>((set, get) => ({
   doc: initialDoc,
   karten: [initialDoc],
   aktiveKarte: 0,
+  unterlageDeckkraft: 0.7,
+  setUnterlageDeckkraft(wert) {
+    set({ unterlageDeckkraft: Math.max(0, Math.min(1, wert)) });
+  },
   rev: 0,
   history: new History(),
 

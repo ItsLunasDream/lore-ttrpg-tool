@@ -12,6 +12,7 @@ import { Graphics, Rectangle, RenderTexture } from 'pixi.js';
 import { allProps } from './assets/library';
 import { Rng, hashSeed } from './model/rng';
 import { getRenderer } from './engine/instance';
+import { renderFremdeKarte } from './io/exportImage';
 import { useEditor, type EditorState } from './model/store';
 import * as commands from './model/commands';
 import type { MapDocument } from './model/types';
@@ -49,6 +50,12 @@ export interface DevHarness {
    */
   probe(punkte: Array<[number, number]>): Array<[number, number, number, number]>;
   shot(name: string, width?: number): Promise<string>;
+  /**
+   * Farbe an Weltpunkten im Bild-Export der Karte an Stelle `karte` (Standard:
+   * die offene), mit Hintergrund. Für die Frage, ob ein durchsichtiger Boden im
+   * Export wirklich durchsichtig ist — am Schirm liegt ja die Unterlage drunter.
+   */
+  exportProbe(punkte: Array<[number, number]>, karte?: number): Array<[number, number, number, number]>;
   /**
    * Kontaktbogen aller (oder ausgewählter) prozeduraler Props als PNG.
    *
@@ -232,6 +239,26 @@ export function installDevHarness(): void {
       });
       rt.destroy(true);
       return aus;
+    },
+
+    exportProbe(punkte, karte) {
+      const r = getRenderer();
+      if (!r) return [];
+      const s = useEditor.getState();
+      const doc = s.karten[karte ?? s.aktiveKarte] ?? s.doc;
+      const canvas = renderFremdeKarte(r, doc, s.doc, {
+        pixelsPerTile: doc.grid.tileSize,
+        format: 'png',
+        quality: 1,
+        includeGrid: false,
+        includeBackground: true,
+      });
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return [];
+      return punkte.map(([x, y]) => {
+        const d = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+        return [d[0], d[1], d[2], d[3]] as [number, number, number, number];
+      });
     },
 
     async shot(name, width = 640) {

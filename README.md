@@ -13,7 +13,7 @@ connection you set up yourself.
 - **Dice**: d4 to d100 plus a custom die, flat or 3D, subtraction included.
 - **Story Creator**: characters, places, relationships as Markdown notes with
   wiki links.
-- **Character Sheet**: a small D&D 5.5e sheet that does the maths.
+- **Character Sheet**: a small 5E-compatible sheet that does the maths.
 - **NPC Creator**: background characters from tables or AI.
 - **Inspiration**: scaffold for a new campaign (hook, factions, characters,
   places, connections, timeline).
@@ -180,7 +180,7 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 
 ## Character Sheet
 
-- A D&D 5.5e (2024) sheet laid out like a classic one: abilities, saves,
+- A 5E-compatible sheet (2024 rules, SRD 5.2.1) laid out like a classic one: abilities, saves,
   18 skills (alphabetical) with half proficiency, proficiency and
   expertise, Jack of All Trades, AC, initiative, HP, Hit Point Dice,
   conditions (SRD and your own from the Status Effect Creator), exhaustion,

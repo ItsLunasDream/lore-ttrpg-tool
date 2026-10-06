@@ -8,8 +8,8 @@ import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 const TEXTE = {
   titel: ['Charakterbogen', 'Character Sheet'],
   untertitel: [
-    'Ein kleiner Bogen für D&D 5.5e (2024). Rechnet Modifikatoren und Boni, den Rest trägst du ein.',
-    'A small sheet for D&D 5.5e (2024). It works out modifiers and bonuses; you fill in the rest.'
+    'Ein kleiner 5E-kompatibler Bogen (Regeln von 2024). Rechnet Modifikatoren und Boni, den Rest trägst du ein.',
+    'A small 5E-compatible sheet (2024 rules). It works out modifiers and bonuses; you fill in the rest.'
   ],
   'liste.leer': ['Noch keine Bögen.', 'No sheets yet.'],
   'liste.suche': ['Suchen', 'Search'],

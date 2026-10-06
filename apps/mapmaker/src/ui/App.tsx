@@ -10,11 +10,13 @@ import { Toolbar } from './Toolbar';
 import { FilterPanel } from './FilterPanel';
 import { NoteDialog } from './NoteDialog';
 import { KartenLeiste } from './KartenLeiste';
+import { Unterlage } from './Unterlage';
 import {
   BrushSettingsPanel,
   DrawSettingsPanel,
   GridSettings,
   MapSettings,
+  EbenenSettings,
   ObjectInspector,
   EraseSettingsPanel,
   SymmetryPanel,
@@ -106,6 +108,7 @@ export function App() {
           <VttOverviewPanel />
           <GridSettings />
           <MapSettings />
+          <EbenenSettings />
         </aside>
       </div>
 
@@ -126,6 +129,7 @@ export function App() {
       </footer>
 
       <NoteDialog />
+      <Unterlage bereit={rendererReady} />
     </div>
   );
 }

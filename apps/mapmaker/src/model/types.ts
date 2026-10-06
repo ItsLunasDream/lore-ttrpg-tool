@@ -640,4 +640,20 @@ export interface MapDocument {
    * weiterladen.
    */
   guides?: Guide[];
+  /**
+   * Wie diese Karte über einer anderen derselben Datei liegt (`model/mappe.ts`):
+   * der 1. Stock über dem Erdgeschoss, durch dessen Hof man hinuntersieht.
+   * Optional, damit ältere Projektdateien unverändert weiterladen.
+   */
+  ebene?: Ebene;
+}
+
+export interface Ebene {
+  /** `meta.id` der Karte darunter; im Editor scheint sie durch. */
+  liegtUeber?: string;
+  /**
+   * Kein Hintergrund: wo nichts gezeichnet ist, sieht man die Karte darunter,
+   * und Bild- und UVTT-Export werden dort durchsichtig (für Foundrys Ebenen).
+   */
+  bodenTransparent?: boolean;
 }
