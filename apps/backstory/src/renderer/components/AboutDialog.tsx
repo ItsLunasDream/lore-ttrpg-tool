@@ -7,7 +7,7 @@ interface Props {
   onClose: () => void;
 }
 
-const REPO_URL = 'https://github.com/ItsLunasDream/ttrpg-tool';
+const REPO_URL = 'https://github.com/ItsLunasDream/lore-ttrpg-tool';
 const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 
 /** Name, Version und Lizenz. Kein Rechtsdokument, nur der Verweis darauf. */

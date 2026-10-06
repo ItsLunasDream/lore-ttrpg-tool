@@ -127,8 +127,8 @@ export const texte = {
   'msg.geladen': ['Begegnung geladen', 'Encounter loaded'],
   'msg.figuren': ['{n} Figuren aus dem Charakterbogen übernommen', '{n} characters taken over from the character sheet'],
   'msg.uebernommen': [
-    'Begegnung aus dem Encounter Creator übernommen',
-    'Encounter taken over from the encounter creator'
+    'Begegnung aus den Begegnungen übernommen',
+    'Encounter taken over from Encounters'
   ],
   'taste.leertaste': ['Leertaste: weiter', 'Space: next'],
   'bestaetigen.beenden': [

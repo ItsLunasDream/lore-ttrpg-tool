@@ -85,8 +85,8 @@ export const texte = {
 
   'knopf.karte': ['Karte anlegen', 'Start a map'],
   'karte.hinweis': [
-    'Öffnet den Karteneditor und beginnt dort eine leere Karte unter diesem Namen.',
-    'Opens the map editor and starts an empty map under this name.'
+    'Öffnet die Karten und beginnt dort eine leere Karte unter diesem Namen.',
+    'Opens Maps and starts an empty map under this name.'
   ],
 
   'geflecht.alt': [

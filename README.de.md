@@ -8,7 +8,7 @@ Werkzeuge für Pen-&-Paper-Kampagnen in einem Fenster. Keine Anmeldung, keine
 Cloud: alles bleibt auf der eigenen Platte. Einzige Ausnahme ist die
 KI-Anbindung, die man selbst einrichtet.
 
-- **Initiative Tracker**: Kampfreihenfolge, Trefferpunkte, Zustände mit
+- **Initiative**: Kampfreihenfolge, Trefferpunkte, Zustände mit
   Dauer, Geländeereignisse, Gruppen für Horden.
 - **Würfel**: d4 bis d100 und ein eigener Würfel, flach oder 3D, auch mit
   Abzug.
@@ -21,14 +21,14 @@ KI-Anbindung, die man selbst einrichtet.
 - **Monster Creator**: Homebrew-Monster, geprüft gegen Richtwerte je HG.
 - **Status Effect Creator**: eigene Zustände mit Stufen, gewogen an den
   offiziellen.
-- **Encounter Creator**: Begegnungen aus 331 SRD-Monstern und eigenen,
+- **Begegnungen**: Begegnungen aus 331 SRD-Monstern und eigenen,
   Schwierigkeit nach Regelwerk, mit einem Klick in den Tracker.
 - **Magic Item Generator**: magische Gegenstände nach Art und Seltenheit, Wert
   nach SRD.
 - **Loot Generator**: eigene, verschachtelbare Zufallstabellen.
 - **Nachschlagewerk**: SRD-Glossar, Ausrüstung, 339 Zauber, 258 magische
   Gegenstände, offline in beiden Sprachen, mit Hausregeln und Notizen.
-- **TTRPG Map Editor**: Battlemaps und Weltkarten, Export als Universal VTT.
+- **Karten**: Battlemaps und Weltkarten, Export als Universal VTT.
 
 Namen und Symbole sind vorläufig.
 
@@ -72,14 +72,14 @@ npm run dist:win        # Windows-Installer nach apps/shell/release/
 ```
 apps/shell/           Hülle: Fenster, Startmenü, Schiene, Einstellungen, Teilen
 apps/backstory/       Story Creator
-apps/mapmaker/        TTRPG Map Editor (auch als Tauri-App)
-apps/initiative/      Initiative Tracker
+apps/mapmaker/        Karten (auch als Tauri-App)
+apps/initiative/      Initiative
 apps/dice/            Würfel
 apps/npc/             NPC Creator
 apps/inspiration/     Inspirationshilfe
 apps/monster/         Monster Creator
 apps/zustaende/       Status Effect Creator
-apps/encounter/       Encounter Creator
+apps/encounter/       Begegnungen
 apps/nachschlagewerk/ Nachschlagewerk
 apps/magicitems/      Magic Item Generator
 apps/loot/            Loot Generator
@@ -212,7 +212,7 @@ Obsidian.
   TP-Änderungen gehen in beide Richtungen.
 - Speichert von selbst als Markdown (`docs/charakterbogen.md`).
 
-## Initiative Tracker
+## Initiative
 
 - **Gruppen**: eine Initiative, eigene Trefferpunkte je Körper.
 - **Zustände** mit Dauer zählen selbst ab. SRD- und eigene Zustände werden
@@ -223,7 +223,7 @@ Obsidian.
 - **RK, Temp-HP, „Raus"** haben eigene Felder.
 - Initiative ändern sortiert neu; die aktive Zeile bleibt und rollt in den
   Blick.
-- **Statblock** per Klick bei Monstern aus dem Encounter Creator.
+- **Statblock** per Klick bei Monstern aus den Begegnungen.
 - **Strg+Z / Strg+Y** nimmt alles im Kampf zurück und wiederholt es.
 - Begegnungen sind Markdown-Dateien in einer durchsuchbaren Sammlung; der
   laufende Kampf (samt Taktik-Notiz) liegt als JSON daneben.
@@ -247,7 +247,7 @@ Obsidian.
   festhalten oder überschreiben.
 - Vorhandene Figuren der Kampagne lassen sich einbinden.
 - Das Figurengeflecht als Bild, per Klick über den ganzen Schirm.
-- „Karte anlegen" öffnet den Karteneditor mit den Notizen zum Ort als Pins.
+- „Karte anlegen" öffnet die Karten mit den Notizen zum Ort als Pins.
 - „Alles von der KI" entwirft alle sechs Bausteine aufeinander bezogen.
 - **Übernehmen** legt Notizen und eine Übersicht in der gewählten Kampagne
   an. Vorhandene werden übersprungen oder auf Wunsch aktualisiert.
@@ -288,7 +288,7 @@ Richtwerte aus einer CC-BY-Quelle, siehe [NOTICE.md](NOTICE.md).
 - **Karte zum Vorlesen**: vorn der Spielertext, hinten die Regel.
 - „Als neu speichern" lässt das Original stehen.
 
-## Encounter Creator
+## Begegnungen
 
 - Die Einordnung steht unter den Gegnern und nennt alle drei Budgets.
 - Zusammenstellen nach Ziel-HG oder nach Schwierigkeit für die Gruppe.
@@ -314,7 +314,7 @@ Mehr: `docs/nachschlagewerk.md`.
 - **3D** (standardmäßig aus, braucht Grafikbeschleunigung): das Ergebnis
   kommt aus `wuerfle()`, die Physik animiert es nur.
 
-## TTRPG Map Editor
+## Karten
 
 `apps/mapmaker` hat eine eigene Historie und `CLAUDE.md`. Anpassungen für den
 Workspace: `base: './'` in `vite.config.ts` und eine Typ-Notlösung für die
@@ -382,7 +382,7 @@ Kommentare, Commits und Projektunterlagen (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `inspirationshilfe.md` | Inspirationshilfe |
 | `monster.md` | Monster Creator |
 | `statuseffekte.md` | Status Effect Creator |
-| `encounter.md` | Encounter Creator |
+| `encounter.md` | Begegnungen |
 | `austausch.md` | Teilen und Räume |
 | `raum-online.md` | Anleitung: Raum übers Internet (Portfreigabe, IPv6) |
 | `magicitems.md` | Magic Item Generator |

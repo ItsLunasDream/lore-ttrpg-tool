@@ -19,7 +19,7 @@
  */
 // Zuerst: der Datenordner, bevor irgendetwas ihn erfragt.
 import './datenordner';
-import { app, BaseWindow, WebContentsView, dialog, clipboard, ipcMain, net, screen, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
+import { app, BaseWindow, WebContentsView, dialog, clipboard, ipcMain, net, screen, session, shell, type IpcMainInvokeEvent, type WebContents } from 'electron';
 /**
  * Startzeit messen, wenn TTRPG_TOOLS_STARTZEIT gesetzt ist.
  *
@@ -119,11 +119,17 @@ import {
   type WindowState
 } from './windowState';
 
+import { begrenzeBerechtigungen } from './berechtigungen';
+
 const devServerUrl = process.env.SHELL_DEV_SERVER_URL;
 
 // Muss vor app.whenReady stehen: danach nimmt Electron keine Schemata mehr
 // an, und die eingebetteten Anwendungen koennten ihre Bilder nicht liefern.
 registerSchemes();
+
+// Jede Sitzung, auch die der eingebetteten Werkzeuge, nur mit der kurzen
+// Erlaubnisliste aus berechtigungen.ts.
+app.on('session-created', begrenzeBerechtigungen);
 
 let fenster: BaseWindow | null = null;
 let huelle: WebContentsView | null = null;
@@ -1899,6 +1905,8 @@ process.on('unhandledRejection', (grund) => {
 
 app.whenReady().then(async () => {
   startMarke('Electron bereit');
+  // Die Standardsitzung kann vor dem Ereignis oben entstehen.
+  begrenzeBerechtigungen(session.defaultSession);
   einstellungsDatei = join(app.getPath('userData'), 'einstellungen.json');
   protokollDatei = join(app.getPath('userData'), 'maustasten.log');
   if (tastenProtokoll) {
