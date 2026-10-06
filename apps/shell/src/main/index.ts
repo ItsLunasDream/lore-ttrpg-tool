@@ -1413,11 +1413,17 @@ function registriereKanaele(): void {
       return null;
     }
   });
-  handle('raum:kopieren', (_event, text: string) => {
+  handle('raum:kopieren', async (_event, text: string) => {
     // Eine Einladung mit mehreren Adressen hat leicht ueber 200 Zeichen.
     if (typeof text !== 'string' || text.length > 4000) return false;
-    clipboard.writeText(text);
-    return true;
+    // Seit Electron 44 ist die Zwischenablage asynchron: erst nach dem
+    // Schreiben „kopiert" melden, und einen Fehler nicht verschlucken.
+    try {
+      await clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
   });
   handle('raum:verlassen', () => {
     offenesPasswort = '';
