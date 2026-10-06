@@ -31,6 +31,9 @@ import {
   lesePaket,
   MAX_CHAT,
   MAX_PERSONEN,
+  MAX_WARTEND,
+  MAX_ZEILE,
+  MAX_ZEILE_VOR_ANMELDUNG,
   RAUM_INTERNETPORT,
   RAUM_SUCHPORT,
   RAUM_VERSION,
@@ -492,11 +495,22 @@ export class Raumdienst {
   private nimmGastAuf(socket: Socket): void {
     socket.setEncoding('utf8');
     const gast: Gastverbindung = { person: null, socket, nonce: neueNonce(), schutz: null };
-    const leser = new Zeilenleser();
-    if (this.gaeste.size >= MAX_PERSONEN - 1) {
+    // Vor der Anmeldung kurz und klein: wer das Passwort nicht kennt, soll
+    // den Raum weder mit offenen Leitungen füllen noch mit einer riesigen
+    // Zeile den Speicher (Prüfung vor der Veröffentlichung).
+    const leser = new Zeilenleser(MAX_ZEILE_VOR_ANMELDUNG);
+    const angemeldet = [...this.gaeste].filter((g) => g.person).length;
+    if (angemeldet >= MAX_PERSONEN - 1) {
       socket.end(kodiere({ typ: 'abgelehnt', grund: 'voll' }));
       return;
     }
+    if (this.gaeste.size - angemeldet >= MAX_WARTEND) {
+      socket.destroy();
+      return;
+    }
+    const frist = setTimeout(() => {
+      if (!gast.person) socket.destroy();
+    }, BEITRITT_FRIST_MS);
     this.gaeste.add(gast);
     socket.write(kodiere({ typ: 'herausforderung', raum: this.raumName, nonce: gast.nonce, salz: this.salz }));
     socket.on('data', (stueck: string) => {
@@ -517,9 +531,14 @@ export class Raumdienst {
         }
         const n = leseNachricht(klar);
         if (n) this.vonGast(gast, n);
+        if (gast.person && leser.max !== MAX_ZEILE) {
+          clearTimeout(frist);
+          leser.max = MAX_ZEILE;
+        }
       }
     });
     const weg = () => {
+      clearTimeout(frist);
       if (!this.gaeste.delete(gast)) return;
       if (gast.person) {
         this.gastPings.delete(gast.person.id);

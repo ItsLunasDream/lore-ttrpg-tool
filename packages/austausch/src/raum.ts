@@ -26,6 +26,14 @@ export const RAUM_VERSION = 2;
 export const RAUM_INTERNETPORT = 47812;
 /** Mehr Personen braucht ein Tisch nicht; mehr Verbindungen nimmt der Gastgeber nicht an. */
 export const MAX_PERSONEN = 16;
+/**
+ * Vor der Anmeldung: so lang darf eine Zeile höchstens sein. Ein „hallo"
+ * ist ein paar hundert Zeichen; wer vorher 80 MB schickt, will nur den
+ * Speicher füllen.
+ */
+export const MAX_ZEILE_VOR_ANMELDUNG = 64 * 1024;
+/** So viele Verbindungen dürfen gleichzeitig noch ohne Anmeldung offen sein. */
+export const MAX_WARTEND = 8;
 /** Eine Zeile darf so lang sein wie ein Paket plus Umschlag. */
 export const MAX_ZEILE = 80 * 1024 * 1024;
 export const MAX_CHAT = 4000;
@@ -243,7 +251,8 @@ export function leseAnkuendigung(text: string): Ankuendigung | null {
  */
 export class Zeilenleser {
   private rest = '';
-  constructor(private readonly max = MAX_ZEILE) {}
+  /** Änderbar: vor der Anmeldung gilt ein kleines Limit, danach `MAX_ZEILE`. */
+  constructor(public max = MAX_ZEILE) {}
 
   /** Die fertigen Zeilen. Wirft, wenn eine Zeile zu lang wird. */
   schiebe(stueck: string): string[] {
