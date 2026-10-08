@@ -267,9 +267,10 @@ export function BodyEditor({
       // gewoehnlichem Text.
       // Seit Tiptap 3 bringt das StarterKit Link und Unterstrichen selbst mit.
       // Beide gibt es hier schon (Link mit eigenen Attributen, `Unterstrichen`),
-      // doppelt angemeldet stritten sie um denselben Namen. Der angehängte
-      // leere Absatz am Ende (trailingNode) landete sonst in jeder Datei.
-      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: false, underline: false, trailingNode: false }),
+      // doppelt angemeldet stritten sie um denselben Namen. trailingNode
+      // bleibt an: ohne den leeren Absatz am Ende ließ sich hinter einer
+      // Tabelle am Notizende nichts mehr schreiben (Rundlauf in der CI).
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: false, underline: false }),
       Placeholder.configure({ placeholder: t('editor.placeholder') }),
       // Ohne diese Erweiterung kennt der Editor keine Links: [Text](URL) aus
       // der Datei verlor beim Speichern seine Adresse. Geoeffnet wird wie bei
