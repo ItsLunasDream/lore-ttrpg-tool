@@ -87,7 +87,7 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
   },
   {
     id: 'mapmaker',
-    titel: { de: 'Karteneditor', en: 'Map Editor' },
+    titel: { de: 'Karten', en: 'Maps' },
     satz: {
       de: 'Battlemaps und Weltkarten zeichnen — für den Tisch oder fürs VTT.',
       en: 'Draw battlemaps and world maps — for the table or for a VTT.'
@@ -113,7 +113,7 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
   },
   {
     id: 'initiative',
-    titel: { de: 'Initiative Tracker', en: 'Initiative Tracker' },
+    titel: { de: 'Initiative', en: 'Initiative' },
     satz: {
       de: 'Die Reihenfolge im Kampf, Trefferpunkte und Zustände — systemneutral.',
       en: 'Turn order in combat, hit points and conditions — system-neutral.'
@@ -262,10 +262,10 @@ export const EINFUEHRUNGEN: readonly Einfuehrung[] = [
   },
   {
     id: 'encounter',
-    titel: { de: 'Encounter Creator', en: 'Encounter Creator' },
+    titel: { de: 'Begegnungen', en: 'Encounters' },
     satz: {
-      de: 'Eine Begegnung zusammenstellen — und sie später in einem Zug in den Initiative Tracker schieben.',
-      en: 'Put an encounter together — and later push it into the initiative tracker in one go.'
+      de: 'Eine Begegnung zusammenstellen — und sie später in einem Zug in die Initiative schieben.',
+      en: 'Put an encounter together — and later push it into Initiative in one go.'
     },
     punkte: [
       {

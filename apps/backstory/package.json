@@ -5,7 +5,7 @@
   "description": "Desktop-Tool zum Schreiben von Charakter-Backstorys fuer Rollenspiele",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ItsLunasDream/ttrpg-tool"
+    "url": "https://github.com/ItsLunasDream/lore-ttrpg-tool"
   },
   "main": "dist/main/index.js",
   "scripts": {
@@ -26,16 +26,13 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
-    "@tiptap/extension-image": "^2.27.2",
-    "@tiptap/extension-link": "^2.27.2",
-    "@tiptap/extension-placeholder": "^2.11.5",
-    "@tiptap/extension-table": "^2.27.2",
-    "@tiptap/extension-table-cell": "^2.27.2",
-    "@tiptap/extension-table-header": "^2.27.2",
-    "@tiptap/extension-table-row": "^2.27.2",
-    "@tiptap/pm": "^2.11.5",
-    "@tiptap/react": "^2.11.5",
-    "@tiptap/starter-kit": "^2.11.5",
+    "@tiptap/extension-image": "^3.31.4",
+    "@tiptap/extension-link": "^3.31.4",
+    "@tiptap/extension-placeholder": "^3.31.4",
+    "@tiptap/extension-table": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "@types/archiver": "^6.0.3",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^18.3.12",
@@ -112,8 +109,8 @@
   },
   "dependencies": {
     "fflate": "^0.8.2",
-    "@tiptap/extension-task-item": "^2.27.3",
-    "@tiptap/extension-task-list": "^2.27.3",
+    "@tiptap/extension-task-item": "^3.31.4",
+    "@tiptap/extension-task-list": "^3.31.4",
     "@suite/i18n": "*",
     "@suite/motion": "*",
     "@suite/tastatur": "*",

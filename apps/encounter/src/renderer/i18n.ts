@@ -7,7 +7,7 @@
 import { DEFAULT_LANGUAGE, type Language } from '@suite/i18n';
 
 const TEXTE = {
-  titel: ['Encounter Creator', 'Encounter Creator'],
+  titel: ['Begegnungen', 'Encounters'],
   untertitel: [
     'Begegnungen zusammenstellen und in den Tracker schieben.',
     'Build encounters and send them to the tracker.'
@@ -150,12 +150,12 @@ const TEXTE = {
 
   'tracker.knopf': ['In den Tracker', 'To the tracker'],
   'tracker.unterwegs': [
-    'Die Begegnung ist im Initiative Tracker.',
-    'The encounter is in the initiative tracker.'
+    'Die Begegnung ist in der Initiative.',
+    'The encounter is in Initiative.'
   ],
   'tracker.ging-nicht': [
-    'Der Initiative Tracker ließ sich nicht öffnen.',
-    'The initiative tracker could not be opened.'
+    'Die Initiative ließ sich nicht öffnen.',
+    'Initiative could not be opened.'
   ],
 
   'fehler.speichern': ['Konnte nicht speichern: {detail}', 'Could not save: {detail}'],

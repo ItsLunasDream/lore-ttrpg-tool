@@ -22,3 +22,4 @@ export * from '../src/main/raumkrypto';
 export * from '../src/main/raeume';
 export * from '../src/shared/tasten';
 export * from '../src/shared/protokoll';
+export * from '../src/main/berechtigungen';
