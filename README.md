@@ -8,7 +8,7 @@ Tools for tabletop RPG campaigns in one window. No account, no cloud:
 everything stays on your disk. The only exception is the optional AI
 connection you set up yourself.
 
-- **Initiative Tracker**: turn order, hit points, conditions with a duration,
+- **Initiative**: turn order, hit points, conditions with a duration,
   terrain events, groups for hordes.
 - **Dice**: d4 to d100 plus a custom die, flat or 3D, subtraction included.
 - **Story Creator**: characters, places, relationships as Markdown notes with
@@ -20,7 +20,7 @@ connection you set up yourself.
 - **Monster Creator**: homebrew monsters, checked against CR baselines.
 - **Status Effect Creator**: custom conditions with levels, weighed against
   the official ones.
-- **Encounter Creator**: encounters from 331 SRD monsters and your own,
+- **Encounters**: encounters from 331 SRD monsters and your own,
   difficulty per the rules, one click into the tracker.
 - **Magic Item Generator**: magic items by type and rarity, values per the SRD.
 - **Homebrew Creator**: your own weapons, armor, items, magic items and spells,
@@ -35,7 +35,7 @@ connection you set up yourself.
   controls and the shortcuts that work everywhere.
 - **Reference**: SRD glossary, equipment, 339 spells, 258 magic items,
   offline in both languages, with house rules and notes.
-- **TTRPG Map Editor**: battlemaps and world maps, export as Universal VTT.
+- **Maps**: battlemaps and world maps, export as Universal VTT.
 
 Names and icons are provisional.
 
@@ -77,14 +77,14 @@ npm run dist:win        # Windows installer into apps/shell/release/
 ```
 apps/shell/           Shell: window, start menu, rail, settings, sharing
 apps/backstory/       Story Creator
-apps/mapmaker/        TTRPG Map Editor (also a Tauri app)
-apps/initiative/      Initiative Tracker
+apps/mapmaker/        Maps (also a Tauri app)
+apps/initiative/      Initiative
 apps/dice/            Dice
 apps/npc/             NPC Creator
 apps/inspiration/     Inspiration
 apps/monster/         Monster Creator
 apps/zustaende/       Status Effect Creator
-apps/encounter/       Encounter Creator
+apps/encounter/       Encounters
 apps/nachschlagewerk/ Reference
 apps/magicitems/      Magic Item Generator
 apps/homebrew/        Homebrew Creator
@@ -211,7 +211,7 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   changes go both ways.
 - Saves itself as Markdown (`docs/charakterbogen.md`).
 
-## Initiative Tracker
+## Initiative
 
 - **Groups**: one initiative, separate hit points per body.
 - **Conditions** with a duration count down by themselves. SRD and your own
@@ -221,7 +221,7 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
   `+` or `-` heals. Enter applies, Escape discards.
 - **AC, temp HP, "out"** have their own fields.
 - Changing an initiative re-sorts; the active row stays and scrolls into view.
-- **Stat block** on click for monsters from the Encounter Creator.
+- **Stat block** on click for monsters from Encounters.
 - **Ctrl+Z / Ctrl+Y** undo and redo everything in the fight.
 - Encounters are Markdown files in a searchable collection; the running fight
   (including the tactics note) is saved as JSON next to them.
@@ -243,7 +243,7 @@ Notes are Markdown with a YAML header, readable in any editor or Obsidian.
 - Dials: scope, region, theme, tone. Lock or edit any block.
 - Existing characters from the campaign can be pulled in.
 - The web of characters as a picture, full screen on click.
-- "Start a map" opens the Map Editor with the place's notes as pins.
+- "Start a map" opens Maps with the place's notes as pins.
 - "All from AI" drafts all six blocks in one consistent answer.
 - **Taking it over** creates notes plus an overview in the chosen campaign.
   Existing ones are skipped or, on request, updated.
@@ -282,7 +282,7 @@ Baselines from a CC-BY source, see [NOTICE.md](NOTICE.md).
 - **Card to read aloud**: player text in front, rule on the back.
 - "Save as new" keeps the original.
 
-## Encounter Creator
+## Encounters
 
 - The rating sits under the opponents and names all three budgets.
 - Build to a target CR or to the difficulty for your party.
@@ -308,7 +308,7 @@ More: `docs/nachschlagewerk.md` (German).
 - **3D** (off by default, needs graphics acceleration): the result comes
   from `wuerfle()`, the physics only animates it.
 
-## TTRPG Map Editor
+## Maps
 
 `apps/mapmaker` has its own history and `CLAUDE.md`. Workspace changes:
 `base: './'` in `vite.config.ts` and a typing workaround for the Vite
@@ -375,7 +375,7 @@ Comments, commits and project docs (`KONVENTIONEN.md`, `BACKLOG.md`,
 | `inspirationshilfe.md` | Inspiration |
 | `monster.md` | Monster Creator |
 | `statuseffekte.md` | Status Effect Creator |
-| `encounter.md` | Encounter Creator |
+| `encounter.md` | Encounters |
 | `austausch.md` | Sharing and rooms |
 | `raum-online.md` | How to: room over the internet (port forwarding, IPv6) |
 | `magicitems.md` | Magic Item Generator |

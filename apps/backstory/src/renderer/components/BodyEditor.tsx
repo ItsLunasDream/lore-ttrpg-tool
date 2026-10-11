@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { meldeEinfuegeziel } from '../editor/einfuegen';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { ContextMenu } from './ContextMenu';
@@ -140,7 +137,7 @@ export function BodyEditor({
 
   // Die ProseMirror-Handler entstehen einmal und brauchen deshalb Referenzen
   // auf die jeweils aktuellen Werte.
-  const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+  const editorRef = useRef<Editor | null>(null);
   /**
    * Die Uebersetzung fuer die Erweiterung, die nur einmal gebaut wird. Ohne
    * Referenz truege der Pfeil die Beschriftung der Sprache von damals.
@@ -260,12 +257,20 @@ export function BodyEditor({
   );
 
   const editor = useEditor({
+    // Tiptap 3 rendert sonst nicht mehr bei jeder Eingabe neu, und die
+    // Werkzeugleiste zeigte Fett, Überschrift usw. nicht mehr als aktiv an.
+    shouldRerenderOnTransaction: true,
     extensions: [
       // Die Werkzeugleiste bietet nur H1 bis H3 an, das reicht fuer eine
       // Backstory. Tiefere Ueberschriften muss der Editor trotzdem kennen,
       // sonst wuerde ein #### aus einer bestehenden Datei beim Speichern zu
       // gewoehnlichem Text.
-      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
+      // Seit Tiptap 3 bringt das StarterKit Link und Unterstrichen selbst mit.
+      // Beide gibt es hier schon (Link mit eigenen Attributen, `Unterstrichen`),
+      // doppelt angemeldet stritten sie um denselben Namen. trailingNode
+      // bleibt an: ohne den leeren Absatz am Ende ließ sich hinter einer
+      // Tabelle am Notizende nichts mehr schreiben (Rundlauf in der CI).
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: false, underline: false }),
       Placeholder.configure({ placeholder: t('editor.placeholder') }),
       // Ohne diese Erweiterung kennt der Editor keine Links: [Text](URL) aus
       // der Datei verlor beim Speichern seine Adresse. Geoeffnet wird wie bei
@@ -344,7 +349,7 @@ export function BodyEditor({
     const marker = `${noteId}:${reloadKey}`;
     if (!editor || loaded.current === marker) return;
     loaded.current = marker;
-    editor.commands.setContent(markdownToHtml(markdown, (target) => assetUrl(campaignId, target)), false);
+    editor.commands.setContent(markdownToHtml(markdown, (target) => assetUrl(campaignId, target)), { emitUpdate: false });
   }, [editor, noteId, reloadKey, markdown, campaignId]);
 
   const insertImage = useCallback(

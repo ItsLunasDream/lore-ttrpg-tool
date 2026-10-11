@@ -98,8 +98,8 @@ const TEXTE = {
   'angriff.weg': ['Angriff entfernen', 'Remove attack'],
   tracker: ['In die Initiative', 'To initiative'],
   'tracker.titel': [
-    'Die Figur mit Name, TP, RK und Initiativebonus in den Initiative Tracker. Ist sie schon dort, wird sie aufgefrischt. TP-Änderungen im Kampf kommen zurück in den Bogen.',
-    'Send the character with name, HP, AC and initiative bonus to the Initiative Tracker. If it is already there, it is refreshed. HP changes in combat come back to the sheet.'
+    'Die Figur mit Name, TP, RK und Initiativebonus in die Initiative. Ist sie schon dort, wird sie aufgefrischt. TP-Änderungen im Kampf kommen zurück in den Bogen.',
+    'Send the character with name, HP, AC and initiative bonus to Initiative. If it is already there, it is refreshed. HP changes in combat come back to the sheet.'
   ],
   'tracker.alle': ['Alle Figuren in die Initiative', 'All characters to initiative'],
   'quelle.oeffnen': ['+ Aus Quelle …', '+ From a source …'],

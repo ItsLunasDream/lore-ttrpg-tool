@@ -105,10 +105,13 @@ const PROBEN = [
   },
   {
     name: 'Codeblock mit Leerzeile',
-    text: 'Davor:\n\n```\neins\n   \nzwei\n```',
-    erwartet: 'Davor:\n\n```\neins\n   \nzwei\n\n```'
+    text: 'Davor:\n\n```\neins\n   \nzwei\n```'
   },
-  { name: 'Codeblock', text: 'Davor:\n\n```\nzeile eins\nzeile zwei\n```', erwartet: 'Davor:\n\n```\nzeile eins\nzeile zwei\n\n```' },
+  // Früher stand hier eine erwartete Leerzeile vor dem Schluss-```: das „ZZ“
+  // des Tests landete im Codeblock. Seit Tiptap 3 hängt der Editor einen
+  // leeren Absatz an (trailingNode), dort landet es, und der Block bleibt
+  // wortgleich.
+  { name: 'Codeblock', text: 'Davor:\n\n```\nzeile eins\nzeile zwei\n```' },
   // Listen bleiben seit dem Testbericht eng und wortgleich; vorher wurden
   // sie zu „-   eins" mit Leerzeilen vereinheitlicht.
   { name: 'Liste', text: '- eins\n- zwei\n  - zwei a' },

@@ -12,7 +12,7 @@ import { Dialog } from './Dialog';
 import { SuiteIcon } from './icons';
 import { NAMENSNENNUNG } from '@suite/srd';
 
-const REPO_URL = 'https://github.com/ItsLunasDream/ttrpg-tool';
+const REPO_URL = 'https://github.com/ItsLunasDream/lore-ttrpg-tool';
 const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 /*
  * Die Namensnennung fuer fremde Daten. CC-BY verlangt sie, und sie nur ins
